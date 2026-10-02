@@ -48,6 +48,13 @@ function success_json($message, array $extra = [])
     exit;
 }
 
+// Check it has access to SQLite3 extension
+if (!extension_loaded('sqlite3')) {
+    http_response_code(500);
+    error_json("SQLite3 extension is not enabled on the server");
+    exit;
+}
+
 // Read raw JSON from request body
 $raw_input = file_get_contents('php://input');
 $action = json_decode($raw_input, true);
