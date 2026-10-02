@@ -1,0 +1,96 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * Minilytics Pure-PHP CLI Import Tool
+ * Runs in terminal via `php import.php --zip export.zip`
+ * 100% PHP, zero Python dependency!
+ */
+
+if (php_sapi_name() !== 'cli') {
+    header('Location: /dashboard/');
+    exit;
+}
+
+require_once __DIR__ . '/dashboard/src/api/db.php';
+require_once __DIR__ . '/dashboard/src/api/importers/UmamiImporter.php';
+
+echo "\n" . str_repeat('=', 60) . "\n";
+echo "   Minilytics CLI Data Importer (100% Pure PHP)\n";
+echo str_repeat('=', 60) . "\n\n";
+
+$options = getopt('', ['zip:', 'folder:', 'site-id:', 'site-name:', 'domain:', 'help']);
+
+if (isset($options['help'])) {
+    echo "Usage: php import.php [options]\n\n";
+    echo "Options:\n";
+    echo "  --zip <path>        Path to Umami .zip export archive\n";
+    echo "  --folder <path>     Path to folder containing Umami CSVs\n";
+    echo "  --site-id <id>      Target Minilytics site ID (e.g. ecrismalettre)\n";
+    echo "  --site-name <name>  Display name for the website\n";
+    echo "  --domain <domain>   Domain name (e.g. ecrismalettre.fr)\n";
+    echo "  --help              Display this help message\n\n";
+    exit(0);
+}
+
+$source = $options['zip'] ?? $options['folder'] ?? null;
+
+if (!$source) {
+    if (file_exists(__DIR__ . '/umami-export-sample.zip')) {
+        $source = __DIR__ . '/umami-export-sample.zip';
+    } elseif (is_dir(__DIR__ . '/umami-import')) {
+        $source = __DIR__ . '/umami-import';
+    } else {
+        fwrite(STDERR, "Error: Please specify --zip <path> or --folder <path>\n");
+        fwrite(STDERR, "Run `php import.php --help` for usage details.\n\n");
+        exit(1);
+    }
+}
+
+if (!file_exists($source)) {
+    fwrite(STDERR, "Error: Source path not found: {$source}\n");
+    exit(1);
+}
+
+$siteId = $options['site-id'] ?? '';
+$siteName = $options['site-name'] ?? '';
+$domain = $options['domain'] ?? '';
+
+$importer = new UmamiImporter();
+
+echo "[1/3] Inspecting source: " . basename($source) . "...\n";
+$meta = $importer->inspect($source);
+
+if (empty($siteId)) {
+    $siteId = $meta['suggested_site_id'] ?: 'imported_site';
+}
+if (empty($siteName)) {
+    $siteName = $meta['suggested_name'] ?: ucwords(str_replace(['_', '-'], ' ', $siteId));
+}
+if (empty($domain)) {
+    $domain = $meta['detected_host'] ?: '';
+}
+
+echo "      Target Site: '{$siteName}' (ID: {$siteId}, Domain: " . ($domain ?: 'none') . ")\n";
+echo "[2/3] Processing events and inserting into data/{$siteId}.db...\n";
+
+$start = microtime(true);
+$result = $importer->import($source, $siteId, [
+    'name' => $siteName,
+    'domain' => $domain
+]);
+$elapsed = round(microtime(true) - $start, 2);
+
+echo "[3/3] Import successfully completed in {$elapsed}s!\n\n";
+echo str_repeat('=', 60) . "\n";
+echo sprintf("  Target Website:      %s (ID: %s)\n", $result['site_name'], $result['site_id']);
+echo sprintf("  Database:            data/%s.db\n", $result['site_id']);
+echo sprintf("  Total Events:        %s\n", number_format($result['total_imported']));
+echo sprintf("  Pageviews:           %s\n", number_format($result['pageviews']));
+echo sprintf("  Custom Events:       %s\n", number_format($result['custom_events']));
+echo sprintf("  Distinct Sessions:   %s\n", number_format($result['sessions']));
+if (!empty($result['date_start']) && !empty($result['date_end'])) {
+    echo sprintf("  Date Range:          %s to %s\n", $result['date_start'], $result['date_end']);
+}
+echo str_repeat('=', 60) . "\n\n";
+echo "View in Dashboard: http://localhost:8080/dashboard/?site={$siteId}\n\n";

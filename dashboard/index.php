@@ -22,6 +22,7 @@ if ($path === '/dashboard') {
     <!-- Core Stylesheets -->
     <link rel="stylesheet" href="/dashboard/src/assets/css/dashboard.css">
     <link rel="stylesheet" href="/dashboard/src/assets/css/overview.css">
+    <link rel="stylesheet" href="/dashboard/src/assets/css/import.css">
     
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><circle cx='6' cy='6' r='3'/><circle cx='18' cy='6' r='3'/><circle cx='6' cy='18' r='3'/><circle cx='18' cy='18' r='3'/></svg>">
 </head>
@@ -63,6 +64,7 @@ if ($path === '/dashboard') {
     <script src="/dashboard/src/assets/js/api.js"></script>
     <script src="/dashboard/src/assets/js/chart.js"></script>
     <script src="/dashboard/src/assets/js/websites.js"></script>
+    <script src="/dashboard/src/assets/js/import.js"></script>
     <script src="/dashboard/src/assets/js/overview.js"></script>
     <script src="/dashboard/src/assets/js/events.js"></script>
     <script src="/dashboard/src/assets/js/sessions.js"></script>

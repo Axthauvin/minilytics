@@ -122,6 +122,36 @@ const Api = {
     }
     return data;
   },
+
+  async getImportProviders() {
+    const res = await fetch(`${this.base}/import.php?action=providers`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  },
+
+  async inspectImport(formData) {
+    const res = await fetch(`${this.base}/import.php?action=inspect`, {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      throw new Error(data.error || `HTTP ${res.status}`);
+    }
+    return data;
+  },
+
+  async submitImport(formData) {
+    const res = await fetch(`${this.base}/import.php`, {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      throw new Error(data.error || `HTTP ${res.status}`);
+    }
+    return data;
+  },
 };
 
 window.Api = Api;

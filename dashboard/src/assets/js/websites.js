@@ -32,6 +32,18 @@ const WebsitesPage = {
                 }
             });
         }
+
+        const importBtn = document.getElementById('btnWebsitesImport');
+        if (importBtn) {
+            importBtn.addEventListener('click', () => {
+                if (window.ImportModal) {
+                    window.ImportModal.open();
+                } else {
+                    const modal = document.getElementById('importModal');
+                    if (modal) modal.classList.add('active');
+                }
+            });
+        }
     },
 
     async load() {
@@ -106,21 +118,56 @@ const WebsitesPage = {
         img.src = this.getFallbackIconDataUri();
     },
 
-    generateSparklineSvg(pointsCount = 8) {
-        // Generate an inline mini trend sparkline (Image 1 aesthetic)
-        const heights = [10, 16, 12, 19, 14, 21, 16, 22];
+    generateSparklineSvg(sparklineData = []) {
         const width = 80;
         const height = 24;
-        const step = width / (heights.length - 1);
+        const padY = 3;
 
-        let path = `M 0 ${height - heights[0]}`;
-        for (let i = 1; i < heights.length; i++) {
-            path += ` L ${i * step} ${height - heights[i]}`;
+        const data = Array.isArray(sparklineData) && sparklineData.length > 0 
+            ? sparklineData 
+            : [0, 0, 0, 0, 0, 0, 0];
+
+        const maxVal = Math.max(...data);
+        const step = (width - 6) / Math.max(1, data.length - 1);
+
+        if (maxVal === 0) {
+            const y = height - padY;
+            return `
+                <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" style="vertical-align: middle;" title="No visitors in the last 7 days">
+                    <line x1="3" y1="${y}" x2="${width - 3}" y2="${y}" stroke="#cbd5e1" stroke-width="1.6" stroke-dasharray="2 3" stroke-linecap="round" />
+                </svg>
+            `;
         }
 
+        const points = data.map((val, i) => {
+            const x = 3 + i * step;
+            const y = height - padY - (val / maxVal) * (height - 2 * padY);
+            return { x, y, val };
+        });
+
+        let path = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+        for (let i = 0; i < points.length - 1; i++) {
+            const p0 = points[i === 0 ? 0 : i - 1];
+            const p1 = points[i];
+            const p2 = points[i + 1];
+            const p3 = points[i + 2] || p2;
+
+            const cp1x = p1.x + (p2.x - p0.x) / 6;
+            const cp1y = p1.y + (p2.y - p0.y) / 6;
+            const cp2x = p2.x - (p3.x - p1.x) / 6;
+            const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+            path += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+        }
+
+        const areaPath = `${path} L ${points[points.length - 1].x.toFixed(1)} ${height} L ${points[0].x.toFixed(1)} ${height} Z`;
+        const titleStr = data.map((v, idx) => `D-${data.length - 1 - idx}: ${v}`).join(' | ');
+
         return `
-            <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" style="vertical-align: middle;">
+            <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" style="vertical-align: middle; overflow: visible;" title="${titleStr}">
+                <path d="${areaPath}" fill="#3b82f6" fill-opacity="0.12" />
                 <path d="${path}" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="${points[points.length - 1].x.toFixed(1)}" cy="${points[points.length - 1].y.toFixed(1)}" r="2.2" fill="#3b82f6" />
             </svg>
         `;
     },
@@ -159,8 +206,8 @@ const WebsitesPage = {
             const domain = site.domain || '';
             const favicon = this.getFaviconUrl(domain);
             const timeAgo = this.formatTimeAgo(site.created_at);
-            const sparkline = this.generateSparklineSvg();
-            const visitors = site.visitors || 0;
+            const sparkline = this.generateSparklineSvg(site.sparkline || []);
+            const visitors = (site.visitors_7d !== undefined ? site.visitors_7d : site.visitors) || 0;
 
             return `
                 <tr style="cursor: pointer;" onclick="if (!event.target.closest('button') && !event.target.closest('a')) WebsitesPage.openSiteAnalytics('${site.id}')">
@@ -233,7 +280,12 @@ const WebsitesPage = {
 
         const snippetBox = document.getElementById('createdSiteSnippet');
         if (snippetBox) {
-            snippetBox.textContent = snippet;
+            snippetBox.dataset.rawText = snippet;
+            if (window.ClipboardHelper && typeof window.ClipboardHelper.highlightHtml === 'function') {
+                snippetBox.innerHTML = window.ClipboardHelper.highlightHtml(snippet);
+            } else {
+                snippetBox.textContent = snippet;
+            }
         }
 
         const modal = document.getElementById('addSiteModal');

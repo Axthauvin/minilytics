@@ -2,4 +2,10 @@
 *.db-wal
 *.db-shm
 
-data/
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/sites.json
+*.zip
+umami-import/
+!data/.htaccess

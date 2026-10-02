@@ -1,0 +1,29 @@
+# Minilytics Apache Configuration
+Options -Indexes
+
+# Protect sensitive files
+<FilesMatch "\.(db|db-wal|db-shm|json|lock)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Allow large file uploads for ZIP imports (up to 128MB)
+<IfModule mod_php.c>
+    php_value upload_max_filesize 128M
+    php_value post_max_size 128M
+    php_value memory_limit 256M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 128M
+    php_value post_max_size 128M
+    php_value memory_limit 256M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+</IfModule>
