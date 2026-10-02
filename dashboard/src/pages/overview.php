@@ -1,4 +1,4 @@
-<!-- Page: Analytics Overview (Inspired by Umami Layout) -->
+<!-- Page: Analytics Overview -->
 <div class="page-view" id="page-overview">
     <!-- 1. Umami-style Top 5 Metric Squares Grid -->
     <div class="umami-stats-grid">
@@ -195,5 +195,25 @@
                 <li class="clean-pill-row empty"><span class="pill-muted">No country data recorded yet</span></li>
             </ul>
         </div>
+    </div>
+</div>
+
+<div class="no-data" id="no-data-yet">
+    <div class="no-data-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+    </div>
+    <h3 class="no-data-title">No data yet</h3>
+    <p class="no-data-subtitle">Your analytics dashboard will populate once your site starts receiving traffic.</p>
+
+    <h5>If it is not done yet, add the tracking code to your site.</h5>
+    <div style="position: relative; margin-bottom: 20px;">
+        <pre class="json-box" id="createdSiteSnippet" style="text-align: left; padding-right: 70px; color: #e2e8f0; font-size: 12px;"></pre>
+        <button type="button" class="btn-outline" id="btnCopySnippet" style="position: absolute; right: 10px; top: 10px; font-size: 12px; padding: 4px 10px;">
+            Copy
+        </button>
     </div>
 </div>

@@ -19,7 +19,10 @@ if ($path === '/dashboard') {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css">
+    <!-- Core Stylesheets -->
     <link rel="stylesheet" href="/dashboard/src/assets/css/dashboard.css">
+    <link rel="stylesheet" href="/dashboard/src/assets/css/overview.css">
+    
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><circle cx='6' cy='6' r='3'/><circle cx='18' cy='6' r='3'/><circle cx='6' cy='18' r='3'/><circle cx='18' cy='18' r='3'/></svg>">
 </head>
 <body>

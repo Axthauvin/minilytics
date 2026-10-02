@@ -1,0 +1,18 @@
+.no-data {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.no-data img {
+  width: 200px;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+.no-data h2 {
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 10px;
+}
