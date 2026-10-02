@@ -9,6 +9,8 @@ const SessionsPage = {
     page: 1,
     limit: 25,
     search: "",
+    date: "",
+    eventName: "all",
   },
   rawSessions: [],
   searchDebounce: null,
@@ -28,6 +30,38 @@ const SessionsPage = {
           this.filters.page = 1;
           this.load();
         }, 300);
+      });
+    }
+
+    const dateFilter = document.getElementById("sessionDateFilter");
+    const clearDateBtn = document.getElementById("clearDateFilterBtn");
+    if (dateFilter) {
+      dateFilter.addEventListener("change", (e) => {
+        this.filters.date = e.target.value;
+        if (clearDateBtn) {
+          clearDateBtn.style.display = this.filters.date ? "inline-flex" : "none";
+        }
+        this.filters.page = 1;
+        this.load();
+      });
+    }
+
+    if (clearDateBtn) {
+      clearDateBtn.addEventListener("click", () => {
+        if (dateFilter) dateFilter.value = "";
+        this.filters.date = "";
+        clearDateBtn.style.display = "none";
+        this.filters.page = 1;
+        this.load();
+      });
+    }
+
+    const eventFilter = document.getElementById("sessionEventFilter");
+    if (eventFilter) {
+      eventFilter.addEventListener("change", (e) => {
+        this.filters.eventName = e.target.value;
+        this.filters.page = 1;
+        this.load();
       });
     }
 
@@ -57,6 +91,30 @@ const SessionsPage = {
     }
   },
 
+  filterByDay(dayKey) {
+    const dateInput = document.getElementById("sessionDateFilter");
+    const clearBtn = document.getElementById("clearDateFilterBtn");
+    if (dateInput) {
+      dateInput.value = dayKey;
+    }
+    if (clearBtn) {
+      clearBtn.style.display = "inline-flex";
+    }
+    this.filters.date = dayKey;
+    this.filters.page = 1;
+    this.load();
+  },
+
+  filterByEvent(eventName) {
+    const eventSel = document.getElementById("sessionEventFilter");
+    if (eventSel) {
+      eventSel.value = eventName;
+    }
+    this.filters.eventName = eventName;
+    this.filters.page = 1;
+    this.load();
+  },
+
   async load(range, siteId, customDates) {
     if (range) this.filters.range = range;
     if (customDates !== undefined) this.filters.customDates = customDates;
@@ -71,7 +129,10 @@ const SessionsPage = {
 
       const data = await Api.getSessions(this.filters);
       this.rawSessions = data.sessions || [];
-      this.renderSessions(this.rawSessions);
+      if (data.available_events) {
+        this.renderEventOptions(data.available_events);
+      }
+      this.renderSessions(this.rawSessions, data.total);
       this.renderPagination(data);
     } catch (err) {
       window.App?.displayNoDataMessage(siteId);
@@ -83,86 +144,168 @@ const SessionsPage = {
     }
   },
 
-  renderSessions(sessions) {
+  renderEventOptions(types) {
+    const select = document.getElementById("sessionEventFilter");
+    if (!select) return;
+    const current = this.filters.eventName || "all";
+    let optionsHtml = `<option value="all" ${current === "all" ? "selected" : ""}>Tous les événements</option>`;
+
+    const hasCurrent = types.some((t) => t.name === current);
+    if (current !== "all" && !hasCurrent) {
+      optionsHtml += `<option value="${this.escapeHtml(current)}" selected>${this.escapeHtml(current)}</option>`;
+    }
+
+    types.forEach((t) => {
+      const isSel = t.name === current ? "selected" : "";
+      const label = t.count !== undefined ? `${t.name} (${t.count})` : t.name;
+      optionsHtml += `<option value="${this.escapeHtml(t.name)}" ${isSel}>${this.escapeHtml(label)}</option>`;
+    });
+
+    select.innerHTML = optionsHtml;
+  },
+
+  extractDayKey(timestamp) {
+    if (!timestamp) return "";
+    try {
+      const d = new Date(timestamp.includes("T") ? timestamp : timestamp.replace(" ", "T") + "Z");
+      if (isNaN(d.getTime())) return timestamp.substring(0, 10);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    } catch (e) {
+      return timestamp.substring(0, 10);
+    }
+  },
+
+  formatDayLabel(dayKey) {
+    if (!dayKey) return "";
+    try {
+      const parts = dayKey.split("-");
+      if (parts.length < 3) return dayKey;
+      const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      const now = new Date();
+      const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayKey = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
+
+      const options = {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      };
+      if (d.getFullYear() !== now.getFullYear()) {
+        options.year = "numeric";
+      }
+
+      const formatted = d.toLocaleDateString("fr-FR", options);
+      const cap = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+
+      if (dayKey === todayKey) {
+        return `Aujourd'hui · ${cap}`;
+      } else if (dayKey === yesterdayKey) {
+        return `Hier · ${cap}`;
+      }
+      return cap;
+    } catch (e) {
+      return dayKey;
+    }
+  },
+
+  renderSessions(sessions, totalCount) {
     const container = document.getElementById("sessionsListContainer");
     const countBadge = document.getElementById("sessionsTotalCount");
     if (!container) return;
 
+    const total = typeof totalCount === "number" ? totalCount : sessions.length;
     if (countBadge) {
-      countBadge.textContent = `${sessions.length} session${sessions.length === 1 ? "" : "s"}`;
+      countBadge.textContent = `${total} session${total === 1 ? "" : "s"}`;
     }
 
     if (sessions.length === 0) {
       container.innerHTML = `
                 <div class="data-table-card" style="padding: 48px; text-align: center;">
-                    <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 4px;">No sessions found</h3>
-                    <p style="font-size: 13px; color: var(--text-muted);">No activity recorded for this period.</p>
+                    <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 4px;">Aucune session trouvée</h3>
+                    <p style="font-size: 13px; color: var(--text-muted);">Aucune activité enregistrée pour ces critères de filtre.</p>
                 </div>
             `;
       return;
     }
 
-    container.innerHTML = sessions
-      .map((s) => {
-        const avatarUrl =
-          s.avatar_url || Icons.getDiceBearGlyphUrl(s.session_id);
-        const fallbackSvg = Icons.getIdenticonSvgDataUri(s.session_id, 40);
-        const shortId = (s.session_id || "").substring(0, 8);
-        const country = s.country || "Unknown";
-        const countryCode = s.country_code || "UN";
-        const os = s.os || "Unknown OS";
-        const browser = s.browser || "Unknown Browser";
-        const timeAgo = s.time_ago || s.started_at;
-        const duration = s.duration_label || "0s";
-        const eventCount = s.event_count || 1;
+    let lastDayKey = null;
+    let html = "";
 
-        const siteId = window.App?.currentSiteId || "";
+    sessions.forEach((s) => {
+      const dayKey = this.extractDayKey(s.started_at || s.last_active_at);
 
-        // Render flow chips with Lucide icons
-        // const flowChips = (s.flow || []).map(f => {
-        //     const isPv = f.type === 'pageview';
-        //     const chipIcon = isPv ? Icons.get('file-text', { size: 11 }) : Icons.get('zap', { size: 11 });
-        //     return `<span class="flow-pill ${isPv ? 'flow-pv' : 'flow-evt'}" title="${this.escapeHtml(f.label)}">${chipIcon} ${this.escapeHtml(f.label)}</span>`;
-        // }).join(`<span class="flow-arrow">${Icons.get('arrow-right', { size: 10 })}</span>`);
+      if (dayKey && dayKey !== lastDayKey) {
+        lastDayKey = dayKey;
+        const dayLabel = this.formatDayLabel(dayKey);
+        html += `
+          <div class="session-day-delimiter">
+            <div class="session-day-line"></div>
+            <div class="session-day-badge" onclick="SessionsPage.filterByDay('${dayKey}')" title="Filtrer uniquement sur ${this.escapeHtml(dayLabel)}">
+              ${Icons.get("calendar", { size: 13, color: "var(--text-muted)" })}
+              <span>${this.escapeHtml(dayLabel)}</span>
+            </div>
+            <div class="session-day-line"></div>
+          </div>
+        `;
+      }
 
-        const flowChips = null;
+      const avatarUrl =
+        s.avatar_url || Icons.getDiceBearGlyphUrl(s.session_id);
+      const fallbackSvg = Icons.getIdenticonSvgDataUri(s.session_id, 40);
+      const shortId = (s.session_id || "").substring(0, 8);
+      const country = s.country || "Unknown";
+      const countryCode = s.country_code || "UN";
+      const os = s.os || "Unknown OS";
+      const browser = s.browser || "Unknown Browser";
+      const timeAgo = s.time_ago || s.started_at;
+      const duration = s.duration_label || "0s";
+      const eventCount = s.event_count || 1;
+      const siteId = window.App?.currentSiteId || "";
+      const flowChips = null;
 
-        return `
-                <div class="session-card-item" onclick="SessionsPage.inspectSession('${s.session_id}', '${siteId}')" title="Inspect session journey">
-                    <div class="session-card-left">
-                        <div class="session-avatar-wrap">
-                            <img src="${avatarUrl}" alt="Avatar" class="session-avatar-img" onerror="this.onerror=null; this.src='${fallbackSvg}';">
-                            <span class="session-status-dot"></span>
-                        </div>
-                        <div class="session-card-info">
-                            <div class="session-card-title-row">
-                                <span class="session-visitor-name">Session #${shortId}</span>
-                                <span class="session-badge-country">
-                                    ${Icons.getCountryFlag(countryCode, { size: 14 })}
-                                    <span>${this.escapeHtml(country)}</span>
-                                </span>
-                            </div>
-                            <div class="session-card-sub-row">
-                                <span class="session-meta-item">${Icons.getBrowserIcon(browser, 14)} ${this.escapeHtml(browser)}</span>
-                                <span class="session-meta-divider">·</span>
-                                <span class="session-meta-item">${Icons.getOsIcon(os, 14)} ${this.escapeHtml(os)}</span>
-                                <span class="session-meta-divider">·</span>
-                                <span class="session-meta-item">${Icons.get("activity", { size: 12 })} ${eventCount} action${eventCount === 1 ? "" : "s"}</span>
-                                ${flowChips ? `<span class="session-meta-divider">|</span><div class="session-flow-bar">${flowChips}</div>` : ""}
-                            </div>
-                        </div>
+      html += `
+        <div class="session-card-item" onclick="SessionsPage.inspectSession('${s.session_id}', '${siteId}')" title="Inspect session journey">
+            <div class="session-card-left">
+                <div class="session-avatar-wrap">
+                    <img src="${avatarUrl}" alt="Avatar" class="session-avatar-img" onerror="this.onerror=null; this.src='${fallbackSvg}';">
+                    <span class="session-status-dot"></span>
+                </div>
+                <div class="session-card-info">
+                    <div class="session-card-title-row">
+                        <span class="session-visitor-name">Session #${shortId}</span>
+                        <span class="session-badge-country">
+                            ${Icons.getCountryFlag(countryCode, { size: 14 })}
+                            <span>${this.escapeHtml(country)}</span>
+                        </span>
                     </div>
-                    <div class="session-card-right">
-                        <div class="session-time-block">
-                            <span class="session-card-time">${this.escapeHtml(timeAgo)}</span>
-                            <span class="session-card-duration">Duration: ${duration}</span>
-                        </div>
-                        <span class="session-card-chevron">${Icons.get("chevron-right", { size: 16 })}</span>
+                    <div class="session-card-sub-row">
+                        <span class="session-meta-item">${Icons.getBrowserIcon(browser, 14)} ${this.escapeHtml(browser)}</span>
+                        <span class="session-meta-divider">·</span>
+                        <span class="session-meta-item">${Icons.getOsIcon(os, 14)} ${this.escapeHtml(os)}</span>
+                        <span class="session-meta-divider">·</span>
+                        <span class="session-meta-item">${Icons.get("activity", { size: 12 })} ${eventCount} action${eventCount === 1 ? "" : "s"}</span>
+                        ${flowChips ? `<span class="session-meta-divider">|</span><div class="session-flow-bar">${flowChips}</div>` : ""}
                     </div>
                 </div>
-            `;
-      })
-      .join("");
+            </div>
+            <div class="session-card-right">
+                <div class="session-time-block">
+                    <span class="session-card-time">${this.escapeHtml(timeAgo)}</span>
+                    <span class="session-card-duration">Duration: ${duration}</span>
+                </div>
+                <span class="session-card-chevron">${Icons.get("chevron-right", { size: 16 })}</span>
+            </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
   },
 
   renderPagination(data) {

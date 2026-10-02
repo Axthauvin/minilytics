@@ -71,6 +71,8 @@ const Api = {
     search = "",
     siteId = "",
     customDates = null,
+    date = "",
+    eventName = "",
   } = {}) {
     const targetSite =
       siteId && siteId !== "all"
@@ -86,6 +88,8 @@ const Api = {
       limit: limit.toString(),
     });
     if (search) params.append("search", search);
+    if (date) params.append("date", date);
+    if (eventName && eventName !== "all") params.append("event_name", eventName);
     if (targetSite) params.append("site_id", targetSite);
     const dates = customDates || (window.App && window.App.customDates);
     if (range === "custom" && dates) {

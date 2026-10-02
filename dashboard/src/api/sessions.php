@@ -109,6 +109,8 @@ try {
     // 2. Listing sessions with aggregations
     $range = $_GET['range'] ?? '7d';
     $search = trim($_GET['search'] ?? '');
+    $day = trim($_GET['day'] ?? $_GET['date'] ?? '');
+    $eventName = trim($_GET['event_name'] ?? $_GET['event'] ?? '');
     $limit = max(1, min(100, (int) ($_GET['limit'] ?? 25)));
     $page = max(1, (int) ($_GET['page'] ?? 1));
     $offset = ($page - 1) * $limit;
@@ -117,13 +119,18 @@ try {
     $from = $_GET['from'] ?? $_GET['start'] ?? $_GET['start_date'] ?? null;
     $to = $_GET['to'] ?? $_GET['end'] ?? $_GET['end_date'] ?? null;
 
-    if ($range === 'custom' || (!empty($from) && !empty($to))) {
+    if ($day !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $day)) {
+        $startDateStr = $day . ' 00:00:00';
+        $endDateStr = $day . ' 23:59:59';
+    } elseif ($range === 'custom' || (!empty($from) && !empty($to))) {
         $range = 'custom';
         $startUnix = !empty($from) ? (strtotime($from . ' 00:00:00 UTC') ?: ($now - 30 * 86400)) : ($now - 30 * 86400);
         $endUnix = !empty($to) ? (strtotime($to . ' 23:59:59 UTC') ?: $now) : $now;
         if ($startUnix > $endUnix) {
             [$startUnix, $endUnix] = [$endUnix, $startUnix];
         }
+        $startDateStr = gmdate('Y-m-d H:i:s', $startUnix);
+        $endDateStr = gmdate('Y-m-d H:i:s', $endUnix);
     } else {
         $endUnix = $now;
         $startUnix = match ($range) {
@@ -136,9 +143,9 @@ try {
             'all' => 0,
             default => $now - (7 * 86400)
         };
+        $startDateStr = gmdate('Y-m-d H:i:s', $startUnix);
+        $endDateStr = gmdate('Y-m-d H:i:s', $endUnix);
     }
-    $startDateStr = gmdate('Y-m-d H:i:s', $startUnix);
-    $endDateStr = gmdate('Y-m-d H:i:s', $endUnix);
 
     $where = ["timestamp >= :start_date AND timestamp <= :end_date"];
     $params = [
@@ -146,8 +153,18 @@ try {
         ':end_date' => $endDateStr,
     ];
 
+    if ($eventName !== '' && $eventName !== 'all') {
+        $where[] = "session_id IN (
+            SELECT DISTINCT sub_ua.session_id 
+            FROM user_activity sub_ua 
+            WHERE json_extract(sub_ua.action, '$.name') = :event_name
+              AND sub_ua.timestamp >= :start_date AND sub_ua.timestamp <= :end_date
+        )";
+        $params[':event_name'] = $eventName;
+    }
+
     if ($search !== '') {
-        $where[] = "session_id LIKE :search";
+        $where[] = "(session_id LIKE :search OR action LIKE :search)";
         $params[':search'] = "%{$search}%";
     }
 
@@ -267,13 +284,35 @@ try {
         ];
     }
 
+    // Fetch distinct event names for the filter dropdown
+    $evtTypesStmt = $db->prepare("
+        SELECT json_extract(action, '$.name') as name, COUNT(*) as count 
+        FROM user_activity 
+        WHERE timestamp >= :start_date AND timestamp <= :end_date
+        GROUP BY name 
+        ORDER BY count DESC
+    ");
+    $evtTypesStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
+    $evtTypesStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
+    $evtRes = $evtTypesStmt->execute();
+    $availableEvents = [];
+    while ($er = $evtRes->fetchArray(SQLITE3_ASSOC)) {
+        if (!empty($er['name'])) {
+            $availableEvents[] = [
+                'name' => $er['name'],
+                'count' => (int)$er['count']
+            ];
+        }
+    }
+
     echo json_encode([
         'success' => true,
         'sessions' => $sessions,
         'total' => $totalSessions,
         'page' => $page,
         'limit' => $limit,
-        'total_pages' => max(1, (int) ceil($totalSessions / $limit))
+        'total_pages' => max(1, (int) ceil($totalSessions / $limit)),
+        'available_events' => $availableEvents
     ], JSON_UNESCAPED_SLASHES);
 
 } catch (Throwable $e) {
