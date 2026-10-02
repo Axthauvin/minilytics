@@ -2291,3 +2291,109 @@ body {
     font-weight: 700;
     text-align: right;
 }
+
+/* ── Events page chart series toggle buttons ─────────────────────────── */
+.chart-series-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    opacity: 0.45;
+}
+.chart-series-btn.active {
+    opacity: 1;
+    color: var(--text-primary);
+    border-color: var(--border);
+    background: var(--bg-secondary);
+}
+.chart-series-btn:hover {
+    opacity: 1;
+}
+.chart-series-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* ── Event Distribution Chart ────────────────────────────────────────── */
+.evt-dist-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 90px;
+    align-items: center;
+    gap: 14px;
+    padding: 9px 20px;
+    cursor: pointer;
+    transition: background 0.12s;
+    border-radius: 0;
+}
+.evt-dist-row:hover {
+    background: var(--bg-secondary);
+}
+.evt-dist-row--active {
+    background: #eff6ff;
+}
+.evt-dist-row--active:hover {
+    background: #dbeafe;
+}
+.evt-dist-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.evt-dist-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.evt-dist-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.evt-dist-bar-wrap {
+    height: 7px;
+    background: #f1f5f9;
+    border-radius: 9999px;
+    overflow: hidden;
+}
+.evt-dist-bar {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.3s ease;
+    min-width: 2px;
+}
+.evt-dist-stats {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+.evt-dist-count {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+.evt-dist-pct {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    min-width: 36px;
+    text-align: right;
+}

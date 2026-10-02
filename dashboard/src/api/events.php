@@ -122,13 +122,59 @@ try {
         }
     }
 
+    // 4. Chart data: events grouped by hour (today/24h) or by day (7d/30d/all)
+    $useHourly = in_array($range, ['today', '24h']);
+    if ($useHourly) {
+        $chartGroupFmt = "%Y-%m-%d %H:00";
+        $chartLabelFmt = "%H:%M";
+    } else {
+        $chartGroupFmt = "%Y-%m-%d";
+        $chartLabelFmt = "%d/%m";
+    }
+
+    $chartWhere = ["timestamp >= :chart_start"];
+    $chartParams = [':chart_start' => $startDateStr];
+    if ($eventName !== '' && $eventName !== 'all') {
+        $chartWhere[] = "json_extract(action, '$.name') = :chart_event_name";
+        $chartParams[':chart_event_name'] = $eventName;
+    }
+    if ($sessionId !== '') {
+        $chartWhere[] = "session_id = :chart_session_id";
+        $chartParams[':chart_session_id'] = $sessionId;
+    }
+
+    $chartSql = "SELECT strftime('{$chartGroupFmt}', timestamp) as bucket,
+                        strftime('{$chartLabelFmt}', timestamp) as label,
+                        COUNT(*) as count,
+                        COUNT(DISTINCT session_id) as sessions
+                 FROM user_activity
+                 WHERE " . implode(' AND ', $chartWhere) . "
+                 GROUP BY bucket
+                 ORDER BY bucket ASC";
+    $chStmt = $db->prepare($chartSql);
+    foreach ($chartParams as $k => $v) {
+        $chStmt->bindValue($k, $v, SQLITE3_TEXT);
+    }
+    $chRes = $chStmt->execute();
+
+    $chartData = [];
+    while ($cr = $chRes->fetchArray(SQLITE3_ASSOC)) {
+        $chartData[] = [
+            'label'    => $cr['label'],
+            'full_label' => $cr['bucket'],
+            'events'   => (int)$cr['count'],
+            'sessions' => (int)$cr['sessions'],
+        ];
+    }
+
     echo json_encode([
-        'success' => true,
-        'events' => $events,
-        'types' => $types,
-        'total' => $totalCount,
-        'page' => $page,
-        'limit' => $limit,
+        'success'     => true,
+        'events'      => $events,
+        'types'       => $types,
+        'chart_data'  => $chartData,
+        'total'       => $totalCount,
+        'page'        => $page,
+        'limit'       => $limit,
         'total_pages' => max(1, (int)ceil($totalCount / $limit))
     ], JSON_UNESCAPED_SLASHES);
 

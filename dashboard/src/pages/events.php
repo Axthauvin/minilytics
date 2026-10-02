@@ -5,11 +5,6 @@
             <h1>Events Explorer</h1>
             <p>Live stream of tracked pageviews, custom interactions, and system events.</p>
         </div>
-        <div>
-            <span id="eventsTotalCount" style="font-size: 14px; font-weight: 700; color: var(--text-primary); background: #ffffff; padding: 6px 14px; border-radius: var(--radius-md); border: 1px solid var(--border);">
-                0 events
-            </span>
-        </div>
     </div>
 
     <!-- Filter & Search Toolbar -->
@@ -33,7 +28,23 @@
         </div>
     </div>
 
+    <!-- Event Type Distribution -->
+    <div class="data-table-card" style="margin-bottom: 20px;">
+        <div class="events-card-header">
+            <span class="events-card-title">Event Distribution</span>
+            <span style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Click a row to filter</span>
+        </div>
+        <div id="eventsDistribution" style="padding: 8px 0;">
+            <div style="padding: 32px; text-align: center; color: var(--text-muted); font-size: 13px;">Loading…</div>
+        </div>
+        <div class="pagination-footer" style="border-top: 1px solid var(--border);">
+            <span id="eventsTotalCount" style="font-size: 13px; color: var(--text-muted);">0 events</span>
+        </div>
+    </div>
+
+
     <!-- Events Stream Card with Clean List -->
+
     <div class="data-table-card events-stream-card">
         <div class="events-card-header">
             <span class="events-card-title">Real-Time Event Stream</span>
