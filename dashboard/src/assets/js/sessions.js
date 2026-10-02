@@ -57,18 +57,29 @@ const SessionsPage = {
     }
   },
 
-  async load(range, siteId) {
+  async load(range, siteId, customDates) {
     if (range) this.filters.range = range;
-    if (siteId !== undefined) this.filters.siteId = siteId;
+    if (customDates !== undefined) this.filters.customDates = customDates;
+    const activeSite =
+      siteId || window.App?.currentSiteId || this.filters.siteId || "";
+    if (activeSite) this.filters.siteId = activeSite;
 
     try {
+      if (window.App && typeof window.App.setLoading === "function") {
+        window.App.setLoading(true, "Loading user sessions...");
+      }
+
       const data = await Api.getSessions(this.filters);
       this.rawSessions = data.sessions || [];
       this.renderSessions(this.rawSessions);
       this.renderPagination(data);
     } catch (err) {
-      window.App.displayNoDataMessage(siteId);
+      window.App?.displayNoDataMessage(siteId);
       console.error("Error loading sessions:", err);
+    } finally {
+      if (window.App && typeof window.App.setLoading === "function") {
+        window.App.setLoading(false);
+      }
     }
   },
 
@@ -105,6 +116,8 @@ const SessionsPage = {
         const duration = s.duration_label || "0s";
         const eventCount = s.event_count || 1;
 
+        const siteId = window.App?.currentSiteId || "";
+
         // Render flow chips with Lucide icons
         // const flowChips = (s.flow || []).map(f => {
         //     const isPv = f.type === 'pageview';
@@ -115,7 +128,7 @@ const SessionsPage = {
         const flowChips = null;
 
         return `
-                <div class="session-card-item" onclick="SessionsPage.inspectSession('${s.session_id}')" title="Inspect session journey">
+                <div class="session-card-item" onclick="SessionsPage.inspectSession('${s.session_id}', '${siteId}')" title="Inspect session journey">
                     <div class="session-card-left">
                         <div class="session-avatar-wrap">
                             <img src="${avatarUrl}" alt="Avatar" class="session-avatar-img" onerror="this.onerror=null; this.src='${fallbackSvg}';">
@@ -165,9 +178,9 @@ const SessionsPage = {
     if (next) next.disabled = data.page >= data.total_pages;
   },
 
-  async inspectSession(sessionId) {
+  async inspectSession(sessionId, siteId) {
     try {
-      const data = await Api.getSessionDetails(sessionId);
+      const data = await Api.getSessionDetails(sessionId, siteId);
       this.activeSession = data.session;
       this.renderDetailView(data.session);
       this.showDetailView();

@@ -73,11 +73,19 @@ const OverviewPage = {
     });
   },
 
-  async load(range = "7d", siteId = "") {
-    document.getElementById("no-data-yet").style.display = "none";
-    document.getElementById("page-overview").style.display = "block";
+  async load(range = "7d", siteId = "", customDates = null) {
+    const noDataEl = document.getElementById("no-data-yet");
+    const dataContainer = document.getElementById("overviewDataContainer");
+    if (noDataEl) noDataEl.style.display = "none";
+    if (dataContainer) dataContainer.style.display = "block";
+
+    const activeSite = siteId || window.App?.currentSiteId || "";
     try {
-      const data = await Api.getStats(range, siteId);
+      if (window.App && typeof window.App.setLoading === "function") {
+        window.App.setLoading(true, "Loading analytics overview...");
+      }
+
+      const data = await Api.getStats(range, activeSite, customDates);
       this.currentData = data;
 
       // Populate sites dropdown if needed
@@ -92,8 +100,12 @@ const OverviewPage = {
       this.renderEnvironment();
       this.renderCountries();
     } catch (err) {
-      window.App.displayNoDataMessage(siteId);
+      window.App?.displayNoDataMessage(siteId);
       console.error("Error loading overview:", err);
+    } finally {
+      if (window.App && typeof window.App.setLoading === "function") {
+        window.App.setLoading(false);
+      }
     }
   },
 
@@ -253,7 +265,19 @@ const OverviewPage = {
     const list = document.getElementById("topReferrersList");
     if (!list || !this.currentData) return;
 
-    const referrers = this.currentData.top_referrers || [];
+    // Detect own domain of active site to exclude any self-referral
+    const activeSiteId = (window.App && window.App.currentSiteId) || "";
+    const siteObj = (this.currentData?.available_sites || []).find((s) => s.id === activeSiteId);
+    const normalize = (d) => (d || "").toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0].split(":")[0].trim();
+    const ownDomain = normalize(siteObj?.domain || "");
+
+    const referrers = (this.currentData.top_referrers || []).filter((r) => {
+      if (!ownDomain) return true;
+      if (!r.domain || r.domain === "direct" || r.domain === "Direct / None") return true;
+      const refDom = normalize(r.domain);
+      return refDom !== ownDomain;
+    });
+
     if (referrers.length === 0) {
       list.innerHTML = `<li class="clean-pill-row empty"><span class="pill-muted">No referrer data recorded yet</span></li>`;
       return;

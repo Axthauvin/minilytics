@@ -114,18 +114,37 @@ try {
     $offset = ($page - 1) * $limit;
 
     $now = time();
-    $startUnix = match ($range) {
-        'today' => strtotime('today midnight'),
-        '24h' => $now - 86400,
-        '7d' => $now - (7 * 86400),
-        '30d' => $now - (30 * 86400),
-        'all' => 0,
-        default => $now - (7 * 86400)
-    };
-    $startDateStr = gmdate('Y-m-d H:i:s', $startUnix);
+    $from = $_GET['from'] ?? $_GET['start'] ?? $_GET['start_date'] ?? null;
+    $to = $_GET['to'] ?? $_GET['end'] ?? $_GET['end_date'] ?? null;
 
-    $where = ["timestamp >= :start_date"];
-    $params = [':start_date' => $startDateStr];
+    if ($range === 'custom' || (!empty($from) && !empty($to))) {
+        $range = 'custom';
+        $startUnix = !empty($from) ? (strtotime($from . ' 00:00:00 UTC') ?: ($now - 30 * 86400)) : ($now - 30 * 86400);
+        $endUnix = !empty($to) ? (strtotime($to . ' 23:59:59 UTC') ?: $now) : $now;
+        if ($startUnix > $endUnix) {
+            [$startUnix, $endUnix] = [$endUnix, $startUnix];
+        }
+    } else {
+        $endUnix = $now;
+        $startUnix = match ($range) {
+            'today' => strtotime('today midnight'),
+            '24h' => $now - 86400,
+            '7d' => $now - (7 * 86400),
+            '30d' => $now - (30 * 86400),
+            '90d' => $now - (90 * 86400),
+            '6m', '180d' => $now - (180 * 86400),
+            'all' => 0,
+            default => $now - (7 * 86400)
+        };
+    }
+    $startDateStr = gmdate('Y-m-d H:i:s', $startUnix);
+    $endDateStr = gmdate('Y-m-d H:i:s', $endUnix);
+
+    $where = ["timestamp >= :start_date AND timestamp <= :end_date"];
+    $params = [
+        ':start_date' => $startDateStr,
+        ':end_date' => $endDateStr,
+    ];
 
     if ($search !== '') {
         $where[] = "session_id LIKE :search";

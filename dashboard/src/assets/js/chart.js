@@ -10,18 +10,16 @@
  */
 
 class MinilyticsChart {
-    constructor(canvasId, tooltipId) {
+    constructor(canvasId, tooltipId, options = {}) {
         this.canvas = document.getElementById(canvasId);
         this.tooltip = document.getElementById(tooltipId);
         if (!this.canvas) return;
 
         this.ctx = this.canvas.getContext('2d');
         this.data = [];
-        // All 3 series enabled by default for superposition
-        this.activeSeries = new Set(['pageviews', 'visitors', 'sessions']);
         this.hoveredIndex = -1;
 
-        this.seriesConfig = {
+        const defaultSeriesConfig = {
             pageviews: {
                 key: 'pageviews',
                 label: 'Views',
@@ -48,8 +46,21 @@ class MinilyticsChart {
                 gradientStart: 'rgba(6, 182, 212, 0.10)',
                 gradientEnd: 'rgba(6, 182, 212, 0.00)',
                 lineWidth: 2.0
+            },
+            events: {
+                key: 'events',
+                label: 'Events',
+                singular: 'event',
+                color: '#f59e0b', // Amber / Orange
+                gradientStart: 'rgba(245, 158, 11, 0.20)',
+                gradientEnd: 'rgba(245, 158, 11, 0.00)',
+                lineWidth: 2.5
             }
         };
+
+        this.seriesConfig = Object.assign({}, defaultSeriesConfig, options.seriesConfig || {});
+        const initialSeries = options.activeSeries || (options.seriesConfig ? Object.keys(options.seriesConfig) : ['pageviews', 'visitors', 'sessions']);
+        this.activeSeries = new Set(initialSeries.filter(k => this.seriesConfig[k]));
 
         this.padding = { top: 25, right: 20, bottom: 32, left: 36 };
 
@@ -162,7 +173,7 @@ class MinilyticsChart {
         const dateStr = item.full_label || item.label || '';
 
         // Build list of metrics for all active series
-        const seriesKeys = ['pageviews', 'visitors', 'sessions'].filter(k => this.activeSeries.has(k));
+        const seriesKeys = Object.keys(this.seriesConfig).filter(k => this.activeSeries.has(k));
         
         const metricsHtml = seriesKeys.map(key => {
             const cfg = this.seriesConfig[key];
@@ -295,8 +306,12 @@ class MinilyticsChart {
             ctx.restore();
         }
 
-        // 4. Render each active series (in background-to-foreground order: pageviews -> sessions -> visitors)
-        const renderOrder = ['pageviews', 'sessions', 'visitors'].filter(k => this.activeSeries.has(k));
+        // 4. Render each active series (in background-to-foreground order)
+        const preferredOrder = ['pageviews', 'events', 'sessions', 'visitors'];
+        const renderOrder = preferredOrder.filter(k => this.activeSeries.has(k) && this.seriesConfig[k]);
+        Object.keys(this.seriesConfig).forEach(k => {
+            if (this.activeSeries.has(k) && !renderOrder.includes(k)) renderOrder.push(k);
+        });
 
         renderOrder.forEach(key => {
             const cfg = this.seriesConfig[key];

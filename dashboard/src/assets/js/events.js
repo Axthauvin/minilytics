@@ -84,76 +84,75 @@ const EventsPage = {
 
   // ── Data loading ─────────────────────────────────────────────────────────
 
-  async load(range, siteId) {
+  async load(range, siteId, customDates) {
     if (range) this.filters.range = range;
-    if (siteId !== undefined) this.filters.siteId = siteId;
+    if (customDates !== undefined) this.filters.customDates = customDates;
+    const activeSite = siteId || window.App?.currentSiteId || this.filters.siteId || "";
+    if (activeSite) this.filters.siteId = activeSite;
 
     try {
+      if (window.App && typeof window.App.setLoading === "function") {
+        window.App.setLoading(true, "Loading events stream...");
+      }
+
       const data = await Api.getEvents(this.filters);
       this.renderTypeOptions(data.types || []);
       this.renderDistribution(data.types || [], data.total || 0);
       this.renderEvents(data.events || []);
       this.renderPagination(data);
     } catch (err) {
-      window.App.displayNoDataMessage(siteId);
+      window.App?.displayNoDataMessage(siteId);
       console.error("Error loading events:", err);
+    } finally {
+      if (window.App && typeof window.App.setLoading === "function") {
+        window.App.setLoading(false);
+      }
     }
   },
 
   // ── Rendering ────────────────────────────────────────────────────────────
 
   renderDistribution(types, total) {
-    const container = document.getElementById("eventsDistribution");
+    const list = document.getElementById("eventsDistribution");
     const countEl = document.getElementById("eventsTotalCount");
-    if (!container) return;
+    if (!list) return;
 
-    if (countEl)
+    if (countEl) {
       countEl.textContent = `${total.toLocaleString()} event${total === 1 ? "" : "s"}`;
+    }
 
     if (!types.length) {
-      container.innerHTML = `<div style="padding: 32px; text-align: center; color: var(--text-muted); font-size: 13px;">No data for this period.</div>`;
+      list.innerHTML = `<li class="clean-pill-row empty"><span class="pill-muted">No events recorded for this period</span></li>`;
       return;
     }
 
-    const COLORS = [
-      "#2563eb",
-      "#8b5cf6",
-      "#06b6d4",
-      "#f59e0b",
-      "#10b981",
-      "#ef4444",
-      "#f97316",
-      "#ec4899",
-      "#64748b",
-      "#0ea5e9",
-    ];
-
-    const maxCount = types[0].count;
     const active = this.filters.eventName;
 
-    container.innerHTML = types
-      .map((t, i) => {
-        const pct = maxCount > 0 ? (t.count / maxCount) * 100 : 0;
-        const totalPct = total > 0 ? ((t.count / total) * 100).toFixed(1) : "0";
-        const color = COLORS[i % COLORS.length];
+    list.innerHTML = types
+      .map((t) => {
+        const pct = total > 0 ? Math.round((t.count / total) * 100) : 0;
         const isActive = active !== "all" && active === t.name;
+        const iconSvg =
+          t.name === "pageview"
+            ? Icons.get("file-text", { size: 14, color: "#64748b" })
+            : Icons.get("zap", { size: 14, color: "#64748b" });
 
         return `
-                <div class="evt-dist-row${isActive ? " evt-dist-row--active" : ""}"
-                     onclick="EventsPage.filterByType('${isActive ? "all" : this.esc(t.name)}')"
-                     title="${isActive ? "Remove filter" : `Filter: ${this.esc(t.name)}`}">
-                    <div class="evt-dist-label">
-                        <span class="evt-dist-dot" style="background:${color};"></span>
-                        <span class="evt-dist-name">${this.esc(t.name)}</span>
-                    </div>
-                    <div class="evt-dist-bar-wrap">
-                        <div class="evt-dist-bar" style="width:${pct.toFixed(1)}%; background:${color};"></div>
-                    </div>
-                    <div class="evt-dist-stats">
-                        <span class="evt-dist-count">${t.count.toLocaleString()}</span>
-                        <span class="evt-dist-pct">${totalPct}%</span>
-                    </div>
-                </div>`;
+          <li class="clean-pill-row${isActive ? " active" : ""}"
+              style="cursor: pointer; ${isActive ? "border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary);" : ""}"
+              onclick="EventsPage.filterByType('${isActive ? "all" : this.esc(t.name)}')"
+              title="${isActive ? "Remove filter" : `Filter by ${this.esc(t.name)}`}">
+              <div class="pill-progress-bg" style="width: ${pct}%;"></div>
+              <div class="pill-left">
+                  <span class="pill-icon-box">${iconSvg}</span>
+                  <span class="pill-title" style="font-weight: ${isActive ? "700" : "500"};">${this.esc(t.name)}</span>
+              </div>
+              <div class="pill-right">
+                  <span class="pill-stat">${t.count.toLocaleString()}</span>
+                  <span class="pill-pct">${pct}%</span>
+              </div>
+          </li>
+        `;
       })
       .join("");
   },
@@ -355,7 +354,13 @@ const EventsPage = {
     const modal = document.getElementById("payloadModal");
     const jsonBox = document.getElementById("modalJsonContent");
     if (!modal || !jsonBox) return;
-    jsonBox.textContent = JSON.stringify(event.data, null, 2);
+    const rawJson = JSON.stringify(event.data, null, 2);
+    jsonBox.dataset.rawText = rawJson;
+    if (window.ClipboardHelper && typeof window.ClipboardHelper.highlightJson === "function") {
+      jsonBox.innerHTML = window.ClipboardHelper.highlightJson(rawJson);
+    } else {
+      jsonBox.textContent = rawJson;
+    }
     modal.classList.add("active");
   },
 

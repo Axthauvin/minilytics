@@ -5,7 +5,7 @@
 const Api = {
   base: "/dashboard/src/api",
 
-  async getStats(range = "7d", siteId = "") {
+  async getStats(range = "7d", siteId = "", customDates = null) {
     const targetSite =
       siteId && siteId !== "all"
         ? siteId
@@ -16,6 +16,11 @@ const Api = {
           : "";
     const params = new URLSearchParams({ range });
     if (targetSite) params.append("site_id", targetSite);
+    const dates = customDates || (window.App && window.App.customDates);
+    if (range === "custom" && dates) {
+      if (dates.from) params.append("from", dates.from);
+      if (dates.to) params.append("to", dates.to);
+    }
     const res = await fetch(`${this.base}/stats.php?${params.toString()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
@@ -29,6 +34,7 @@ const Api = {
     eventName = "",
     sessionId = "",
     siteId = "",
+    customDates = null,
   } = {}) {
     const targetSite =
       siteId && siteId !== "all"
@@ -47,6 +53,11 @@ const Api = {
     if (eventName) params.append("event_name", eventName);
     if (sessionId) params.append("session_id", sessionId);
     if (targetSite) params.append("site_id", targetSite);
+    const dates = customDates || (window.App && window.App.customDates);
+    if (range === "custom" && dates) {
+      if (dates.from) params.append("from", dates.from);
+      if (dates.to) params.append("to", dates.to);
+    }
 
     const res = await fetch(`${this.base}/events.php?${params.toString()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -59,6 +70,7 @@ const Api = {
     limit = 25,
     search = "",
     siteId = "",
+    customDates = null,
   } = {}) {
     const targetSite =
       siteId && siteId !== "all"
@@ -75,14 +87,20 @@ const Api = {
     });
     if (search) params.append("search", search);
     if (targetSite) params.append("site_id", targetSite);
+    const dates = customDates || (window.App && window.App.customDates);
+    if (range === "custom" && dates) {
+      if (dates.from) params.append("from", dates.from);
+      if (dates.to) params.append("to", dates.to);
+    }
 
     const res = await fetch(`${this.base}/sessions.php?${params.toString()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   },
 
-  async getSessionDetails(sessionId) {
+  async getSessionDetails(sessionId, siteId = "") {
     const params = new URLSearchParams({ session_id: sessionId });
+    if (siteId) params.append("site_id", siteId);
     const res = await fetch(`${this.base}/sessions.php?${params.toString()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();

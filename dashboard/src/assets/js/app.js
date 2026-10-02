@@ -7,6 +7,7 @@
 const App = {
   currentPage: "websites",
   currentRange: "7d",
+  customDates: null,
   currentSiteId: null,
   refreshInterval: null,
 
@@ -22,6 +23,7 @@ const App = {
     this.bindHeaderActions();
     this.bindModals();
     this.bindAddSiteModal();
+    ClipboardHelper.init();
 
     // Initialize sub-controllers
     WebsitesPage.init();
@@ -46,6 +48,8 @@ const App = {
     if (backBtn) {
       backBtn.addEventListener("click", (e) => {
         e.preventDefault();
+        sessionStorage.removeItem("minilytics_current_site");
+        this.currentSiteId = null;
         const url = new URL(window.location);
         url.searchParams.delete("site");
         url.searchParams.delete("site_id");
@@ -54,6 +58,22 @@ const App = {
         this.navigateTo("websites");
       });
     }
+
+    // Sidebar navigation links (preserve active site parameter!)
+    document.querySelectorAll(".sidebar-nav .nav-item[data-page]").forEach((item) => {
+      item.addEventListener("click", (e) => {
+        const page = item.dataset.page;
+        if (!page) return;
+        e.preventDefault();
+        const url = new URL(window.location);
+        if (this.currentSiteId) {
+          url.searchParams.set("site", this.currentSiteId);
+        }
+        url.hash = `#${page}`;
+        window.history.pushState({}, "", url);
+        this.navigateTo(page);
+      });
+    });
 
     // Sidebar collapse toggle if present
     const collapseBtn = document.getElementById("btnSidebarCollapse");
@@ -86,14 +106,86 @@ const App = {
       });
     }
 
-    // Date range dropdown
+    // Date range dropdown & custom popover
     const rangeSelect = document.getElementById("rangeSelect");
+    const customPopover = document.getElementById("customRangePopover");
+    const customStart = document.getElementById("customRangeStart");
+    const customEnd = document.getElementById("customRangeEnd");
+    const applyCustomBtn = document.getElementById("btnApplyCustomRange");
+    const cancelCustomBtn = document.getElementById("btnCancelCustomRange");
+    const closeCustomBtn = document.getElementById("btnCloseCustomRange");
+
     if (rangeSelect) {
       rangeSelect.addEventListener("change", (e) => {
-        this.currentRange = e.target.value;
+        const val = e.target.value;
+        if (val === "custom") {
+          if (customPopover) {
+            if (!customStart.value) {
+              const now = new Date();
+              const prior = new Date();
+              prior.setDate(prior.getDate() - 30);
+              customStart.value = prior.toISOString().split("T")[0];
+              customEnd.value = now.toISOString().split("T")[0];
+            }
+            customPopover.style.display = "flex";
+          }
+          return;
+        }
+
+        if (customPopover) customPopover.style.display = "none";
+        this.currentRange = val;
         this.refreshCurrentPage();
       });
     }
+
+    if (applyCustomBtn && customStart && customEnd) {
+      applyCustomBtn.addEventListener("click", () => {
+        let fromVal = customStart.value;
+        let toVal = customEnd.value;
+        if (!fromVal || !toVal) {
+          alert("Please select both start and end dates.");
+          return;
+        }
+        if (fromVal > toVal) {
+          [fromVal, toVal] = [toVal, fromVal];
+          customStart.value = fromVal;
+          customEnd.value = toVal;
+        }
+
+        this.currentRange = "custom";
+        this.customDates = { from: fromVal, to: toVal };
+
+        const customOpt = rangeSelect?.querySelector('option[value="custom"]');
+        if (customOpt) {
+          customOpt.textContent = `Custom (${fromVal} - ${toVal})`;
+        }
+        if (rangeSelect) rangeSelect.value = "custom";
+        if (customPopover) customPopover.style.display = "none";
+
+        this.refreshCurrentPage();
+      });
+    }
+
+    const closePopover = () => {
+      if (customPopover) customPopover.style.display = "none";
+      if (this.currentRange !== "custom" && rangeSelect) {
+        rangeSelect.value = this.currentRange;
+      }
+    };
+
+    if (cancelCustomBtn) cancelCustomBtn.addEventListener("click", closePopover);
+    if (closeCustomBtn) closeCustomBtn.addEventListener("click", closePopover);
+
+    document.addEventListener("click", (e) => {
+      if (
+        customPopover &&
+        customPopover.style.display === "flex" &&
+        !customPopover.contains(e.target) &&
+        !rangeSelect?.contains(e.target)
+      ) {
+        closePopover();
+      }
+    });
 
     // Manual refresh button
     const refreshBtn = document.getElementById("btnRefresh");
@@ -214,7 +306,17 @@ const App = {
           // Show success snippet
           form.style.display = "none";
           successBox.style.display = "block";
-          snippetBox.textContent = res.snippet;
+          snippetBox.dataset.rawText = res.snippet;
+          if (
+            window.ClipboardHelper &&
+            typeof window.ClipboardHelper.highlightHtml === "function"
+          ) {
+            snippetBox.innerHTML = window.ClipboardHelper.highlightHtml(
+              res.snippet,
+            );
+          } else {
+            snippetBox.textContent = res.snippet;
+          }
 
           // Update active site
           this.currentSiteId = res.site.id;
@@ -236,17 +338,6 @@ const App = {
       });
     }
 
-    if (copyBtn) {
-      copyBtn.addEventListener("click", () => {
-        const text = snippetBox.textContent;
-        navigator.clipboard.writeText(text).then(() => {
-          const original = copyBtn.textContent;
-          copyBtn.textContent = "Copied!";
-          setTimeout(() => (copyBtn.textContent = original), 2000);
-        });
-      });
-    }
-
     if (goToSiteBtn) {
       goToSiteBtn.addEventListener("click", () => {
         modal.classList.remove("active");
@@ -258,6 +349,7 @@ const App = {
   selectSiteAndOpen(siteId) {
     if (!siteId) return;
     this.currentSiteId = siteId;
+    sessionStorage.setItem("minilytics_current_site", siteId);
     this.updateSidebarSiteInfo(siteId);
 
     const url = new URL(window.location);
@@ -270,6 +362,15 @@ const App = {
 
   async updateSidebarSiteInfo(siteId) {
     if (!siteId) return;
+
+    // Update sidebar navigation links to include ?site= parameter
+    document.querySelectorAll(".sidebar-nav .nav-item[data-page]").forEach((item) => {
+      const page = item.dataset.page;
+      const anchor = item.querySelector("a");
+      if (anchor && page) {
+        anchor.href = `?site=${encodeURIComponent(siteId)}#${page}`;
+      }
+    });
 
     let site = (WebsitesPage.sites || []).find((s) => s.id === siteId);
     if (!site) {
@@ -323,13 +424,41 @@ const App = {
 
   async handleRoute() {
     const urlParams = new URLSearchParams(window.location.search);
-    const siteParam = urlParams.get("site") || urlParams.get("site_id");
+    let siteParam = urlParams.get("site") || urlParams.get("site_id");
     const hash = window.location.hash.replace("#", "").trim();
+
+    // If explicit back to websites
+    if (hash === "websites") {
+      this.currentSiteId = null;
+      sessionStorage.removeItem("minilytics_current_site");
+      const url = new URL(window.location);
+      url.searchParams.delete("site");
+      url.searchParams.delete("site_id");
+      window.history.replaceState({}, "", url);
+      this.navigateTo("websites");
+      return;
+    }
+
+    // Check memory or sessionStorage if not in query string
+    if (!siteParam || siteParam === "all") {
+      const saved = this.currentSiteId || sessionStorage.getItem("minilytics_current_site");
+      if (saved && saved !== "all") {
+        siteParam = saved;
+      }
+    }
 
     if (siteParam && siteParam !== "all") {
       this.currentSiteId = siteParam;
-      // If user loaded ?site=... with no hash or #websites, navigate to #overview
-      const targetPage = !hash || hash === "websites" ? "overview" : hash;
+      sessionStorage.setItem("minilytics_current_site", siteParam);
+
+      // Keep ?site= parameter in the browser URL
+      const url = new URL(window.location);
+      if (url.searchParams.get("site") !== siteParam) {
+        url.searchParams.set("site", siteParam);
+        window.history.replaceState({}, "", url);
+      }
+
+      const targetPage = !hash ? "overview" : hash;
       if (window.location.hash !== `#${targetPage}`) {
         window.location.hash = `#${targetPage}`;
       }
@@ -337,14 +466,14 @@ const App = {
       return;
     }
 
-    // No ?site= param in URL
+    // No site selected anywhere
     if (hash === "overview" || hash === "sessions" || hash === "events") {
-      // Analytics requested without site param -> auto-select first available site (never 'all')
       try {
         const res = await Api.getSites();
         const sites = res.sites || [];
         const firstSite = sites[0] ? sites[0].id : "demo_site";
         this.currentSiteId = firstSite;
+        sessionStorage.setItem("minilytics_current_site", firstSite);
 
         const url = new URL(window.location);
         url.searchParams.set("site", firstSite);
@@ -394,12 +523,18 @@ const App = {
 
     // Update views visibility
     document.querySelectorAll(".page-view").forEach((view) => {
+      view.style.display = ""; // remove any inline display style override
       if (view.id === `page-${pageName}`) {
         view.classList.add("active");
       } else {
         view.classList.remove("active");
       }
     });
+
+    if (pageName !== "overview") {
+      const noDataEl = document.getElementById("no-data-yet");
+      if (noDataEl) noDataEl.style.display = "none";
+    }
 
     // Update header title
     const titles = {
@@ -421,11 +556,57 @@ const App = {
     if (this.currentPage === "websites") {
       WebsitesPage.load();
     } else if (this.currentPage === "overview") {
-      OverviewPage.load(this.currentRange, this.currentSiteId);
+      OverviewPage.load(this.currentRange, this.currentSiteId, this.customDates);
     } else if (this.currentPage === "events") {
-      EventsPage.load(this.currentRange, this.currentSiteId);
+      EventsPage.load(this.currentRange, this.currentSiteId, this.customDates);
     } else if (this.currentPage === "sessions") {
-      SessionsPage.load(this.currentRange, this.currentSiteId);
+      SessionsPage.load(this.currentRange, this.currentSiteId, this.customDates);
+    }
+  },
+
+  setLoading(isLoading, message = "Loading analytics data...") {
+    const bar = document.getElementById("appLoadingBar");
+    const banner = document.getElementById("overviewLoadingBanner");
+    const refreshBtn = document.getElementById("btnRefresh");
+    const container = document.getElementById("overviewDataContainer");
+
+    if (isLoading) {
+      if (bar) {
+        bar.classList.remove("finishing");
+        bar.classList.add("active");
+      }
+      if (refreshBtn) {
+        refreshBtn.classList.add("btn-refresh-spinning");
+      }
+      if (container) {
+        container.classList.add("is-loading");
+      }
+      // If query takes longer than 180ms, reveal the floating banner
+      clearTimeout(this._loadingBannerTimer);
+      this._loadingBannerTimer = setTimeout(() => {
+        if (bar && bar.classList.contains("active") && banner) {
+          banner.style.display = "inline-flex";
+          const bannerText = banner.querySelector("span");
+          if (bannerText) bannerText.textContent = message;
+        }
+      }, 180);
+    } else {
+      clearTimeout(this._loadingBannerTimer);
+      if (banner) {
+        banner.style.display = "none";
+      }
+      if (container) {
+        container.classList.remove("is-loading");
+      }
+      if (refreshBtn) {
+        refreshBtn.classList.remove("btn-refresh-spinning");
+      }
+      if (bar) {
+        bar.classList.add("finishing");
+        setTimeout(() => {
+          bar.classList.remove("active", "finishing");
+        }, 220);
+      }
     }
   },
 
@@ -445,27 +626,171 @@ const App = {
   },
 
   displayNoDataMessage(siteId) {
-    document.getElementById("no-data-yet").style.display = "flex";
+    const noDataEl = document.getElementById("no-data-yet");
+    if (noDataEl) noDataEl.style.display = "flex";
 
-    const pageOverview = document.getElementById("page-overview");
-    if (pageOverview) {
-      pageOverview.style.display = "none";
+    const overviewData = document.getElementById("overviewDataContainer");
+    if (overviewData) overviewData.style.display = "none";
+
+    const host = window.location.host;
+    const protocol = window.location.protocol;
+    const scriptUrl = `${protocol}//${host}/minilytics.js`;
+    const snippet = `<script defer src="${scriptUrl}" data-site-id="${siteId}"></script>`;
+
+    const overviewSnippet = document.getElementById("overviewSnippetPre");
+    if (overviewSnippet) {
+      overviewSnippet.dataset.rawText = snippet;
+      if (
+        window.ClipboardHelper &&
+        typeof window.ClipboardHelper.highlightHtml === "function"
+      ) {
+        overviewSnippet.innerHTML =
+          window.ClipboardHelper.highlightHtml(snippet);
+      } else {
+        overviewSnippet.textContent = snippet;
+      }
     }
 
-    const pageSessions = document.getElementById("page-sessions");
-    if (pageSessions) {
-      pageSessions.style.display = "none";
+    const createdSnippet = document.getElementById("createdSiteSnippet");
+    if (createdSnippet && !createdSnippet.dataset.rawText) {
+      createdSnippet.dataset.rawText = snippet;
+      if (
+        window.ClipboardHelper &&
+        typeof window.ClipboardHelper.highlightHtml === "function"
+      ) {
+        createdSnippet.innerHTML =
+          window.ClipboardHelper.highlightHtml(snippet);
+      } else {
+        createdSnippet.textContent = snippet;
+      }
     }
-
-    const pageEvents = document.getElementById("page-events");
-    if (pageEvents) {
-      pageEvents.style.display = "none";
-    }
-
-    document.getElementById("createdSiteSnippet").textContent =
-      `<script async defer data-website-id="${siteId}" src="${window.location.origin}/umami.js"></script>`;
   },
 };
+
+const ClipboardHelper = {
+  copy(text, btnElement) {
+    if (!text) return;
+
+    const doSuccess = () => {
+      if (!btnElement) return;
+      const copyIcon = btnElement.querySelector(".copy-icon");
+      const checkIcon = btnElement.querySelector(".check-icon");
+      const copyText = btnElement.querySelector(".copy-text");
+
+      btnElement.classList.add("copied");
+      if (copyIcon) copyIcon.style.display = "none";
+      if (checkIcon) checkIcon.style.display = "inline-block";
+      if (copyText) copyText.textContent = "Copied!";
+
+      clearTimeout(btnElement._copyTimer);
+      btnElement._copyTimer = setTimeout(() => {
+        btnElement.classList.remove("copied");
+        if (copyIcon) copyIcon.style.display = "inline-block";
+        if (checkIcon) checkIcon.style.display = "none";
+        if (copyText) copyText.textContent = "Copy";
+      }, 2000);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(text)
+        .then(doSuccess)
+        .catch(() => {
+          this.fallbackCopy(text, doSuccess);
+        });
+    } else {
+      this.fallbackCopy(text, doSuccess);
+    }
+  },
+
+  fallbackCopy(text, callback) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.top = "-9999px";
+    ta.style.left = "-9999px";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand("copy");
+      if (callback) callback();
+    } catch (e) {
+      console.error("Copy failed", e);
+    }
+    document.body.removeChild(ta);
+  },
+
+  highlightJson(jsonStr) {
+    if (typeof jsonStr !== "string") {
+      jsonStr = JSON.stringify(jsonStr, null, 2);
+    }
+    const escaped = jsonStr
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    return escaped.replace(
+      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+      (match) => {
+        let cls = "json-number";
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) {
+            cls = "json-key";
+          } else {
+            cls = "json-string";
+          }
+        } else if (/true|false/.test(match)) {
+          cls = "json-boolean";
+        } else if (/null/.test(match)) {
+          cls = "json-null";
+        }
+        return `<span class="${cls}">${match}</span>`;
+      },
+    );
+  },
+
+  highlightHtml(htmlStr) {
+    const escaped = String(htmlStr)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    return (
+      escaped
+        // .replace(/(&lt;\/?[a-z0-9-]+|&gt;)/gi, '<span class="html-tag">$1</span>')
+        .replace(
+          /([a-z0-9_-]+)=(&quot;.*?&quot;|&#39;.*?&#39;|".*?"|'.*?')/gi,
+          '<span class="html-attr">$1</span>=<span class="html-val">$2</span>',
+        )
+    );
+  },
+
+  init() {
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest(".btn-copy-code");
+      if (!btn) return;
+      e.preventDefault();
+      const targetSelector = btn.dataset.copyTarget;
+      let textToCopy = "";
+      if (targetSelector) {
+        const target = document.querySelector(targetSelector);
+        if (target) {
+          textToCopy =
+            target.dataset.rawText || target.innerText || target.textContent;
+        }
+      } else if (btn.dataset.copyText) {
+        textToCopy = btn.dataset.copyText;
+      }
+      if (textToCopy) {
+        this.copy(textToCopy.trim(), btn);
+      }
+    });
+  },
+};
+
+window.ClipboardHelper = ClipboardHelper;
 
 document.addEventListener("DOMContentLoaded", () => {
   App.init();

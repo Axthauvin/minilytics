@@ -71,22 +71,45 @@ class Database {
     public static function getSitesWithStats(): array {
         $sites = self::getAvailableSites();
         $dataDir = self::getDataDir();
+        $sevenDaysAgo = gmdate('Y-m-d 00:00:00', strtotime('-6 days'));
 
         foreach ($sites as &$site) {
             $dbPath = "{$dataDir}/{$site['id']}.db";
             $views = 0;
             $visitors = 0;
+            $visitors7d = 0;
             $live = 0;
             $lastActive = null;
+
+            // 7 daily buckets for the sparkline (day -6 to today)
+            $sparklineMap = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $dayStr = gmdate('Y-m-d', strtotime("-{$i} days"));
+                $sparklineMap[$dayStr] = 0;
+            }
 
             if (file_exists($dbPath)) {
                 try {
                     $db = self::getConnection($site['id']);
                     $views = (int)$db->querySingle("SELECT COUNT(*) FROM user_activity WHERE json_extract(action, '$.name') = 'pageview'");
                     $visitors = (int)$db->querySingle("SELECT COUNT(DISTINCT session_id) FROM user_activity");
+                    $visitors7d = (int)$db->querySingle("SELECT COUNT(DISTINCT session_id) FROM user_activity WHERE timestamp >= '{$sevenDaysAgo}'");
                     $liveThresh = gmdate('Y-m-d H:i:s', time() - 300);
                     $live = (int)$db->querySingle("SELECT COUNT(DISTINCT session_id) FROM user_activity WHERE timestamp >= '{$liveThresh}'");
                     $lastActive = $db->querySingle("SELECT MAX(timestamp) FROM user_activity");
+
+                    // Real daily visitors for the 7 days
+                    $spStmt = $db->prepare("SELECT strftime('%Y-%m-%d', timestamp) as day, COUNT(DISTINCT session_id) as v 
+                                           FROM user_activity 
+                                           WHERE timestamp >= :start_date 
+                                           GROUP BY day");
+                    $spStmt->bindValue(':start_date', $sevenDaysAgo, SQLITE3_TEXT);
+                    $spRes = $spStmt->execute();
+                    while ($spRow = $spRes->fetchArray(SQLITE3_ASSOC)) {
+                        if (isset($sparklineMap[$spRow['day']])) {
+                            $sparklineMap[$spRow['day']] = (int)$spRow['v'];
+                        }
+                    }
                 } catch (Throwable $e) {
                     // Ignore DB read errors
                 }
@@ -94,6 +117,8 @@ class Database {
 
             $site['pageviews'] = $views;
             $site['visitors'] = $visitors;
+            $site['visitors_7d'] = $visitors7d;
+            $site['sparkline'] = array_values($sparklineMap);
             $site['live_visitors'] = $live;
             $site['last_active'] = $lastActive;
         }

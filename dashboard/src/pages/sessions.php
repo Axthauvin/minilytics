@@ -6,7 +6,6 @@
             <div class="page-intro">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <h1>Sessions</h1>
-                    <span class="live-badge" style="padding: 2px 8px; font-size: 11px;">• Live Stream</span>
                 </div>
                 <p>Recorded user sessions with real device, browser, country, and chronological actions.</p>
             </div>
@@ -80,7 +79,6 @@
                         <div style="min-width: 0; flex: 1;">
                             <div class="session-meta-id-row" style="margin-bottom: 4px;">
                                 <span class="session-meta-id-title font-mono" id="detailSessionId">...</span>
-                                <span class="session-live-pulse-dot" title="Session active"></span>
                             </div>
                             <div class="session-meta-geo-row" id="detailGeoRow">
                                 <span id="detailCountryFlag">🌐</span>

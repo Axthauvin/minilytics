@@ -27,6 +27,9 @@ if ($path === '/dashboard') {
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><circle cx='6' cy='6' r='3'/><circle cx='18' cy='6' r='3'/><circle cx='6' cy='18' r='3'/><circle cx='18' cy='18' r='3'/></svg>">
 </head>
 <body>
+    <!-- Top global loading bar -->
+    <div id="appLoadingBar" class="app-loading-bar" aria-hidden="true"></div>
+
     <div class="app-container">
         <!-- Left Sidebar Navigation -->
         <?php include __DIR__ . '/src/components/sidebar.php'; ?>

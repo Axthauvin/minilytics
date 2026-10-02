@@ -1,7 +1,14 @@
 <!-- Page: Analytics Overview -->
 <div class="page-view" id="page-overview">
-    <!-- 1. Umami-style Top 5 Metric Squares Grid -->
-    <div class="umami-stats-grid">
+    <!-- Floating loading banner for slower requests -->
+    <div id="overviewLoadingBanner" class="overview-loading-banner" style="display: none;">
+        <div class="overview-spinner"></div>
+        <span>Loading analytics data...</span>
+    </div>
+
+    <div id="overviewDataContainer">
+        <!-- 1. Umami-style Top 5 Metric Squares Grid -->
+        <div class="umami-stats-grid">
         <!-- Square 1: Visitors -->
         <div class="umami-stat-card">
             <span class="umami-stat-label">Visitors</span>
@@ -196,24 +203,42 @@
             </ul>
         </div>
     </div>
-</div>
+    </div> <!-- /#overviewDataContainer -->
 
-<div class="no-data" id="no-data-yet" style="display: none;">
-    <div class="no-data-icon">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-        </svg>
-    </div>
-    <h3 class="no-data-title">No data yet</h3>
-    <p class="no-data-subtitle">Your analytics dashboard will populate once your site starts receiving traffic.</p>
+    <!-- Empty / No Traffic State (Inside page-overview) -->
+    <div class="no-data" id="no-data-yet" style="display: none;">
+        <div class="no-data-icon">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+        </div>
+        <h3 class="no-data-title">No data yet</h3>
+        <p class="no-data-subtitle">Your analytics dashboard will populate once your site starts receiving traffic.</p>
 
-    <h5>If it is not done yet, add the tracking code to your site.</h5>
-    <div style="position: relative; margin-bottom: 20px;">
-        <pre class="json-box" id="createdSiteSnippet" style="text-align: left; padding-right: 70px; color: #e2e8f0; font-size: 12px;"></pre>
-        <button type="button" class="btn-outline" id="btnCopySnippet" style="position: absolute; right: 10px; top: 10px; font-size: 12px; padding: 4px 10px;">
-            Copy
-        </button>
+        <h5 style="margin-top: 16px; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-primary);">If it is not done yet, add the tracking code to your site:</h5>
+        
+        <div class="code-block-wrapper" style="max-width: 620px; width: 100%; margin: 0 auto 20px auto;">
+            <div class="code-block-header">
+                <div class="code-block-dots">
+                    <span class="code-dot code-dot-red"></span>
+                    <span class="code-dot code-dot-yellow"></span>
+                    <span class="code-dot code-dot-green"></span>
+                    <span class="code-block-title">HTML Tag</span>
+                </div>
+                <button type="button" class="btn-copy-code" data-copy-target="#overviewSnippetPre" title="Copy tracking tag">
+                    <svg class="copy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <svg class="check-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span class="copy-text">Copy</span>
+                </button>
+            </div>
+            <pre class="code-box" id="overviewSnippetPre"></pre>
+        </div>
     </div>
 </div>

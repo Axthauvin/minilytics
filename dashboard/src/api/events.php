@@ -20,19 +20,38 @@ try {
     $offset = ($page - 1) * $limit;
 
     $now = time();
-    $startUnix = match ($range) {
-        'today' => strtotime('today midnight'),
-        '24h' => $now - 86400,
-        '7d' => $now - (7 * 86400),
-        '30d' => $now - (30 * 86400),
-        'all' => 0,
-        default => $now - (7 * 86400)
-    };
+    $from = $_GET['from'] ?? $_GET['start'] ?? $_GET['start_date'] ?? null;
+    $to = $_GET['to'] ?? $_GET['end'] ?? $_GET['end_date'] ?? null;
+
+    if ($range === 'custom' || (!empty($from) && !empty($to))) {
+        $range = 'custom';
+        $startUnix = !empty($from) ? (strtotime($from . ' 00:00:00 UTC') ?: ($now - 30 * 86400)) : ($now - 30 * 86400);
+        $endUnix = !empty($to) ? (strtotime($to . ' 23:59:59 UTC') ?: $now) : $now;
+        if ($startUnix > $endUnix) {
+            [$startUnix, $endUnix] = [$endUnix, $startUnix];
+        }
+    } else {
+        $endUnix = $now;
+        $startUnix = match ($range) {
+            'today' => strtotime('today midnight'),
+            '24h' => $now - 86400,
+            '7d' => $now - (7 * 86400),
+            '30d' => $now - (30 * 86400),
+            '90d' => $now - (90 * 86400),
+            '6m', '180d' => $now - (180 * 86400),
+            'all' => 0,
+            default => $now - (7 * 86400)
+        };
+    }
     $startDateStr = gmdate('Y-m-d H:i:s', $startUnix);
+    $endDateStr = gmdate('Y-m-d H:i:s', $endUnix);
 
     // Build WHERE clauses
-    $where = ["timestamp >= :start_date"];
-    $params = [':start_date' => $startDateStr];
+    $where = ["timestamp >= :start_date AND timestamp <= :end_date"];
+    $params = [
+        ':start_date' => $startDateStr,
+        ':end_date' => $endDateStr,
+    ];
 
     if ($eventName !== '' && $eventName !== 'all') {
         $where[] = "json_extract(action, '$.name') = :event_name";
@@ -105,11 +124,12 @@ try {
     // 3. Get distinct event types for filter dropdown
     $typesSql = "SELECT json_extract(action, '$.name') as name, COUNT(*) as count 
                  FROM user_activity 
-                 WHERE timestamp >= :start_date 
+                 WHERE timestamp >= :start_date AND timestamp <= :end_date
                  GROUP BY name 
                  ORDER BY count DESC";
     $tStmt = $db->prepare($typesSql);
     $tStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
+    $tStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
     $tRes = $tStmt->execute();
 
     $types = [];
@@ -122,18 +142,16 @@ try {
         }
     }
 
-    // 4. Chart data: events grouped by hour (today/24h) or by day (7d/30d/all)
+    // 4. Chart data: continuous time-series matching overview.js style
     $useHourly = in_array($range, ['today', '24h']);
-    if ($useHourly) {
-        $chartGroupFmt = "%Y-%m-%d %H:00";
-        $chartLabelFmt = "%H:%M";
-    } else {
-        $chartGroupFmt = "%Y-%m-%d";
-        $chartLabelFmt = "%d/%m";
-    }
+    $intervalHours = $useHourly ? 1 : 24;
+    $chartGroupFmt = $useHourly ? "%Y-%m-%d %H:00" : "%Y-%m-%d";
 
-    $chartWhere = ["timestamp >= :chart_start"];
-    $chartParams = [':chart_start' => $startDateStr];
+    $chartWhere = ["timestamp >= :chart_start AND timestamp <= :chart_end"];
+    $chartParams = [
+        ':chart_start' => $startDateStr,
+        ':chart_end' => $endDateStr,
+    ];
     if ($eventName !== '' && $eventName !== 'all') {
         $chartWhere[] = "json_extract(action, '$.name') = :chart_event_name";
         $chartParams[':chart_event_name'] = $eventName;
@@ -142,9 +160,13 @@ try {
         $chartWhere[] = "session_id = :chart_session_id";
         $chartParams[':chart_session_id'] = $sessionId;
     }
+    if ($search !== '') {
+        $chartWhere[] = "(session_id LIKE :chart_search OR json_extract(action, '$.name') LIKE :chart_search OR action LIKE :chart_search_wild)";
+        $chartParams[':chart_search'] = "%{$search}%";
+        $chartParams[':chart_search_wild'] = "%{$search}%";
+    }
 
     $chartSql = "SELECT strftime('{$chartGroupFmt}', timestamp) as bucket,
-                        strftime('{$chartLabelFmt}', timestamp) as label,
                         COUNT(*) as count,
                         COUNT(DISTINCT session_id) as sessions
                  FROM user_activity
@@ -157,14 +179,76 @@ try {
     }
     $chRes = $chStmt->execute();
 
-    $chartData = [];
+    $slotMap = [];
     while ($cr = $chRes->fetchArray(SQLITE3_ASSOC)) {
-        $chartData[] = [
-            'label'    => $cr['label'],
-            'full_label' => $cr['bucket'],
+        $slotMap[$cr['bucket']] = [
             'events'   => (int)$cr['count'],
             'sessions' => (int)$cr['sessions'],
         ];
+    }
+
+    if ($range === 'today' || $range === '24h') {
+        $effectiveStart = ($range === 'today') ? strtotime('today midnight') : floor(($now - 86400) / 3600) * 3600;
+        $endStep = ceil($now / 3600) * 3600;
+    } elseif ($range === '7d') {
+        $effectiveStart = strtotime('6 days ago midnight');
+        $endStep = strtotime('today midnight');
+    } elseif ($range === '30d') {
+        $effectiveStart = strtotime('29 days ago midnight');
+        $endStep = strtotime('today midnight');
+    } elseif ($range === '90d') {
+        $effectiveStart = strtotime('89 days ago midnight');
+        $endStep = strtotime('today midnight');
+    } elseif ($range === '6m' || $range === '180d') {
+        $effectiveStart = strtotime('179 days ago midnight');
+        $endStep = strtotime('today midnight');
+    } elseif ($range === 'custom') {
+        $effectiveStart = strtotime(gmdate('Y-m-d', $startUnix) . ' 00:00:00 UTC');
+        $endStep = strtotime(gmdate('Y-m-d', $endUnix) . ' 00:00:00 UTC');
+    } elseif ($range === 'all') {
+        $minDbTime = $db->querySingle("SELECT MIN(timestamp) FROM user_activity WHERE timestamp IS NOT NULL");
+        $effectiveStart = $minDbTime ? strtotime(substr((string)$minDbTime, 0, 10) . ' 00:00:00 UTC') : strtotime('6 days ago midnight');
+        $endStep = strtotime('today midnight');
+    } else {
+        $effectiveStart = strtotime('6 days ago midnight');
+        $endStep = strtotime('today midnight');
+    }
+    $stepSeconds = $intervalHours * 3600;
+
+    $chartData = [];
+    while ($currStep <= $endStep) {
+        $eventsCount = 0;
+        $sessionsCount = 0;
+
+        for ($sub = 0; $sub < $intervalHours; $sub++) {
+            $subKey = gmdate($useHourly ? 'Y-m-d H:00' : 'Y-m-d', (int)($currStep + $sub * 3600));
+            if (isset($slotMap[$subKey])) {
+                $eventsCount += $slotMap[$subKey]['events'];
+                $sessionsCount += $slotMap[$subKey]['sessions'];
+            }
+        }
+
+        if ($range === 'today' || $range === '24h') {
+            $timeLabel = gmdate('h A', (int)$currStep);
+        } elseif ($range === '7d') {
+            $timeLabel = gmdate('D, j M', (int)$currStep);
+        } else {
+            $timeLabel = gmdate('M d', (int)$currStep);
+        }
+
+        $fullLabel = ($intervalHours === 1) 
+            ? gmdate('l, F j, Y \a\t h:i A', (int)$currStep) 
+            : gmdate('l, F j, Y', (int)$currStep);
+
+        $chartData[] = [
+            'timestamp'  => $currStep,
+            'label'      => $timeLabel,
+            'full_label' => $fullLabel,
+            'events'     => $eventsCount,
+            'sessions'   => $sessionsCount,
+        ];
+
+        $currStep += $stepSeconds;
     }
 
     echo json_encode([

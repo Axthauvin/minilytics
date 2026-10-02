@@ -27,19 +27,24 @@
             <button type="button" id="clearSessionFilterBtn" style="border: none; background: transparent; cursor: pointer; color: #0284c7; font-size: 14px; padding: 0 2px;">✕</button>
         </div>
     </div>
-
-    <!-- Event Type Distribution -->
-    <div class="data-table-card" style="margin-bottom: 20px;">
-        <div class="events-card-header">
-            <span class="events-card-title">Event Distribution</span>
-            <span style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Click a row to filter</span>
+    <!-- Event Distribution Breakdown Card with Clean Pills (Matching overview.php) -->
+    <div class="data-table-card breakdown-card" style="margin-bottom: 24px;">
+        <div class="breakdown-card-header">
+            <div class="breakdown-header-title-group">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="breakdown-header-icon">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                <h3 class="breakdown-card-title">Event Distribution</h3>
+            </div>
+            <span class="breakdown-card-sub" id="eventsTotalCount">0 events</span>
         </div>
-        <div id="eventsDistribution" style="padding: 8px 0;">
-            <div style="padding: 32px; text-align: center; color: var(--text-muted); font-size: 13px;">Loading…</div>
+        <div class="card-column-headers">
+            <span>Event Name</span>
+            <span style="text-align: right;">Count</span>
         </div>
-        <div class="pagination-footer" style="border-top: 1px solid var(--border);">
-            <span id="eventsTotalCount" style="font-size: 13px; color: var(--text-muted);">0 events</span>
-        </div>
+        <ul class="clean-pill-list" id="eventsDistribution">
+            <li class="clean-pill-row empty"><span class="pill-muted">Loading events…</span></li>
+        </ul>
     </div>
 
 
