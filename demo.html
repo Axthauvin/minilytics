@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Minilytics Demo</title>
+    <script defer src="minilytics.js" data-site-id="demo_site"></script>
+</head>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+
+    button {
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+</style>
+<body>
+    <h1>Minilytics Demo</h1>
+
+    <!-- 1. Track via JavaScript API -->
+    <p>
+        <button id="jsBtn">Track via JS</button>
+        <span id="clickCount">0</span> clicks
+    </p>
+
+    <!-- 2. Auto-track without JavaScript -->
+    <p>
+        <button data-minilytics-event="signup_click" data-minilytics-plan="pro">
+            Auto-tracked Button
+        </button>
+    </p>
+
+    <script>
+        let clicks = 0;
+        document.getElementById('jsBtn').addEventListener('click', () => {
+            clicks++;
+            document.getElementById('clickCount').textContent = clicks;
+            minilytics.track('button_click', { count: clicks });
+        });
+    </script>
+</body>
+</html>
