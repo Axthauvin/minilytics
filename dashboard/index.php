@@ -1,0 +1,68 @@
+<?php
+// Ensure trailing slash when accessed as /dashboard to prevent relative path resolution issues
+$reqUri = $_SERVER['REQUEST_URI'] ?? '';
+$path = parse_url($reqUri, PHP_URL_PATH);
+if ($path === '/dashboard') {
+    $query = !empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '';
+    header('Location: /dashboard/' . $query, true, 301);
+    exit;
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="/dashboard/">
+    <title>Minilytics — Privacy-Friendly Web Analytics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css">
+    <link rel="stylesheet" href="/dashboard/src/assets/css/dashboard.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><circle cx='6' cy='6' r='3'/><circle cx='18' cy='6' r='3'/><circle cx='6' cy='18' r='3'/><circle cx='18' cy='18' r='3'/></svg>">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Left Sidebar Navigation -->
+        <?php include __DIR__ . '/src/components/sidebar.php'; ?>
+
+        <!-- Main Content Area -->
+        <div class="main-wrapper">
+            <!-- Top Header with Live Visitors & Controls -->
+            <?php include __DIR__ . '/src/components/header.php'; ?>
+
+            <!-- Page Views Container -->
+            <main class="content-container">
+                <!-- Page 0: Websites Management (Home) -->
+                <?php include __DIR__ . '/src/pages/websites.php'; ?>
+
+                <!-- Page 1: Overview & Views -->
+                <?php include __DIR__ . '/src/pages/overview.php'; ?>
+
+                <!-- Page 2: Filterable Events Stream -->
+                <?php include __DIR__ . '/src/pages/events.php'; ?>
+
+                <!-- Page 3: User Sessions -->
+                <?php include __DIR__ . '/src/pages/sessions.php'; ?>
+            </main>
+        </div>
+    </div>
+
+    <!-- Inspector Modals & Drawers -->
+    <?php include __DIR__ . '/src/components/modal.php'; ?>
+
+    <!-- Lucide Icons & Icon Helper -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/dashboard/src/assets/js/icons.js"></script>
+
+    <!-- Modular Application Scripts -->
+    <script src="/dashboard/src/assets/js/api.js"></script>
+    <script src="/dashboard/src/assets/js/chart.js"></script>
+    <script src="/dashboard/src/assets/js/websites.js"></script>
+    <script src="/dashboard/src/assets/js/overview.js"></script>
+    <script src="/dashboard/src/assets/js/events.js"></script>
+    <script src="/dashboard/src/assets/js/sessions.js"></script>
+    <script src="/dashboard/src/assets/js/app.js"></script>
+</body>
+</html>

@@ -20,3 +20,8 @@ function generateSessionId(string $websiteId): string
 
     return substr(hash('sha256', $websiteId . $ip . $ua . $day . $salt), 0, 32);
 }
+
+function generateVisitorId(string $websiteId): string
+{
+    return generateSessionId($websiteId);
+}

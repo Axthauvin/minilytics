@@ -1,0 +1,90 @@
+<!-- Page: Websites Management (Inspired by Image 1 & Standalone Portal) -->
+<div class="page-view" id="page-websites">
+    <!-- Standalone Portal Header with Minilytics Brand Logo -->
+    <div class="portal-header">
+        <div class="portal-brand-block">
+            <div class="brand-logo-emblem">
+                <svg width="34" height="34" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="9" fill="#0f172a"/>
+                    <path d="M7.5 22L12.5 15L17.5 18.5L24.5 9.5" stroke="#6366f1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="24.5" cy="9.5" r="2.2" fill="#818cf8"/>
+                </svg>
+                <div style="margin-left: 2px;">
+                    <div class="portal-brand-text">Minilytics</div>
+                    <div class="portal-subtitle">Websites & Projects</div>
+                </div>
+            </div>
+        </div>
+        <div>
+            <button type="button" class="btn-primary" id="btnWebsitesAddSite">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add New Website
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Global KPIs Grid -->
+    <div class="websites-kpi-grid">
+        <div class="kpi-card">
+            <span class="kpi-label">Configured Websites</span>
+            <div class="kpi-value-row">
+                <span class="kpi-number" id="globalTotalSites">0</span>
+            </div>
+            <span class="kpi-hint">Isolated SQLite instances</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Total Recorded Views</span>
+            <div class="kpi-value-row">
+                <span class="kpi-number" id="globalTotalViews">0</span>
+            </div>
+            <span class="kpi-hint">Aggregated across all targets</span>
+        </div>
+        <div class="kpi-card">
+            <span class="kpi-label">Live Active Visitors</span>
+            <div class="kpi-value-row">
+                <span class="kpi-number" id="globalLiveVisitors">0 active</span>
+                <span class="pulse-dot"></span>
+            </div>
+            <span class="kpi-hint">Active in the last 5 minutes</span>
+        </div>
+    </div>
+
+    <!-- Search & Filter Bar (Matching Image 1) -->
+    <div class="filter-toolbar">
+        <div class="search-input-wrapper">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" class="search-input" id="websiteSearchInput" placeholder="Search...">
+        </div>
+    </div>
+
+    <!-- Websites Table Card (Matching Image 1) -->
+    <div class="data-table-card">
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 280px;">Name <span>↕</span></th>
+                        <th>Domain <span>↕</span></th>
+                        <th style="width: 170px;">Visitors (7d)</th>
+                        <th style="width: 160px;">Created <span>↕</span></th>
+                        <th style="width: 140px; text-align: right;"></th>
+                    </tr>
+                </thead>
+                <tbody id="websitesTableBody">
+                    <tr>
+                        <td colspan="5" class="empty-state">Loading websites...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="table-records-footer" id="websitesRecordsCount">
+            0 records
+        </div>
+    </div>
+</div>
