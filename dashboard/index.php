@@ -23,8 +23,17 @@ if ($path === '/dashboard') {
     <link rel="stylesheet" href="/dashboard/src/assets/css/dashboard.css">
     <link rel="stylesheet" href="/dashboard/src/assets/css/overview.css">
     <link rel="stylesheet" href="/dashboard/src/assets/css/import.css">
-    
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><circle cx='6' cy='6' r='3'/><circle cx='18' cy='6' r='3'/><circle cx='6' cy='18' r='3'/><circle cx='18' cy='18' r='3'/></svg>">
+    <link rel="icon" type="image/svg+xml" href="/dashboard/src/assets/logo.svg">
+    <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg">
+    <script>
+        (function() {
+            try {
+                if (localStorage.getItem('minilytics_sidebar_collapsed') === 'true') {
+                    document.documentElement.classList.add('sidebar-preload-collapsed');
+                }
+            } catch (e) {}
+        })();
+    </script>
 </head>
 <body>
     <!-- Top global loading bar -->

@@ -75,18 +75,91 @@ const App = {
       });
     });
 
-    // Sidebar collapse toggle if present
-    const collapseBtn = document.getElementById("btnSidebarCollapse");
+    this.bindSidebarCollapse();
+  },
+
+  bindSidebarCollapse() {
     const sidebar = document.getElementById("sidebar");
-    if (collapseBtn && sidebar) {
-      collapseBtn.addEventListener("click", () => {
-        sidebar.classList.toggle("collapsed");
-        setTimeout(() => {
-          if (this.currentPage === "overview" && OverviewPage.chart) {
-            OverviewPage.chart.resize();
-          }
-        }, 260);
+    const collapseBtn = document.getElementById("btnSidebarCollapse");
+    const headerToggleBtn = document.getElementById("btnHeaderSidebarToggle");
+    if (!sidebar) return;
+
+    // Check stored state on initialization
+    let isCollapsed = false;
+    try {
+      isCollapsed = localStorage.getItem("minilytics_sidebar_collapsed") === "true";
+    } catch (e) {}
+
+    if (isCollapsed) {
+      sidebar.classList.add("collapsed");
+      document.body.classList.add("sidebar-is-collapsed");
+      this.updateSidebarCollapseLabels(true);
+    } else {
+      document.documentElement.classList.remove("sidebar-preload-collapsed");
+    }
+
+    const toggleSidebar = () => {
+      const willBeCollapsed = !sidebar.classList.contains("collapsed");
+      sidebar.classList.toggle("collapsed", willBeCollapsed);
+      document.body.classList.toggle("sidebar-is-collapsed", willBeCollapsed);
+      if (willBeCollapsed) {
+        document.documentElement.classList.add("sidebar-preload-collapsed");
+      } else {
+        document.documentElement.classList.remove("sidebar-preload-collapsed");
+      }
+
+      try {
+        localStorage.setItem("minilytics_sidebar_collapsed", willBeCollapsed ? "true" : "false");
+      } catch (e) {}
+
+      this.updateSidebarCollapseLabels(willBeCollapsed);
+
+      // Trigger redraw/resize for charts and dynamic containers
+      setTimeout(() => {
+        window.dispatchEvent(new Event("resize"));
+        if (this.currentPage === "overview" && typeof OverviewPage !== "undefined" && OverviewPage.chart) {
+          OverviewPage.chart.resize();
+        }
+      }, 240);
+    };
+
+    if (collapseBtn) {
+      collapseBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        toggleSidebar();
       });
+    }
+
+    if (headerToggleBtn) {
+      headerToggleBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        toggleSidebar();
+      });
+    }
+
+    // Keyboard shortcut: Ctrl+B or Cmd+B
+    window.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+        const activeTag = document.activeElement ? document.activeElement.tagName : "";
+        if (activeTag !== "INPUT" && activeTag !== "TEXTAREA" && activeTag !== "SELECT") {
+          e.preventDefault();
+          toggleSidebar();
+        }
+      }
+    });
+  },
+
+  updateSidebarCollapseLabels(isCollapsed) {
+    const collapseBtn = document.getElementById("btnSidebarCollapse");
+    const headerToggleBtn = document.getElementById("btnHeaderSidebarToggle");
+    const label = isCollapsed ? "Agrandir la navigation (Ctrl+B)" : "Réduire la navigation (Ctrl+B)";
+    if (collapseBtn) {
+      collapseBtn.setAttribute("title", label);
+      collapseBtn.setAttribute("aria-label", label);
+    }
+    if (headerToggleBtn) {
+      headerToggleBtn.setAttribute("title", label);
+      headerToggleBtn.setAttribute("aria-label", label);
     }
   },
 
@@ -393,6 +466,11 @@ const App = {
 
     if (nameEl) nameEl.textContent = siteName;
     if (domEl) domEl.textContent = siteDomain;
+
+    const siteBox = document.getElementById("sidebarSiteBox");
+    if (siteBox) {
+      siteBox.setAttribute("title", `${siteName} (${siteDomain})`);
+    }
 
     if (logoImg && fallbackEl) {
       const cleanDomain = (siteDomain || "")

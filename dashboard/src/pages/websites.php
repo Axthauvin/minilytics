@@ -4,11 +4,7 @@
     <div class="portal-header">
         <div class="portal-brand-block">
             <div class="brand-logo-emblem">
-                <svg width="34" height="34" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="32" height="32" rx="9" fill="#0f172a"/>
-                    <path d="M7.5 22L12.5 15L17.5 18.5L24.5 9.5" stroke="#6366f1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="24.5" cy="9.5" r="2.2" fill="#818cf8"/>
-                </svg>
+                <img src="/dashboard/src/assets/logo.svg" alt="Minilytics" width="36" height="36" class="portal-brand-logo-img">
                 <div style="margin-left: 2px;">
                     <div class="portal-brand-text">Minilytics</div>
                     <div class="portal-subtitle">Websites & Projects</div>

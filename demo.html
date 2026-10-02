@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minilytics Demo — Live Tracking Test</title>
+    <link rel="icon" type="image/svg+xml" href="/dashboard/src/assets/logo.svg">
+    <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg">
     <!-- Minilytics Tracking Script -->
     <script defer src="minilytics.js" data-site-id="demo_site"></script>
     <style>
@@ -114,7 +116,11 @@
     </style>
 </head>
 <body>
-    <div class="nav-links">
+    <div class="nav-links" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <img src="/dashboard/src/assets/logo.svg" alt="Minilytics" width="28" height="28">
+            <span style="font-weight: 800; font-size: 16px; color: #0f172a; letter-spacing: -0.02em;">Minilytics</span>
+        </div>
         <a href="/dashboard/">← Open Minilytics Dashboard</a>
     </div>
 

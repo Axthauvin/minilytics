@@ -1,13 +1,16 @@
 <!-- Sleek Gray Sidebar (Minimalist with Text Labels & Back Navigation) -->
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 2px 2px;">
-            <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="32" height="32" rx="9" fill="#0f172a"/>
-                <path d="M7.5 22L12.5 15L17.5 18.5L24.5 9.5" stroke="#6366f1" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="24.5" cy="9.5" r="2.2" fill="#818cf8"/>
-            </svg>
-            <span style="font-weight: 800; font-size: 15px; color: var(--text-primary); letter-spacing: -0.02em;">Minilytics</span>
+        <div class="sidebar-header-row">
+            <a href="#websites" class="sidebar-brand-link" id="sidebarBrandLink" title="Minilytics — All Websites">
+                <img src="/dashboard/src/assets/logo.svg" class="sidebar-brand-icon" width="28" height="28" alt="Minilytics Logo">
+                <span class="sidebar-brand-text">Minilytics</span>
+            </a>
+            <button type="button" class="btn-sidebar-collapse" id="btnSidebarCollapse" title="Réduire la navigation (Ctrl+B)" aria-label="Réduire la navigation">
+                <svg class="icon-collapse-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
         </div>
 
         <!-- Back to websites button (Primary navigation out of individual site) -->
