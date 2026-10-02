@@ -197,7 +197,6 @@ const OverviewPage = {
                 <li class="clean-pill-row">
                     <div class="pill-progress-bg" style="width: ${pct}%;"></div>
                     <div class="pill-left">
-                        <span class="pill-icon-box">${iconSvg}</span>
                         <span class="pill-title" title="${this.escapeHtml(p.path)}">${this.escapeHtml(label)}</span>
                     </div>
                     <div class="pill-right">
