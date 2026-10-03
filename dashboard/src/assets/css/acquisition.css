@@ -1,0 +1,36 @@
+.acquisition-hero { display:flex; align-items:end; justify-content:space-between; gap:24px; padding:4px 0 27px; border-bottom:1px solid var(--border); margin-bottom:26px; }
+.acquisition-eyebrow,.acquisition-card-kicker { margin:0 0 7px; color:#2563eb; font-size:10px; letter-spacing:.1em; font-weight:800; }
+.acquisition-hero h1 { margin:0; font-size:27px; letter-spacing:-.04em; }
+.acquisition-hero p:not(.acquisition-eyebrow) { margin:8px 0 0; color:var(--text-muted); font-size:14px; }
+.acquisition-hero-note { display:flex; align-items:center; gap:7px; padding:8px 11px; border:1px solid #dbeafe; background:#eff6ff; border-radius:999px; color:#1d4ed8; font-size:12px; white-space:nowrap; }
+.acquisition-note-dot { width:6px; height:6px; border-radius:50%; background:#3b82f6; }
+.acquisition-section { margin-bottom:30px; }
+.acquisition-section-title { display:flex; align-items:baseline; gap:10px; margin:0 0 12px; }
+.acquisition-section-title h2 { font-size:14px; margin:0; letter-spacing:-.01em; }
+.acquisition-section-title p { color:var(--text-muted); font-size:12px; margin:0; }
+.acquisition-grid { display:grid; gap:14px; }
+.acquisition-grid--three { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.acquisition-grid--two { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.acquisition-card { min-width:0; background:var(--bg-surface); border:1px solid var(--border); border-radius:11px; padding:16px; box-shadow:var(--shadow-sm); }
+.acquisition-card-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; padding-bottom:13px; border-bottom:1px solid var(--border); }
+.acquisition-card h3 { margin:0; font-size:14px; letter-spacing:-.01em; }
+.acquisition-total { text-align:right; color:var(--text-primary); font-size:15px; font-weight:750; line-height:1; }
+.acquisition-total small { display:block; color:var(--text-muted); font-size:10px; font-weight:600; margin-top:4px; }
+.acquisition-list { list-style:none; padding:0; margin:9px 0 0; }
+.acquisition-row { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:8px 0; font-size:12.5px; }
+.acquisition-row + .acquisition-row { border-top:1px solid #f1f5f9; }
+.acquisition-row-main { position:relative; min-width:0; flex:1; padding:3px 0; overflow:hidden; }
+.acquisition-bar { position:absolute; z-index:0; left:0; top:0; bottom:0; width:var(--bar); min-width:3px; border-radius:3px; background:#dbeafe; opacity:.7; }
+.acquisition-card--channels .acquisition-bar { background:#d1fae5; }
+.acquisition-card--landing_pages .acquisition-bar { background:#ede9fe; }
+.acquisition-card--exit_pages .acquisition-bar { background:#fee2e2; }
+.acquisition-name { position:relative; z-index:1; display:block; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; padding:0 6px; font-weight:600; color:var(--text-primary); }
+.acquisition-row strong { color:var(--text-secondary); font-size:12px; font-variant-numeric:tabular-nums; }
+.acquisition-empty { padding:20px 4px 8px; color:var(--text-muted); font-size:12px; text-align:center; }
+.acquisition-help { color:var(--text-muted); font-size:13px; margin:-4px 0 14px; }
+.bot-card { margin-top:4px; margin-bottom:20px; padding:18px; }
+.bot-list { display:flex; flex-direction:column; gap:0; }
+.bot-row { display:grid; grid-template-columns:180px minmax(0,1fr) 165px; gap:12px; align-items:center; padding:10px 0; border-top:1px solid var(--border); font-size:12px; }
+.bot-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-muted); }.bot-row time { color:var(--text-muted); text-align:right; }
+@media (max-width: 1050px) { .acquisition-grid--three { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width: 700px) { .acquisition-hero{align-items:flex-start;flex-direction:column}.acquisition-hero-note{white-space:normal}.acquisition-grid--three,.acquisition-grid--two{grid-template-columns:1fr}.acquisition-section-title{display:block}.acquisition-section-title p{margin-top:4px}.bot-row{grid-template-columns:1fr;gap:4px}.bot-row time{text-align:left} }

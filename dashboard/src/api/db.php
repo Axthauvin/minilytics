@@ -49,6 +49,18 @@ class Database {
             $sites = json_decode(file_get_contents($sitesFile), true) ?: [];
         }
 
+        // Backfill configuration for installations created before protected
+        // collection was introduced. The generated key is only exposed to admins.
+        $sitesChanged = false;
+        foreach ($sites as &$site) {
+            if (empty($site['write_key'])) { $site['write_key'] = bin2hex(random_bytes(24)); $sitesChanged = true; }
+            if (!isset($site['allowed_domains'])) { $site['allowed_domains'] = array_values(array_filter([self::normalizeHost((string)($site['domain'] ?? ''))])); $sitesChanged = true; }
+            if (!isset($site['internal_ips'])) { $site['internal_ips'] = []; $sitesChanged = true; }
+            if (!isset($site['retention_days'])) { $site['retention_days'] = 395; $sitesChanged = true; }
+        }
+        unset($site);
+        if ($sitesChanged) self::saveSites($sites);
+
         // Auto-discover any .db files inside data/
         $dbFiles = glob("{$dataDir}/*.db") ?: [];
         $knownIds = array_column($sites, 'id');
@@ -61,10 +73,16 @@ class Database {
                     'id' => $base,
                     'name' => ucwords(str_replace(['_', '-'], ' ', $base)),
                     'domain' => '',
+                    'allowed_domains' => [],
+                    'internal_ips' => [],
+                    'retention_days' => 395,
+                    'write_key' => bin2hex(random_bytes(24)),
                     'created_at' => gmdate('Y-m-d H:i:s', filemtime($file))
                 ];
+                $sitesChanged = true;
             }
         }
+        if ($sitesChanged) self::saveSites($sites);
 
         return $sites;
     }
@@ -132,6 +150,49 @@ class Database {
         file_put_contents($sitesFile, json_encode($sites, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
 
+    public static function normalizeHost(string $value): string {
+        $value = strtolower(trim($value));
+        if ($value === '') return '';
+        $parsed = parse_url(str_contains($value, '://') ? $value : '//' . $value, PHP_URL_HOST);
+        $value = $parsed ?: preg_replace('#^https?://#', '', $value);
+        $value = preg_replace('#/.*$#', '', (string)$value);
+        return trim((string)$value, '.');
+    }
+
+    public static function trackingSite(string $siteId): ?array {
+        $cleanId = preg_replace('/[^a-zA-Z0-9_\-]/', '', strtolower($siteId));
+        foreach (self::getAvailableSites() as $site) {
+            if (($site['id'] ?? '') === $cleanId) return $site;
+        }
+        return null;
+    }
+
+    public static function trackingSnippet(array $site, string $scriptUrl): string {
+        return '<script defer src="' . htmlspecialchars($scriptUrl, ENT_QUOTES) . '" data-site-id="' . htmlspecialchars($site['id'], ENT_QUOTES) . '" data-site-key="' . htmlspecialchars($site['write_key'], ENT_QUOTES) . '" data-privacy-mode="strict"></script>';
+    }
+
+    public static function updateSiteConfig(string $siteId, array $input): array {
+        $cleanId = self::sanitizeSiteId($siteId);
+        $sites = self::getAvailableSites();
+        foreach ($sites as &$site) {
+            if ($site['id'] !== $cleanId) continue;
+            if (array_key_exists('domain', $input)) $site['domain'] = trim((string)$input['domain']);
+            if (array_key_exists('allowed_domains', $input)) {
+                $raw = is_array($input['allowed_domains']) ? $input['allowed_domains'] : explode(',', (string)$input['allowed_domains']);
+                $site['allowed_domains'] = array_values(array_unique(array_filter(array_map([self::class, 'normalizeHost'], $raw))));
+            }
+            if (array_key_exists('internal_ips', $input)) {
+                $raw = is_array($input['internal_ips']) ? $input['internal_ips'] : preg_split('/[\s,]+/', (string)$input['internal_ips']);
+                $site['internal_ips'] = array_values(array_unique(array_filter(array_map('trim', $raw))));
+            }
+            if (array_key_exists('retention_days', $input)) $site['retention_days'] = max(1, min(760, (int)$input['retention_days']));
+            if (!empty($input['rotate_key'])) $site['write_key'] = bin2hex(random_bytes(24));
+            self::saveSites($sites);
+            return $site;
+        }
+        throw new InvalidArgumentException('Website not found.');
+    }
+
     public static function createSite(string $siteId, string $name, string $domain = ''): array {
         $cleanId = preg_replace('/[^a-zA-Z0-9_\-]/', '', strtolower(trim($siteId)));
         if (empty($cleanId)) {
@@ -151,18 +212,16 @@ class Database {
         $db = new SQLite3($dbPath);
         $db->busyTimeout(5000);
         $db->exec('PRAGMA journal_mode = WAL;');
-        $db->exec("CREATE TABLE IF NOT EXISTS user_activity (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            session_id TEXT NOT NULL, 
-            visitor_id TEXT,
-            action TEXT NOT NULL, 
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )");
+        self::ensureSchema($db);
 
         $newSite = [
             'id' => $cleanId,
             'name' => trim($name) ?: $cleanId,
             'domain' => trim($domain),
+            'allowed_domains' => array_values(array_filter([self::normalizeHost($domain)])),
+            'internal_ips' => [],
+            'retention_days' => 395,
+            'write_key' => bin2hex(random_bytes(24)),
             'created_at' => gmdate('Y-m-d H:i:s')
         ];
 
@@ -215,13 +274,7 @@ class Database {
             $db->busyTimeout(5000);
             $db->exec('PRAGMA journal_mode = WAL;');
 
-            $db->exec("CREATE TABLE IF NOT EXISTS user_activity (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                session_id TEXT NOT NULL, 
-                visitor_id TEXT,
-                action TEXT NOT NULL, 
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            )");
+            self::ensureSchema($db);
 
             // Auto-migrate if visitor_id column doesn't exist
             $cols = $db->query("PRAGMA table_info(user_activity)");
@@ -235,8 +288,27 @@ class Database {
             }
 
             self::$instances[$cleanSite] = $db;
+            self::runRetention($db, self::trackingSite($cleanSite) ?: []);
         }
 
         return self::$instances[$cleanSite];
+    }
+
+    private static function ensureSchema(SQLite3 $db): void {
+        $db->exec("CREATE TABLE IF NOT EXISTS user_activity (id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL, visitor_id TEXT, action TEXT NOT NULL, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)");
+        $db->exec("CREATE TABLE IF NOT EXISTS bot_activity (id INTEGER PRIMARY KEY AUTOINCREMENT, reason TEXT NOT NULL, user_agent TEXT, origin TEXT, ip_hash TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)");
+        $db->exec("CREATE TABLE IF NOT EXISTS rate_limits (bucket TEXT NOT NULL, ip_hash TEXT NOT NULL, count INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(bucket, ip_hash))");
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_ua_timestamp ON user_activity(timestamp)');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_ua_session ON user_activity(session_id)');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_ua_visitor ON user_activity(visitor_id)');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_bot_timestamp ON bot_activity(timestamp)');
+    }
+
+    private static function runRetention(SQLite3 $db, array $site): void {
+        $days = max(1, min(760, (int)($site['retention_days'] ?? 395)));
+        $cutoff = gmdate('Y-m-d H:i:s', time() - $days * 86400);
+        $stmt = $db->prepare('DELETE FROM user_activity WHERE timestamp < :cutoff'); $stmt->bindValue(':cutoff', $cutoff, SQLITE3_TEXT); $stmt->execute();
+        $stmt = $db->prepare('DELETE FROM bot_activity WHERE timestamp < :cutoff'); $stmt->bindValue(':cutoff', $cutoff, SQLITE3_TEXT); $stmt->execute();
+        $db->exec("DELETE FROM rate_limits WHERE bucket < '" . gmdate('YmdHi', time() - 7200) . "'");
     }
 }

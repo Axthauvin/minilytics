@@ -274,11 +274,16 @@ const WebsitesPage = {
         }
     },
 
-    showSnippet(siteId, siteName) {
-        const host = window.location.host;
-        const protocol = window.location.protocol;
-        const scriptUrl = `${protocol}//${host}/minilytics.js`;
-        const snippet = `<script defer src="${scriptUrl}" data-site-id="${siteId}"></script>`;
+    async showSnippet(siteId, siteName) {
+        let snippet = '';
+        try {
+            const config = await Api.getTrackingConfig(siteId);
+            const scriptUrl = `${window.location.protocol}//${window.location.host}/minilytics.js`;
+            snippet = `<script defer src="${scriptUrl}" data-site-id="${siteId}" data-site-key="${config.site.write_key}" data-privacy-mode="strict"></script>`;
+        } catch (error) {
+            alert(`Could not load the protected tracking snippet: ${error.message}`);
+            return;
+        }
 
         const snippetBox = document.getElementById('createdSiteSnippet');
         if (snippetBox) {

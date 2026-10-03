@@ -60,6 +60,12 @@
                         <span class="nav-title">Overview</span>
                     </a>
                 </li>
+                <li class="nav-item" data-page="acquisition">
+                    <a href="#acquisition">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"></path><path d="m7 16 4-5 3 3 5-7"></path></svg>
+                        <span class="nav-title">Acquisition</span>
+                    </a>
+                </li>
 
                 <!-- 2. Sessions -->
                 <li class="nav-item" data-page="sessions">

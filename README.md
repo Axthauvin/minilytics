@@ -111,6 +111,18 @@ minilytics.track("button_click", { buttonId: "signup", plan: "pro" });
 </button>
 ```
 
+## Production privacy & data quality
+
+Each website now has a private `data-site-key` and an allowlist of domains. Copy the generated snippet from the Website manager; do not hand-write a snippet. In **Settings → Tracking & data protection**, administrators can set allowed domains, internal IP addresses to exclude, a retention period, and rotate the key.
+
+The default tracker is strict: it does not fingerprint devices, removes URL query strings/fragments, respects Global Privacy Control / Do Not Track, and provides `minilytics.optOut()` / `minilytics.optIn()`. Bot and internal requests are rejected before metrics are stored and remain visible in Acquisition.
+
+Retention is applied whenever a site's database is opened. To save SQLite snapshots from a scheduler:
+
+```bash
+php backup.php --destination /secure/backups/minilytics
+```
+
 ## Data Import (Umami & Extensible Providers)
 
 Minilytics includes a high-performance analytics ingestion engine that allows you to easily import historical analytics from other platforms:

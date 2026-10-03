@@ -27,6 +27,14 @@ const Api = {
     return await res.json();
   },
 
+  async getAcquisition(range = "7d", siteId = "", customDates = null) {
+    const params = new URLSearchParams({ range, site_id: siteId || window.App?.currentSiteId || "" });
+    const dates = customDates || window.App?.customDates;
+    if (range === "custom" && dates?.from && dates?.to) { params.append("from", dates.from); params.append("to", dates.to); }
+    const res = await fetch(`${this.base}/acquisition.php?${params}`); const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
+  },
+
   async getEvents({
     range = "7d",
     page = 1,
@@ -147,6 +155,16 @@ const Api = {
     const res = await fetch(`${this.base}/sites.php`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
+  },
+
+  async getTrackingConfig(id) {
+    const res = await fetch(`${this.base}/sites.php?action=tracking-config&id=${encodeURIComponent(id)}`); const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
+  },
+
+  async updateSiteConfig(config) {
+    const res = await fetch(`${this.base}/sites.php`, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(config)}); const data=await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
   },
 
   async createSite({ id, name, domain }) {

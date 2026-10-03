@@ -574,7 +574,7 @@ const App = {
     }
 
     // No site selected anywhere
-    if (hash === "overview" || hash === "sessions" || hash === "events" || hash === "funnels") {
+    if (hash === "overview" || hash === "acquisition" || hash === "sessions" || hash === "events" || hash === "funnels") {
       try {
         const res = await Api.getSites();
         const sites = res.sites || [];
@@ -602,7 +602,7 @@ const App = {
   },
 
   navigateTo(pageName) {
-    if (!["websites", "overview", "events", "sessions", "funnels", "settings"].includes(pageName)) {
+    if (!["websites", "overview", "acquisition", "events", "sessions", "funnels", "settings"].includes(pageName)) {
       pageName = "websites";
     }
 
@@ -650,6 +650,7 @@ const App = {
     const titles = {
       websites: "Websites & Projects",
       overview: "Analytics Overview",
+      acquisition: "Acquisition",
       events: "Events Stream",
       sessions: "User Sessions",
       funnels: "Funnels",
@@ -669,6 +670,8 @@ const App = {
       WebsitesPage.load();
     } else if (this.currentPage === "overview") {
       OverviewPage.load(this.currentRange, this.currentSiteId, this.customDates);
+    } else if (this.currentPage === "acquisition") {
+      AcquisitionPage.load(this.currentRange, this.currentSiteId, this.customDates);
     } else if (this.currentPage === "events") {
       EventsPage.load(this.currentRange, this.currentSiteId, this.customDates);
     } else if (this.currentPage === "sessions") {
@@ -752,7 +755,7 @@ const App = {
     );
   },
 
-  displayNoDataMessage(siteId) {
+  async displayNoDataMessage(siteId) {
     const noDataEl = document.getElementById("no-data-yet");
     if (noDataEl) noDataEl.style.display = "flex";
 
@@ -762,7 +765,9 @@ const App = {
     const host = window.location.host;
     const protocol = window.location.protocol;
     const scriptUrl = `${protocol}//${host}/minilytics.js`;
-    const snippet = `<script defer src="${scriptUrl}" data-site-id="${siteId}"></script>`;
+    let key = "";
+    try { key = (await Api.getTrackingConfig(siteId)).site.write_key; } catch (e) { return; }
+    const snippet = `<script defer src="${scriptUrl}" data-site-id="${siteId}" data-site-key="${key}" data-privacy-mode="strict"></script>`;
 
     const overviewSnippet = document.getElementById("overviewSnippetPre");
     if (overviewSnippet) {

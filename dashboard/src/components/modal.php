@@ -103,7 +103,7 @@
                 </div>
 
                 <div style="margin-bottom: 20px;">
-                    <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Domain (Optional)</label>
+                    <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Domain (required, used to protect collection)</label>
                     <input type="text" id="newSiteDomain" placeholder="e.g. example.com or localhost:3000" class="search-input" style="padding-left: 12px;">
                 </div>
 

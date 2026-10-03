@@ -25,6 +25,12 @@ const SettingsPage = {
         }
       });
     }
+    const trackingForm = document.getElementById('trackingSettingsForm');
+    if (trackingForm) trackingForm.addEventListener('submit', (event) => this.saveTracking(event));
+    const siteSelect = document.getElementById('trackingSiteSelect');
+    if (siteSelect) siteSelect.addEventListener('change', () => this.loadTrackingConfig());
+    const copySnippet = document.getElementById('copyTrackingSnippet');
+    if (copySnippet) copySnippet.addEventListener('click', () => ClipboardHelper.copy(document.getElementById('trackingSnippet').value, copySnippet));
   },
 
   async load() {
@@ -38,6 +44,7 @@ const SettingsPage = {
       const data = await Api.getUsers();
       this.currentUser = data.current_user || null;
       const isAdmin = Boolean(this.currentUser && this.currentUser.role === 'admin');
+      await this.loadTrackingSites(isAdmin);
 
       // Only administrators can invite new users
       const inviteCard = document.getElementById('inviteUserCard');
@@ -146,6 +153,32 @@ const SettingsPage = {
       list.innerHTML = `<p class="settings-error">${this.escapeHtml(error.message)}</p>`;
     }
   },
+
+  async loadTrackingSites(isAdmin) {
+    const card = document.getElementById('trackingSettingsCard'); if (!card) return;
+    card.hidden = !isAdmin; if (!isAdmin) return;
+    const select = document.getElementById('trackingSiteSelect'); const data = await Api.getSites();
+    select.innerHTML = (data.sites || []).map(s => `<option value="${this.escapeHtml(s.id)}">${this.escapeHtml(s.name || s.id)}</option>`).join('');
+    await this.loadTrackingConfig();
+  },
+
+  async loadTrackingConfig() {
+    const select = document.getElementById('trackingSiteSelect'); if (!select || !select.value) return;
+    try { const data = await Api.getTrackingConfig(select.value); const site = data.site;
+      document.getElementById('trackingDomains').value = (site.allowed_domains || []).join(', ');
+      document.getElementById('trackingInternalIps').value = (site.internal_ips || []).join(', ');
+      document.getElementById('trackingRetention').value = site.retention_days || 395;
+    } catch (e) { this.setTrackingFeedback(e.message, 'error'); }
+  },
+
+  async saveTracking(event) {
+    event.preventDefault(); const select = document.getElementById('trackingSiteSelect');
+    try { const data = await Api.updateSiteConfig({ id: select.value, allowed_domains: document.getElementById('trackingDomains').value, internal_ips: document.getElementById('trackingInternalIps').value, retention_days: document.getElementById('trackingRetention').value, rotate_key: document.getElementById('trackingRotateKey').checked });
+      document.getElementById('trackingRotateKey').checked = false; document.getElementById('trackingSnippet').value = data.snippet; document.getElementById('trackingSnippetResult').hidden = false; this.setTrackingFeedback('Tracking settings saved.', 'success');
+    } catch (e) { this.setTrackingFeedback(e.message, 'error'); }
+  },
+
+  setTrackingFeedback(message, type = '') { const el=document.getElementById('trackingFeedback'); if (!el) return; el.textContent=message; el.className='settings-feedback'; if(type==='error')el.classList.add('settings-error'); if(type==='success')el.classList.add('settings-success'); },
 
   async invite(event) {
     event.preventDefault();

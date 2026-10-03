@@ -26,6 +26,7 @@ if ($path === '/dashboard') {
     <!-- Core Stylesheets -->
     <link rel="stylesheet" href="/dashboard/src/assets/css/dashboard.css">
     <link rel="stylesheet" href="/dashboard/src/assets/css/overview.css">
+    <link rel="stylesheet" href="/dashboard/src/assets/css/acquisition.css">
     <link rel="stylesheet" href="/dashboard/src/assets/css/import.css">
     <link rel="stylesheet" href="/dashboard/src/assets/css/settings.css">
     <link rel="stylesheet" href="/dashboard/src/assets/css/funnels.css">
@@ -61,6 +62,7 @@ if ($path === '/dashboard') {
 
                 <!-- Page 1: Overview & Views -->
                 <?php include __DIR__ . '/src/pages/overview.php'; ?>
+                <?php include __DIR__ . '/src/pages/acquisition.php'; ?>
 
                 <!-- Page 2: Filterable Events Stream -->
                 <?php include __DIR__ . '/src/pages/events.php'; ?>
@@ -87,6 +89,7 @@ if ($path === '/dashboard') {
     <script src="/dashboard/src/assets/js/websites.js"></script>
     <script src="/dashboard/src/assets/js/import.js"></script>
     <script src="/dashboard/src/assets/js/overview.js"></script>
+    <script src="/dashboard/src/assets/js/acquisition.js"></script>
     <script src="/dashboard/src/assets/js/events.js"></script>
     <script src="/dashboard/src/assets/js/sessions.js"></script>
     <script src="/dashboard/src/assets/js/funnels.js"></script>
