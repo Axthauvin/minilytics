@@ -175,14 +175,11 @@ const SessionsPage = {
   extractDayKey(timestamp) {
     if (!timestamp) return "";
     try {
-      const d = new Date(timestamp.includes("T") ? timestamp : timestamp.replace(" ", "T") + "Z");
-      if (isNaN(d.getTime())) return timestamp.substring(0, 10);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
+      const clean = String(timestamp).trim();
+      const match = clean.match(/^(\d{4}-\d{2}-\d{2})/);
+      return match ? match[1] : clean.substring(0, 10);
     } catch (e) {
-      return timestamp.substring(0, 10);
+      return String(timestamp).substring(0, 10);
     }
   },
 
@@ -242,14 +239,26 @@ const SessionsPage = {
       return;
     }
 
-    let lastDayKey = null;
-    let html = "";
+    // Sort chronologically by started_at DESC
+    const sorted = [...sessions].sort((a, b) => {
+      const ta = a.started_at || a.last_active_at || "";
+      const tb = b.started_at || b.last_active_at || "";
+      return tb.localeCompare(ta);
+    });
 
-    sessions.forEach((s) => {
+    // Group sessions by day to guarantee each day delimiter appears exactly once
+    const daysMap = new Map();
+    sorted.forEach((s) => {
       const dayKey = this.extractDayKey(s.started_at || s.last_active_at);
+      if (!daysMap.has(dayKey)) {
+        daysMap.set(dayKey, []);
+      }
+      daysMap.get(dayKey).push(s);
+    });
 
-      if (dayKey && dayKey !== lastDayKey) {
-        lastDayKey = dayKey;
+    let html = "";
+    daysMap.forEach((daySessions, dayKey) => {
+      if (dayKey) {
         const dayLabel = this.formatDayLabel(dayKey);
         html += `
           <div class="session-day-delimiter">
@@ -263,54 +272,56 @@ const SessionsPage = {
         `;
       }
 
-      const avatarUrl =
-        s.avatar_url || Icons.getDiceBearGlyphUrl(s.session_id);
-      const fallbackSvg = Icons.getIdenticonSvgDataUri(s.session_id, 40);
-      const shortId = (s.session_id || "").substring(0, 8);
-      const country = s.country || "Unknown";
-      const countryCode = s.country_code || "UN";
-      const os = s.os || "Unknown OS";
-      const browser = s.browser || "Unknown Browser";
-      const timeAgo = s.time_ago || s.started_at;
-      const duration = s.duration_label || "0s";
-      const eventCount = s.event_count || 1;
-      const siteId = window.App?.currentSiteId || "";
-      const flowChips = null;
+      daySessions.forEach((s) => {
+        const avatarUrl =
+          s.avatar_url || Icons.getDiceBearGlyphUrl(s.session_id);
+        const fallbackSvg = Icons.getIdenticonSvgDataUri(s.session_id, 40);
+        const shortId = (s.session_id || "").substring(0, 8);
+        const country = s.country || "Unknown";
+        const countryCode = s.country_code || "UN";
+        const os = s.os || "Unknown OS";
+        const browser = s.browser || "Unknown Browser";
+        const timeAgo = s.time_ago || s.started_at;
+        const duration = s.duration_label || "0s";
+        const eventCount = s.event_count || 1;
+        const siteId = window.App?.currentSiteId || "";
+        const flowChips = null;
 
-      html += `
-        <div class="session-card-item" onclick="SessionsPage.inspectSession('${s.session_id}', '${siteId}')" title="Inspect session journey">
-            <div class="session-card-left">
-                <div class="session-avatar-wrap">
-                    <img src="${avatarUrl}" alt="Avatar" class="session-avatar-img" onerror="this.onerror=null; this.src='${fallbackSvg}';">
-                    <span class="session-status-dot"></span>
-                </div>
-                <div class="session-card-info">
-                    <div class="session-card-title-row">
-                        <span class="session-visitor-name">Session #${shortId}</span>
-                        <span class="session-badge-country">
-                            ${Icons.getCountryFlag(countryCode, { size: 14 })}
-                            <span>${this.escapeHtml(country)}</span>
-                        </span>
-                    </div>
-                    <div class="session-card-sub-row">
-                        <span class="session-meta-item">${Icons.getBrowserIcon(browser, 14)} ${this.escapeHtml(browser)}</span>
-                        <span class="session-meta-divider">·</span>
-                        <span class="session-meta-item">${Icons.getOsIcon(os, 14)} ${this.escapeHtml(os)}</span>
-                        <span class="session-meta-divider">·</span>
-                        <span class="session-meta-item">${Icons.get("activity", { size: 12 })} ${eventCount} action${eventCount === 1 ? "" : "s"}</span>
-                        ${flowChips ? `<span class="session-meta-divider">|</span><div class="session-flow-bar">${flowChips}</div>` : ""}
-                    </div>
-                </div>
-            </div>
-            <div class="session-card-right">
-                <div class="session-time-block">
-                    <span class="session-card-time">${this.escapeHtml(timeAgo)}</span>
-                    <span class="session-card-duration">Duration: ${duration}</span>
-                </div>
-                <span class="session-card-chevron">${Icons.get("chevron-right", { size: 16 })}</span>
-            </div>
-        </div>
-      `;
+        html += `
+          <div class="session-card-item" onclick="SessionsPage.inspectSession('${s.session_id}', '${siteId}')" title="Inspect session journey">
+              <div class="session-card-left">
+                  <div class="session-avatar-wrap">
+                      <img src="${avatarUrl}" alt="Avatar" class="session-avatar-img" onerror="this.onerror=null; this.src='${fallbackSvg}';">
+                      <span class="session-status-dot"></span>
+                  </div>
+                  <div class="session-card-info">
+                      <div class="session-card-title-row">
+                          <span class="session-visitor-name">Session #${shortId}</span>
+                          <span class="session-badge-country">
+                              ${Icons.getCountryFlag(countryCode, { size: 14 })}
+                              <span>${this.escapeHtml(country)}</span>
+                          </span>
+                      </div>
+                      <div class="session-card-sub-row">
+                          <span class="session-meta-item">${Icons.getBrowserIcon(browser, 14)} ${this.escapeHtml(browser)}</span>
+                          <span class="session-meta-divider">·</span>
+                          <span class="session-meta-item">${Icons.getOsIcon(os, 14)} ${this.escapeHtml(os)}</span>
+                          <span class="session-meta-divider">·</span>
+                          <span class="session-meta-item">${Icons.get("activity", { size: 12 })} ${eventCount} action${eventCount === 1 ? "" : "s"}</span>
+                          ${flowChips ? `<span class="session-meta-divider">|</span><div class="session-flow-bar">${flowChips}</div>` : ""}
+                      </div>
+                  </div>
+              </div>
+              <div class="session-card-right">
+                  <div class="session-time-block">
+                      <span class="session-card-time">${this.escapeHtml(timeAgo)}</span>
+                      <span class="session-card-duration">Duration: ${duration}</span>
+                  </div>
+                  <span class="session-card-chevron">${Icons.get("chevron-right", { size: 16 })}</span>
+              </div>
+          </div>
+        `;
+      });
     });
 
     container.innerHTML = html;

@@ -218,7 +218,7 @@ try {
         FROM user_activity
         WHERE {$whereClause}
         GROUP BY session_id
-        ORDER BY last_active_at DESC
+        ORDER BY started_at DESC, last_active_at DESC
         LIMIT :limit OFFSET :offset
     ";
     $sStmt = $db->prepare($sessSql);

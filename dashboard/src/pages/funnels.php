@@ -2,17 +2,23 @@
 <div class="page-view" id="page-funnels">
     <div class="funnel-page-head">
         <div class="page-intro">
-            <h1>Funels</h1>
-            <p>Build a funnel from the page views and events you already track. Steps are counted in the order visitors complete them.</p>
+            <h1 id="analysisPageTitle">Funnels</h1>
+            <p id="analysisPageDescription">Build a funnel from the page views and events you already track. Steps are counted in the order visitors complete them.</p>
         </div>
         <button class="btn-funnel-create" id="btnCreateFunnel" type="button">
             <span>+</span> Create funnel
         </button>
     </div>
 
+    <div class="analysis-tabs" role="tablist" aria-label="Analysis type">
+        <button class="analysis-tab active" type="button" data-analysis-kind="funnel" role="tab">Funnels</button>
+        <button class="analysis-tab" type="button" data-analysis-kind="goal" role="tab">Goals</button>
+        <button class="analysis-tab" type="button" data-analysis-kind="journey" role="tab">Journeys</button>
+    </div>
+
     <div class="funnel-layout">
         <aside class="funnel-list-panel">
-            <div class="funnel-list-heading"><span>Your funnels</span><span id="funnelsCount" class="funnel-count">0</span></div>
+            <div class="funnel-list-heading"><span id="analysisListTitle">Your funnels</span><span id="funnelsCount" class="funnel-count">0</span></div>
             <div id="funnelsList" class="funnels-list">
                 <div class="funnel-list-empty">Loading your funnels…</div>
             </div>
@@ -35,7 +41,7 @@
             <p class="funnel-builder-help">Add the actions visitors should take, in order. You can use page views or any event already recorded.</p>
             <label class="funnel-field-label" for="funnelName">Name</label>
             <input id="funnelName" class="funnel-name-input" maxlength="80" placeholder="e.g. Checkout completion">
-            <div class="funnel-builder-steps-head"><span>Steps</span></div>
+            <div class="funnel-builder-steps-head"><span id="builderStepsLabel">Steps</span></div>
             <div id="funnelBuilderSteps" class="funnel-builder-steps"></div>
             <div class="funnel-builder-footer"><button id="btnCancelFunnel" type="button" class="btn-secondary-funnel">Cancel</button><button id="btnSaveFunnel" type="button" class="btn-funnel-create">Save funnel</button></div>
         </div>

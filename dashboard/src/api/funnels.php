@@ -17,7 +17,10 @@ function funnelRange(): array {
     return [gmdate('Y-m-d H:i:s', $start), gmdate('Y-m-d H:i:s', $end)];
 }
 function setupFunnels(SQLite3 $db): void {
-    $db->exec('CREATE TABLE IF NOT EXISTS funnels (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, steps TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
+    $db->exec("CREATE TABLE IF NOT EXISTS funnels (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'funnel', steps TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
+    $columns = $db->query('PRAGMA table_info(funnels)'); $hasKind = false;
+    while ($column = $columns->fetchArray(SQLITE3_ASSOC)) if ($column['name'] === 'kind') $hasKind = true;
+    if (!$hasKind) $db->exec("ALTER TABLE funnels ADD COLUMN kind TEXT NOT NULL DEFAULT 'funnel'");
 }
 function cleanSteps(mixed $steps): array {
     if (!is_array($steps) || count($steps) < 1 || count($steps) > 12) throw new InvalidArgumentException('Add between 1 and 12 steps.');
@@ -46,23 +49,60 @@ function analyzeFunnel(SQLite3 $db, array $steps, string $start, string $end): a
     $finish();
     return $progress;
 }
+function analyzeJourneySources(SQLite3 $db, array $steps, string $start, string $end): array {
+    if (count($steps) < 2) return ['entered' => 0, 'completed' => 0, 'tree' => ['count' => 0, 'children' => []]];
+    $stmt = $db->prepare("SELECT session_id, action FROM user_activity WHERE timestamp >= :start AND timestamp <= :end ORDER BY session_id, timestamp, id");
+    $stmt->bindValue(':start', $start, SQLITE3_TEXT); $stmt->bindValue(':end', $end, SQLITE3_TEXT); $res = $stmt->execute();
+    $entry = $steps[0]; $exit = $steps[1]; $currentSession = null; $hasEntered = false; $capturing = false; $branchPath = []; $entered = 0; $completed = 0; $tree = ['count' => 0, 'children' => []];
+    $recordPath = function() use (&$branchPath, &$tree, &$completed): void {
+        if (!$branchPath) return;
+        $completed++; $node =& $tree; $node['count']++;
+        foreach ($branchPath as $branch) {
+            if (!isset($node['children'][$branch['key']])) $node['children'][$branch['key']] = ['type'=>$branch['type'], 'value'=>$branch['value'], 'count'=>0, 'children'=>[]];
+            $node =& $node['children'][$branch['key']]; $node['count']++;
+        }
+        unset($node);
+    };
+    while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
+        if ($currentSession !== $row['session_id']) { $currentSession = $row['session_id']; $hasEntered = false; $capturing = false; $branchPath = []; }
+        $action = json_decode($row['action'], true) ?: []; $name = (string)($action['name'] ?? ''); $actionPath = (string)($action['data']['path'] ?? '');
+        $isEntry = $entry['type'] === 'pageview' ? ($name === 'pageview' && $actionPath === $entry['value']) : ($name === $entry['value']);
+        if ($isEntry && !$hasEntered) { $entered++; $hasEntered = true; $capturing = true; $branchPath = []; continue; }
+        if (!$capturing) continue;
+        $type = $name === 'pageview' ? 'pageview' : 'event'; $value = $type === 'pageview' ? ($actionPath ?: '/') : $name;
+        if ($value === '') continue;
+        $branchPath[] = ['key'=>$type . '|' . $value, 'type'=>$type, 'value'=>$value];
+        $isExit = $exit['type'] === 'pageview' ? ($name === 'pageview' && $actionPath === $exit['value']) : ($name === $exit['value']);
+        if ($isExit) { $recordPath(); $capturing = false; }
+        elseif (count($branchPath) >= 12) $capturing = false;
+    }
+    $trimTree = function(array $node) use (&$trimTree): array {
+        $children = array_values($node['children'] ?? []); usort($children, fn($a, $b) => $b['count'] <=> $a['count']);
+        $node['children'] = array_map($trimTree, array_slice($children, 0, 3)); return $node;
+    };
+    return ['entered' => $entered, 'completed' => $completed, 'tree' => $trimTree($tree)];
+}
 try {
     $payload = json_decode(file_get_contents('php://input'), true) ?: [];
     $siteId = $_GET['site_id'] ?? $payload['site_id'] ?? null; $db = Database::getConnection(Database::sanitizeSiteId($siteId)); setupFunnels($db);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $name = trim((string)($payload['name'] ?? '')); if ($name === '') throw new InvalidArgumentException('Give this funnel a name.');
-        $steps = cleanSteps($payload['steps'] ?? []); $id = (int)($payload['id'] ?? 0);
-        if ($id) { $st = $db->prepare('UPDATE funnels SET name=:name, steps=:steps WHERE id=:id'); $st->bindValue(':id', $id, SQLITE3_INTEGER); }
-        else { $st = $db->prepare('INSERT INTO funnels (name, steps) VALUES (:name, :steps)'); }
-        $st->bindValue(':name', mb_substr($name, 0, 80), SQLITE3_TEXT); $st->bindValue(':steps', json_encode($steps), SQLITE3_TEXT); $st->execute();
+        $steps = cleanSteps($payload['steps'] ?? []); $kind = in_array($payload['kind'] ?? 'funnel', ['funnel', 'goal', 'journey'], true) ? $payload['kind'] : 'funnel';
+        if ($kind === 'goal') $steps = [reset($steps)];
+        if ($kind === 'journey') { if (count($steps) < 2) throw new InvalidArgumentException('A journey needs an entry and an exit.'); $steps = [$steps[0], $steps[1]]; }
+        $id = (int)($payload['id'] ?? 0);
+        if ($id) { $st = $db->prepare('UPDATE funnels SET name=:name, kind=:kind, steps=:steps WHERE id=:id'); $st->bindValue(':id', $id, SQLITE3_INTEGER); }
+        else { $st = $db->prepare('INSERT INTO funnels (name, kind, steps) VALUES (:name, :kind, :steps)'); }
+        $st->bindValue(':name', mb_substr($name, 0, 80), SQLITE3_TEXT); $st->bindValue(':kind', $kind, SQLITE3_TEXT); $st->bindValue(':steps', json_encode($steps), SQLITE3_TEXT); $st->execute();
         echo json_encode(['success' => true, 'id' => $id ?: $db->lastInsertRowID()]); exit;
     }
     if ($_SERVER['REQUEST_METHOD'] === 'DELETE') { $id = (int)($_GET['id'] ?? 0); $st = $db->prepare('DELETE FROM funnels WHERE id=:id'); $st->bindValue(':id',$id,SQLITE3_INTEGER); $st->execute(); echo json_encode(['success'=>true]); exit; }
     [$start, $end] = funnelRange(); $items = []; $result = $db->query('SELECT * FROM funnels ORDER BY created_at DESC, id DESC');
-    while ($row = $result->fetchArray(SQLITE3_ASSOC)) { $steps = json_decode($row['steps'], true) ?: []; $items[] = ['id'=>(int)$row['id'], 'name'=>$row['name'], 'steps'=>$steps, 'progress'=>analyzeFunnel($db,$steps,$start,$end)]; }
+    while ($row = $result->fetchArray(SQLITE3_ASSOC)) { $steps = json_decode($row['steps'], true) ?: []; $kind = $row['kind'] ?: 'funnel'; $item = ['id'=>(int)$row['id'], 'name'=>$row['name'], 'kind'=>$kind, 'steps'=>$steps, 'progress'=>analyzeFunnel($db,$steps,$start,$end)]; if ($kind === 'journey') { $item['journey'] = analyzeJourneySources($db, $steps, $start, $end); if (($item['journey']['completed'] ?? 0) === 0) $item['journey']['fallback'] = analyzeJourneySources($db, $steps, '1970-01-01 00:00:00', '9999-12-31 23:59:59'); } $items[] = $item; }
     // The builder exposes the site's complete vocabulary. The selected period
     // only affects the funnel's figures, never which event/page can be chosen.
     $events = []; $er = $db->query("SELECT DISTINCT json_extract(action, '$.name') AS name FROM user_activity ORDER BY name"); while($r=$er->fetchArray(SQLITE3_ASSOC)) if($r['name'] && $r['name'] !== 'pageview') $events[]=$r['name'];
     $pages = []; $pr = $db->query("SELECT DISTINCT json_extract(action, '$.data.path') AS path FROM user_activity WHERE json_extract(action, '$.name')='pageview' ORDER BY path"); while($r=$pr->fetchArray(SQLITE3_ASSOC)) if($r['path'] !== null && $r['path'] !== '') $pages[]=$r['path'];
-    echo json_encode(['success'=>true,'funnels'=>$items,'events'=>$events,'pages'=>$pages]);
+    $audienceStmt = $db->prepare('SELECT COUNT(DISTINCT session_id) FROM user_activity WHERE timestamp >= :start AND timestamp <= :end'); $audienceStmt->bindValue(':start',$start,SQLITE3_TEXT); $audienceStmt->bindValue(':end',$end,SQLITE3_TEXT); $audience = (int)$audienceStmt->execute()->fetchArray(SQLITE3_NUM)[0];
+    echo json_encode(['success'=>true,'funnels'=>$items,'audience'=>$audience,'events'=>$events,'pages'=>$pages]);
 } catch (Throwable $e) { http_response_code(400); echo json_encode(['error'=>$e->getMessage()]); }
