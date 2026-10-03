@@ -16,6 +16,7 @@ const OverviewPage = {
   init() {
     this.chart = new MinilyticsChart("overviewChart", "chartTooltip", {
       activeSeries: ["pageviews", "visitors"],
+      onPointClick: (item) => this.openSessionsForPoint(item),
     });
     this.bindEvents();
     this.bindFilterEvents();
@@ -300,6 +301,26 @@ const OverviewPage = {
     if (this.chart) {
       this.chart.setData(timeseries);
     }
+  },
+
+  /** Open the Sessions page with the day represented by a chart point selected. */
+  openSessionsForPoint(item) {
+    const timestamp = Number(item?.timestamp);
+    if (!Number.isFinite(timestamp)) return;
+
+    const day = new Date(timestamp * 1000).toISOString().slice(0, 10);
+    const sessions = window.SessionsPage;
+    if (sessions?.filters) {
+      sessions.filters.date = day;
+      sessions.filters.page = 1;
+    }
+
+    const dateInput = document.getElementById("sessionDateFilter");
+    if (dateInput) dateInput.value = day;
+    const clearButton = document.getElementById("clearDateFilterBtn");
+    if (clearButton) clearButton.style.display = "inline-flex";
+
+    Filters.openSessions();
   },
 
   renderPages() {

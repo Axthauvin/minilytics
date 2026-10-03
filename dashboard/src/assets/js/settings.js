@@ -1,21 +1,226 @@
 const SettingsPage = {
   initialized: false,
+  currentUser: null,
+
   init() {
-    if (this.initialized) return; this.initialized = true;
+    if (this.initialized) return;
+    this.initialized = true;
+
     const form = document.getElementById('inviteUserForm');
     if (form) form.addEventListener('submit', (event) => this.invite(event));
+
     const copy = document.getElementById('copyInviteLink');
-    if (copy) copy.addEventListener('click', () => { const input = document.getElementById('inviteLink'); if (input) ClipboardHelper.copy(input.value, copy); });
+    if (copy) {
+      copy.addEventListener('click', () => {
+        const input = document.getElementById('inviteLink');
+        if (!input) return;
+        if (window.ClipboardHelper && typeof ClipboardHelper.copy === 'function') {
+          ClipboardHelper.copy(input.value, copy);
+        } else if (navigator.clipboard) {
+          navigator.clipboard.writeText(input.value).then(() => {
+            const originalText = copy.textContent;
+            copy.textContent = 'Copied!';
+            setTimeout(() => { copy.textContent = originalText; }, 2000);
+          });
+        }
+      });
+    }
   },
+
   async load() {
-    this.init(); const list = document.getElementById('usersList'); if (!list) return;
-    try { const res = await fetch('/dashboard/src/api/users.php'); const data = await res.json(); if (!res.ok) throw new Error(data.error || 'Unable to load users.');
-      list.innerHTML = data.users.map((user) => `<div class="user-list-row"><div class="user-list-avatar">${this.escapeHtml(user.email.charAt(0).toUpperCase())}</div><div><strong>${this.escapeHtml(user.email)}</strong><span>${user.role === 'admin' ? 'Administrator' : 'Member'} · added ${new Date(user.created_at.replace(' ', 'T') + 'Z').toLocaleDateString()}</span></div></div>`).join('');
-    } catch (error) { list.innerHTML = `<p class="settings-error">${this.escapeHtml(error.message)}</p>`; }
+    this.init();
+    const list = document.getElementById('usersList');
+    if (!list) return;
+
+    list.innerHTML = '<p class="settings-muted">Loading users…</p>';
+
+    try {
+      const data = await Api.getUsers();
+      this.currentUser = data.current_user || null;
+      const isAdmin = Boolean(this.currentUser && this.currentUser.role === 'admin');
+
+      // Only administrators can invite new users
+      const inviteCard = document.getElementById('inviteUserCard');
+      if (inviteCard) {
+        inviteCard.hidden = !isAdmin;
+      }
+
+      const users = Array.isArray(data.users) ? data.users : [];
+      if (users.length === 0) {
+        list.innerHTML = '<p class="settings-muted">No authorized users found.</p>';
+        return;
+      }
+
+      const adminCount = users.filter((u) => u.role === 'admin').length;
+
+      list.innerHTML = users.map((user) => {
+        const isSelf = Boolean(this.currentUser && Number(this.currentUser.id) === Number(user.id));
+        const isTargetAdmin = user.role === 'admin';
+        const isOnlyAdmin = isTargetAdmin && adminCount <= 1;
+
+        let actionsHtml = '';
+        if (isAdmin) {
+          let roleBtn = '';
+          if (isSelf) {
+            roleBtn = `
+              <button type="button" class="btn-outline btn-sm btn-user-action" disabled title="You cannot change your own administrator status.">
+                ${isTargetAdmin ? 'Admin' : 'Member'}
+              </button>
+            `;
+          } else if (isTargetAdmin) {
+            if (isOnlyAdmin) {
+              roleBtn = `
+                <button type="button" class="btn-outline btn-sm btn-user-action" disabled title="Cannot remove the only administrator.">
+                  Remove Admin
+                </button>
+              `;
+            } else {
+              roleBtn = `
+                <button type="button" class="btn-outline btn-sm btn-user-action" onclick="SettingsPage.toggleRole(${user.id}, 'member', '${this.escapeHtml(user.email)}')" title="Revoke administrator privileges">
+                  Remove Admin
+                </button>
+              `;
+            }
+          } else {
+            roleBtn = `
+              <button type="button" class="btn-outline btn-sm btn-user-action" onclick="SettingsPage.toggleRole(${user.id}, 'admin', '${this.escapeHtml(user.email)}')" title="Grant administrator privileges">
+                Make Admin
+              </button>
+            `;
+          }
+
+          let deleteBtn = '';
+          if (isSelf) {
+            deleteBtn = `
+              <button type="button" class="btn-icon btn-sm btn-delete-user" disabled title="You cannot delete your own account.">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                </svg>
+              </button>
+            `;
+          } else if (isOnlyAdmin) {
+            deleteBtn = `
+              <button type="button" class="btn-icon btn-sm btn-delete-user" disabled title="Cannot delete the only administrator.">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                </svg>
+              </button>
+            `;
+          } else {
+            deleteBtn = `
+              <button type="button" class="btn-icon btn-sm btn-delete-user btn-danger" onclick="SettingsPage.deleteUser(${user.id}, '${this.escapeHtml(user.email)}')" title="Delete user account">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                </svg>
+              </button>
+            `;
+          }
+
+          actionsHtml = `<div class="user-list-actions">${roleBtn}${deleteBtn}</div>`;
+        }
+
+        const dateStr = user.created_at
+          ? new Date(user.created_at.replace(' ', 'T') + 'Z').toLocaleDateString()
+          : '';
+
+        return `
+          <div class="user-list-row" id="user-row-${user.id}">
+            <div class="user-list-main">
+              <div class="user-list-avatar">${this.escapeHtml((user.email || 'U').charAt(0).toUpperCase())}</div>
+              <div class="user-list-details">
+                <div class="user-list-meta">
+                  <strong class="user-list-email">${this.escapeHtml(user.email)}</strong>
+                  ${isSelf ? '<span class="user-pill user-pill-self">You</span>' : ''}
+                  <span class="user-pill ${isTargetAdmin ? 'user-pill-admin' : 'user-pill-member'}">
+                    ${isTargetAdmin ? 'Admin' : 'Member'}
+                  </span>
+                </div>
+                <span class="user-list-date">Added ${dateStr}</span>
+              </div>
+            </div>
+            ${actionsHtml}
+          </div>
+        `;
+      }).join('');
+    } catch (error) {
+      list.innerHTML = `<p class="settings-error">${this.escapeHtml(error.message)}</p>`;
+    }
   },
+
   async invite(event) {
-    event.preventDefault(); const email = document.getElementById('inviteEmail').value.trim(); const feedback = document.getElementById('inviteFeedback'); const result = document.getElementById('inviteResult');
-    feedback.textContent = ''; try { const res = await fetch('/dashboard/src/api/users.php', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email})}); const data = await res.json(); if (!res.ok) throw new Error(data.error || 'Unable to create the invitation.'); document.getElementById('inviteLink').value = data.invite_url; result.hidden = false; document.getElementById('inviteEmail').value = ''; feedback.textContent = 'Invitation created for ' + email + '.'; this.load(); } catch (error) { feedback.textContent = error.message; feedback.classList.add('settings-error'); }
+    event.preventDefault();
+    const emailInput = document.getElementById('inviteEmail');
+    const email = emailInput.value.trim();
+    const feedback = document.getElementById('inviteFeedback');
+    const result = document.getElementById('inviteResult');
+
+    feedback.textContent = '';
+    feedback.className = 'settings-feedback';
+
+    try {
+      const data = await Api.inviteUser(email);
+      document.getElementById('inviteLink').value = data.invite_url;
+      result.hidden = false;
+      emailInput.value = '';
+      feedback.textContent = `Invitation created for ${email}.`;
+      this.load();
+    } catch (error) {
+      feedback.textContent = error.message;
+      feedback.classList.add('settings-error');
+    }
   },
-  escapeHtml(value) { const node = document.createElement('div'); node.textContent = value || ''; return node.innerHTML; }
-}; window.SettingsPage = SettingsPage;
+
+  async toggleRole(userId, newRole, userEmail) {
+    const isPromoting = newRole === 'admin';
+    const message = isPromoting
+      ? `Promote "${userEmail}" to Administrator?`
+      : `Revoke Administrator privileges from "${userEmail}"? They will become a Member.`;
+
+    if (!confirm(message)) return;
+
+    this.setFeedback('Updating role…', '');
+
+    try {
+      const data = await Api.updateUserRole(userId, newRole);
+      this.setFeedback(data.message || 'User role updated successfully.', 'success');
+      await this.load();
+    } catch (error) {
+      this.setFeedback(error.message, 'error');
+    }
+  },
+
+  async deleteUser(userId, userEmail) {
+    const confirmMsg = `Are you sure you want to permanently delete user "${userEmail}"?\n\nThis account will lose access immediately.`;
+    if (!confirm(confirmMsg)) return;
+
+    this.setFeedback('Deleting user…', '');
+
+    try {
+      const data = await Api.deleteUser(userId);
+      this.setFeedback(data.message || 'User deleted successfully.', 'success');
+      await this.load();
+    } catch (error) {
+      this.setFeedback(error.message, 'error');
+    }
+  },
+
+  setFeedback(message, type = '') {
+    const fb = document.getElementById('usersListFeedback');
+    if (!fb) return;
+    fb.textContent = message;
+    fb.className = 'settings-feedback';
+    if (type === 'error') {
+      fb.classList.add('settings-error');
+    } else if (type === 'success') {
+      fb.classList.add('settings-success');
+    }
+  },
+
+  escapeHtml(value) {
+    const node = document.createElement('div');
+    node.textContent = value || '';
+    return node.innerHTML;
+  }
+};
+
+window.SettingsPage = SettingsPage;

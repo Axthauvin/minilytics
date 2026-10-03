@@ -19,6 +19,9 @@ class MinilyticsChart {
         this.data = [];
         this.hoveredIndex = -1;
         this.chartType = options.chartType === 'bar' ? 'bar' : 'line';
+        this.onPointClick = typeof options.onPointClick === 'function'
+            ? options.onPointClick
+            : null;
 
         const defaultSeriesConfig = {
             pageviews: {
@@ -152,6 +155,14 @@ class MinilyticsChart {
             this.handleHover(mouseX, mouseY);
         });
 
+        this.canvas.addEventListener('click', (e) => {
+            if (!this.onPointClick || !this.data?.length) return;
+            const rect = this.canvas.getBoundingClientRect();
+            const index = this.getIndexAtX(e.clientX - rect.left);
+            const item = this.data[index];
+            if (item) this.onPointClick(item, index);
+        });
+
         this.canvas.addEventListener('mouseleave', () => {
             this.hoveredIndex = -1;
             if (this.tooltip) {
@@ -165,16 +176,20 @@ class MinilyticsChart {
     handleHover(mouseX, mouseY) {
         if (!this.data || this.data.length === 0) return;
 
-        const plotWidth = this.width - this.padding.left - this.padding.right;
-        const relativeX = mouseX - this.padding.left;
-        let index = this.chartType === 'bar'
-            ? Math.floor(relativeX / (plotWidth / this.data.length))
-            : Math.round(relativeX / (plotWidth / Math.max(1, this.data.length - 1)));
-        index = Math.max(0, Math.min(this.data.length - 1, index));
+        const index = this.getIndexAtX(mouseX);
 
         this.hoveredIndex = index;
         this.draw();
         this.updateTooltip(index);
+    }
+
+    getIndexAtX(mouseX) {
+        const plotWidth = this.width - this.padding.left - this.padding.right;
+        const relativeX = mouseX - this.padding.left;
+        const rawIndex = this.chartType === 'bar'
+            ? Math.floor(relativeX / (plotWidth / this.data.length))
+            : Math.round(relativeX / (plotWidth / Math.max(1, this.data.length - 1)));
+        return Math.max(0, Math.min(this.data.length - 1, rawIndex));
     }
 
     updateTooltip(index) {
@@ -200,6 +215,7 @@ class MinilyticsChart {
         this.tooltip.innerHTML = `
             <div class="chart-tooltip-date">${dateStr}</div>
             <div class="chart-tooltip-metrics-list">${metricsHtml}</div>
+            <div class="chart-tooltip-hint">Click to view sessions</div>
         `;
 
         const plotY = this.padding.top;
@@ -224,25 +240,19 @@ class MinilyticsChart {
         const topValAtIndex = Math.max(...currentIndexValues, 0);
         const pointY = plotY + plotHeight - (topValAtIndex / maxVal) * plotHeight;
 
-        // Horizontal positioning
-        const ratio = this.data.length > 1 ? index / (this.data.length - 1) : 0.5;
-        let translateX = -50;
-        if (ratio < 0.12) {
-            translateX = -5;
-        } else if (ratio > 0.88) {
-            translateX = -95;
-        }
-
-        // Place tooltip nicely above the highest point
-        if (pointY < 80) {
-            this.tooltip.style.left = `${pointX}px`;
-            this.tooltip.style.top = `${pointY + 14}px`;
-            this.tooltip.style.transform = `translate(${translateX}%, 0)`;
-        } else {
-            this.tooltip.style.left = `${pointX}px`;
-            this.tooltip.style.top = `${pointY - 14}px`;
-            this.tooltip.style.transform = `translate(${translateX}%, -100%)`;
-        }
+        // Keep the tooltip beside the selected point. The left-side fallback
+        // prevents it from being clipped for the final points in the chart.
+        const gap = 14;
+        const tooltipWidth = this.tooltip.offsetWidth;
+        const tooltipHeight = this.tooltip.offsetHeight;
+        const canOpenRight = pointX + gap + tooltipWidth <= this.width - 4;
+        const left = canOpenRight
+            ? pointX + gap
+            : Math.max(4, pointX - gap - tooltipWidth);
+        const top = Math.max(4, Math.min(pointY - tooltipHeight / 2, this.height - tooltipHeight - 4));
+        this.tooltip.style.left = `${left}px`;
+        this.tooltip.style.top = `${top}px`;
+        this.tooltip.style.transform = 'none';
 
         this.tooltip.classList.add('visible');
     }

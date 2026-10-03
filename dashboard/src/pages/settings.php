@@ -6,7 +6,7 @@
             <p>Manage the people who are allowed to access Minilytics.</p>
         </div><a class="btn-outline" href="#websites">Back to websites</a>
     </div>
-    <section class="settings-card">
+    <section class="settings-card" id="inviteUserCard">
         <div class="settings-card-heading">
             <div>
                 <h3>Invite someone</h3>
@@ -29,6 +29,7 @@
                 <p>Accounts that already have access to this workspace.</p>
             </div>
         </div>
+        <p class="settings-feedback" id="usersListFeedback" role="status"></p>
         <div id="usersList" class="users-list">
             <p class="settings-muted">Loading users…</p>
         </div>
