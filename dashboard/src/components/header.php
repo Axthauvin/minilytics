@@ -1,13 +1,6 @@
 <!-- Top Header Component (Minimalist Analytics Header) -->
 <header class="top-header">
     <div class="header-left">
-        <button type="button" class="btn-sidebar-toggle-header" id="btnHeaderSidebarToggle" title="Réduire / Agrandir la navigation (Ctrl+B)" aria-label="Basculer la barre latérale">
-            <svg class="header-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                <line x1="9" y1="3" x2="9" y2="21"/>
-                <polyline points="14 9 11 12 14 15" class="header-icon-arrow"/>
-            </svg>
-        </button>
         <div class="header-title-wrapper">
             <h1 class="header-page-title" id="headerPageTitle">Analytics Overview</h1>
             <div class="live-badge" title="Live visitors active in the last 5 minutes">

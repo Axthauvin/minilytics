@@ -1,4 +1,8 @@
 <?php
+require_once __DIR__ . '/src/api/auth.php';
+Auth::startSession();
+if (!Auth::hasDatabase()) { header('Location: /dashboard/onboarding.php'); exit; }
+if (!Auth::user()) { header('Location: /dashboard/login.php'); exit; }
 // Ensure trailing slash when accessed as /dashboard to prevent relative path resolution issues
 $reqUri = $_SERVER['REQUEST_URI'] ?? '';
 $path = parse_url($reqUri, PHP_URL_PATH);
@@ -23,6 +27,8 @@ if ($path === '/dashboard') {
     <link rel="stylesheet" href="/dashboard/src/assets/css/dashboard.css">
     <link rel="stylesheet" href="/dashboard/src/assets/css/overview.css">
     <link rel="stylesheet" href="/dashboard/src/assets/css/import.css">
+    <link rel="stylesheet" href="/dashboard/src/assets/css/settings.css">
+    <link rel="stylesheet" href="/dashboard/src/assets/css/funnels.css">
     <link rel="icon" type="image/svg+xml" href="/dashboard/src/assets/logo.svg">
     <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg">
     <script>
@@ -61,6 +67,8 @@ if ($path === '/dashboard') {
 
                 <!-- Page 3: User Sessions -->
                 <?php include __DIR__ . '/src/pages/sessions.php'; ?>
+                <?php include __DIR__ . '/src/pages/funnels.php'; ?>
+                <?php include __DIR__ . '/src/pages/settings.php'; ?>
             </main>
         </div>
     </div>
@@ -74,12 +82,15 @@ if ($path === '/dashboard') {
 
     <!-- Modular Application Scripts -->
     <script src="/dashboard/src/assets/js/api.js"></script>
+    <script src="/dashboard/src/assets/js/filters.js"></script>
     <script src="/dashboard/src/assets/js/chart.js"></script>
     <script src="/dashboard/src/assets/js/websites.js"></script>
     <script src="/dashboard/src/assets/js/import.js"></script>
     <script src="/dashboard/src/assets/js/overview.js"></script>
     <script src="/dashboard/src/assets/js/events.js"></script>
     <script src="/dashboard/src/assets/js/sessions.js"></script>
+    <script src="/dashboard/src/assets/js/funnels.js"></script>
+    <script src="/dashboard/src/assets/js/settings.js"></script>
     <script src="/dashboard/src/assets/js/app.js"></script>
 </body>
 </html>

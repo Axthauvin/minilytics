@@ -21,6 +21,7 @@ const Api = {
       if (dates.from) params.append("from", dates.from);
       if (dates.to) params.append("to", dates.to);
     }
+    window.Filters?.appendTo(params);
     const res = await fetch(`${this.base}/stats.php?${params.toString()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
@@ -96,6 +97,7 @@ const Api = {
       if (dates.from) params.append("from", dates.from);
       if (dates.to) params.append("to", dates.to);
     }
+    window.Filters?.appendTo(params);
 
     const res = await fetch(`${this.base}/sessions.php?${params.toString()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -108,6 +110,37 @@ const Api = {
     const res = await fetch(`${this.base}/sessions.php?${params.toString()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
+  },
+
+  async getFunnels({ range = "7d", siteId = "", customDates = null } = {}) {
+    const targetSite = siteId || window.App?.currentSiteId || "";
+    const params = new URLSearchParams({ range });
+    if (targetSite) params.append("site_id", targetSite);
+    const dates = customDates || window.App?.customDates;
+    if (range === "custom" && dates?.from && dates?.to) {
+      params.append("from", dates.from); params.append("to", dates.to);
+    }
+    const res = await fetch(`${this.base}/funnels.php?${params}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  },
+
+  async saveFunnel(funnel, siteId = "") {
+    const res = await fetch(`${this.base}/funnels.php`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ site_id: siteId || window.App?.currentSiteId, ...funnel }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  },
+
+  async deleteFunnel(id, siteId = "") {
+    const params = new URLSearchParams({ id, site_id: siteId || window.App?.currentSiteId });
+    const res = await fetch(`${this.base}/funnels.php?${params}`, { method: "DELETE" });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
   },
 
   async getSites() {

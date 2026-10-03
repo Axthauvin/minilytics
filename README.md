@@ -74,6 +74,14 @@ dashboard/
             └── app.js        # Main SPA router & live auto-refresh
 ```
 
+## Private dashboard & authentication
+
+The dashboard is private. On its first visit, Minilytics detects that `data/auth.db` does not exist and opens an onboarding screen to create the first administrator account. Afterwards, unauthenticated visitors are redirected to the login screen.
+
+The administrator can open **Settings** from the Websites portal or the dashboard sidebar to authorize colleagues. Creating an invitation stores the recipient's email in `data/auth.db` and produces a single-use link, valid for seven days. Send that link through your usual email channel; there is deliberately no public registration page.
+
+`auth.db` is kept separate from the per-site analytics databases and is excluded from website discovery. The public tracking endpoint remains available so tracked websites can send analytics events.
+
 ## How to integrate on a website
 
 Add a single `<script>` tag inside your HTML `<head>`:
@@ -126,10 +134,10 @@ On a standard Apache / Linux server without Python, you can run the import direc
 
 ```bash
 # Import from a ZIP archive
-php import.php --zip umami-export-sample.zip --site-id ecrismalettre
+php import.php --zip umami-export-sample.zip --site-id example
 
 # Or import from an extracted folder
-php import.php --folder umami-import --site-id ecrismalettre --site-name "Ecris Ma Lettre"
+php import.php --folder umami-import --site-id example --site-name "Example"
 ```
 
 _(A Python script `import-umami.py` is also available if you prefer using Python locally)._

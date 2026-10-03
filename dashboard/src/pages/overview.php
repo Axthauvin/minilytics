@@ -7,7 +7,10 @@
     </div>
 
     <div id="overviewDataContainer">
-        <!-- 1. Umami-style Top 5 Metric Squares Grid -->
+        <!-- Active filters (pages, referrers, environment, countries) -->
+        <div class="active-filters-bar" id="overviewFilterBar" hidden></div>
+
+        <!-- 1. Core metrics -->
         <div class="umami-stats-grid">
         <!-- Square 1: Visitors -->
         <div class="umami-stat-card">
@@ -58,44 +61,42 @@
                 <span class="delta-text" id="deltaDurationText">0s</span>
             </div>
         </div>
+
     </div>
 
-    <!-- 2. Full-Width Main Line Chart Card -->
+    <!-- 2. Full-Width Main Chart Card -->
     <div class="chart-container-card full-width-chart">
         <div class="chart-header">
             <div>
                 <span class="chart-eyebrow">AUDIENCE & TRAFFIC OVERVIEW</span>
                 <div class="chart-legend-metrics-row">
                     <div class="chart-metric-indicator" title="Total Pageviews">
-                        <span class="metric-color-dot" style="background: #2563eb;"></span>
+                        <span class="metric-color-dot" style="background: #60a5fa;"></span>
                         <span class="metric-val" id="chartTotalViews">0</span>
                         <span class="metric-name">Views</span>
                     </div>
                     <div class="chart-metric-indicator" title="Unique Visitors">
-                        <span class="metric-color-dot" style="background: #8b5cf6;"></span>
+                        <span class="metric-color-dot" style="background: #a78bfa;"></span>
                         <span class="metric-val" id="chartTotalVisitors">0</span>
                         <span class="metric-name">Visitors</span>
                     </div>
-                    <div class="chart-metric-indicator" title="Total Sessions / Visits">
-                        <span class="metric-color-dot" style="background: #06b6d4;"></span>
-                        <span class="metric-val" id="chartTotalVisits">0</span>
-                        <span class="metric-name">Visits</span>
-                    </div>
                 </div>
             </div>
-            <div class="chart-metric-toggles" id="chartSeriesToggles" title="Click to show/hide series">
-                <button type="button" class="chart-toggle-btn active" data-series="pageviews">
-                    <span class="toggle-dot" style="background: #2563eb;"></span>
-                    <span>Views</span>
-                </button>
-                <button type="button" class="chart-toggle-btn active" data-series="visitors">
-                    <span class="toggle-dot" style="background: #8b5cf6;"></span>
-                    <span>Visitors</span>
-                </button>
-                <button type="button" class="chart-toggle-btn active" data-series="sessions">
-                    <span class="toggle-dot" style="background: #06b6d4;"></span>
-                    <span>Visits</span>
-                </button>
+            <div class="chart-header-controls">
+                <div class="chart-metric-toggles" id="chartSeriesToggles" title="Click to show or hide a metric">
+                    <button type="button" class="chart-toggle-btn active" data-series="pageviews">
+                        <span class="toggle-dot" style="background: #60a5fa;"></span>
+                        <span>Views</span>
+                    </button>
+                    <button type="button" class="chart-toggle-btn active" data-series="visitors">
+                        <span class="toggle-dot" style="background: #a78bfa;"></span>
+                        <span>Visitors</span>
+                    </button>
+                </div>
+                <div class="chart-metric-toggles" id="chartTypeToggles" title="Choose chart type">
+                    <button type="button" class="chart-toggle-btn active" data-chart-type="line">Line</button>
+                    <button type="button" class="chart-toggle-btn" data-chart-type="bar">Bars</button>
+                </div>
             </div>
         </div>
 

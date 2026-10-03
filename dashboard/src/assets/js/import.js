@@ -7,6 +7,8 @@ const ImportModal = {
     modal: null,
     selectedFile: null,
     selectedProvider: 'umami',
+    currentStep: 1,
+    autoSiteId: true,
 
     init() {
         this.modal = document.getElementById('importModal');
@@ -47,6 +49,18 @@ const ImportModal = {
                 const hiddenInput = document.getElementById('importSelectedProvider');
                 if (hiddenInput) hiddenInput.value = this.selectedProvider;
             });
+        });
+
+        document.getElementById('btnImportProviderNext')?.addEventListener('click', () => this.setStep(2));
+        document.getElementById('btnImportUploadBack')?.addEventListener('click', () => this.setStep(1));
+        document.getElementById('btnImportDestinationBack')?.addEventListener('click', () => this.setStep(2));
+        document.getElementById('btnImportUploadNext')?.addEventListener('click', () => {
+            const serverPath = document.getElementById('importServerPath')?.value.trim();
+            if (!this.selectedFile && !serverPath) {
+                this.showError('Upload an export archive or provide a server path before continuing.');
+                return;
+            }
+            this.setStep(3);
         });
 
         // File dropzone
@@ -117,15 +131,18 @@ const ImportModal = {
                 const path = chip.dataset.path;
                 if (serverPathInput && path) {
                     serverPathInput.value = path;
+                    this.updateUploadNextState();
                     this.inspectServerPath(path);
                 }
             });
         });
 
         if (serverPathInput) {
-            serverPathInput.addEventListener('change', () => {
-                if (serverPathInput.value.trim()) {
-                    this.inspectServerPath(serverPathInput.value.trim());
+            serverPathInput.addEventListener('input', () => {
+                const serverPath = serverPathInput.value.trim();
+                this.updateUploadNextState();
+                if (serverPath) {
+                    this.inspectServerPath(serverPath);
                 }
             });
         }
@@ -144,6 +161,16 @@ const ImportModal = {
 
         if (radioNew) radioNew.addEventListener('change', updateTargetMode);
         if (radioExisting) radioExisting.addEventListener('change', updateTargetMode);
+
+        const newSiteName = document.getElementById('importNewSiteName');
+        const newSiteId = document.getElementById('importNewSiteId');
+        newSiteName?.addEventListener('input', () => {
+            if (this.autoSiteId && newSiteId) {
+                newSiteId.value = newSiteName.value.toLowerCase().trim()
+                    .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+            }
+        });
+        newSiteId?.addEventListener('input', () => { this.autoSiteId = false; });
 
         // Form submission
         const form = document.getElementById('importForm');
@@ -167,6 +194,9 @@ const ImportModal = {
 
     resetState() {
         this.selectedFile = null;
+        this.selectedProvider = 'umami';
+        this.autoSiteId = true;
+        this.setStep(1);
         const form = document.getElementById('importForm');
         const progressView = document.getElementById('importProgressView');
         const successView = document.getElementById('importSuccessView');
@@ -184,6 +214,24 @@ const ImportModal = {
 
         const localPathBox = document.getElementById('localPathContainer');
         if (localPathBox) localPathBox.style.display = 'none';
+        const detectedHint = document.getElementById('importDetectedWebsiteHint');
+        if (detectedHint) detectedHint.hidden = true;
+        this.updateUploadNextState();
+    },
+
+    setStep(step) {
+        this.currentStep = step;
+        this.modal?.querySelectorAll('[data-import-step]').forEach((view) => {
+            view.hidden = Number(view.dataset.importStep) !== step;
+        });
+        this.modal?.querySelectorAll('[data-step-indicator]').forEach((indicator) => {
+            const indicatorStep = Number(indicator.dataset.stepIndicator);
+            indicator.classList.toggle('active', indicatorStep === step);
+            indicator.classList.toggle('complete', indicatorStep < step);
+        });
+        const error = document.getElementById('importErrorAlert');
+        if (error) error.style.display = 'none';
+        this.updateUploadNextState();
     },
 
     async populateExistingSites() {
@@ -202,7 +250,7 @@ const ImportModal = {
                 select.appendChild(opt);
             });
         } catch (err) {
-            select.innerHTML = '<option value="demo_site">Demo Site (demo_site)</option>';
+            select.innerHTML = '<option value="">No existing website available</option>';
         }
     },
 
@@ -218,6 +266,8 @@ const ImportModal = {
             card.style.display = 'flex';
         }
 
+        this.updateUploadNextState();
+
         // Auto-inspect the file to fill suggested metadata
         this.inspectFile(file);
     },
@@ -229,6 +279,17 @@ const ImportModal = {
 
         const card = document.getElementById('selectedFileCard');
         if (card) card.style.display = 'none';
+        this.updateUploadNextState();
+    },
+
+    updateUploadNextState() {
+        const nextButton = document.getElementById('btnImportUploadNext');
+        if (!nextButton) return;
+
+        const serverPath = document.getElementById('importServerPath')?.value.trim();
+        const hasImportSource = Boolean(this.selectedFile || serverPath);
+        nextButton.disabled = !hasImportSource;
+        nextButton.setAttribute('aria-disabled', String(!hasImportSource));
     },
 
     formatFileSize(bytes) {
@@ -269,14 +330,15 @@ const ImportModal = {
         if (!res) return;
 
         const nameInput = document.getElementById('importNewSiteName');
-        const idInput = document.getElementById('importNewSiteId');
         const domainInput = document.getElementById('importNewSiteDomain');
+        const detectedHint = document.getElementById('importDetectedWebsiteHint');
+        const hasDetectedDetails = Boolean(res.suggested_name || res.suggested_site_id || res.detected_host);
+        if (detectedHint) detectedHint.hidden = !hasDetectedDetails;
 
+        // Mirror the standard Add Website dialog: the name is suggested and the editable Site ID follows it.
         if (nameInput && !nameInput.value && res.suggested_name) {
             nameInput.value = res.suggested_name;
-        }
-        if (idInput && !idInput.value && res.suggested_site_id) {
-            idInput.value = res.suggested_site_id;
+            nameInput.dispatchEvent(new Event('input'));
         }
         if (domainInput && !domainInput.value && res.detected_host) {
             domainInput.value = res.detected_host;

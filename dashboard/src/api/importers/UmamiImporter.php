@@ -9,6 +9,15 @@ require_once __DIR__ . '/../db.php';
  * Parses Umami export archives (.zip) or CSV directories (website_event.csv, event_data.csv).
  */
 class UmamiImporter extends BaseImporter {
+    /** Uploaded files use PHP temporary names without a .zip extension on Windows. */
+    private function isZipArchiveFile(string $path): bool {
+        if (!is_file($path)) return false;
+        $handle = @fopen($path, 'rb');
+        if (!$handle) return false;
+        $signature = fread($handle, 4);
+        fclose($handle);
+        return in_array($signature, ["PK\x03\x04", "PK\x05\x06", "PK\x07\x08"], true);
+    }
     public function getId(): string {
         return 'umami';
     }
@@ -75,7 +84,7 @@ class UmamiImporter extends BaseImporter {
         $tempDir = null;
         $workDir = $sourcePath;
 
-        if (is_file($sourcePath) && str_ends_with(strtolower($sourcePath), '.zip')) {
+        if ($this->isZipArchiveFile($sourcePath)) {
             $tempDir = sys_get_temp_dir() . '/minilytics_inspect_' . uniqid();
             $this->extractZip($sourcePath, $tempDir);
             $workDir = $tempDir;
@@ -125,13 +134,16 @@ class UmamiImporter extends BaseImporter {
      * Import data into Minilytics SQLite database
      */
     public function import(string $sourcePath, string $siteId, array $options = []): array {
-        $cleanSiteId = Database::sanitizeSiteId($siteId);
+        $cleanSiteId = preg_replace('/[^a-zA-Z0-9_\-]/', '', strtolower(trim($siteId)));
+        if ($cleanSiteId === '') {
+            throw new InvalidArgumentException('A valid website identifier is required for import.');
+        }
         $tempDir = null;
         $workDir = $sourcePath;
 
         if (is_file($sourcePath)) {
             $ext = strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));
-            if ($ext === 'zip') {
+            if ($ext === 'zip' || $this->isZipArchiveFile($sourcePath)) {
                 $tempDir = sys_get_temp_dir() . '/minilytics_import_' . uniqid();
                 $this->extractZip($sourcePath, $tempDir);
                 $workDir = $tempDir;

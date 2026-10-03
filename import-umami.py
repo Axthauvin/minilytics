@@ -582,13 +582,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--site-id",
         dest="site_id",
-        help="Target Minilytics Site ID (e.g. ecrismalettre)",
+        help="Target Minilytics Site ID (e.g. example)",
     )
     parser.add_argument(
         "--site-name", dest="site_name", help="Target Site display name"
     )
     parser.add_argument(
-        "--domain", dest="domain", help="Site domain (e.g. ecrismalettre.fr)"
+        "--domain", dest="domain", help="Site domain (e.g. example.com)"
     )
 
     args = parser.parse_args()

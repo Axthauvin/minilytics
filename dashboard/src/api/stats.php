@@ -3,8 +3,11 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
+require_once __DIR__ . '/auth.php';
+Auth::requireLogin();
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/filters.php';
 
 try {
     $range = $_GET['range'] ?? '7d';
@@ -46,6 +49,20 @@ try {
     $siteCondition = '';
     $siteParams = [];
 
+    // Dashboard filters (pages, referrers, environment, countries). They are
+    // injected through $siteCondition so every query below is filtered. The
+    // matching window also covers the previous period used for deltas.
+    $activeFilters = AnalyticsFilters::fromRequest($_GET);
+    if ($activeFilters) {
+        $filterStartUnix = $range === 'all' ? 0 : max(0, $startUnix - max(3600, $endUnix - $startUnix));
+        $siteCondition .= AnalyticsFilters::apply(
+            $db,
+            $activeFilters,
+            gmdate('Y-m-d H:i:s', $filterStartUnix),
+            $endDateStr
+        );
+    }
+
     // 1. Live visitors in the last 5 minutes
     $liveThreshold = gmdate('Y-m-d H:i:s', $now - 300);
     $liveStmt = $db->prepare("SELECT COUNT(DISTINCT COALESCE(visitor_id, session_id)) FROM user_activity WHERE timestamp >= :live_time" . $siteCondition);
@@ -75,20 +92,48 @@ try {
     $totalSessions = (int)($sumRow['sessions'] ?? 0);
     $totalEvents = (int)($sumRow['total_events'] ?? 0);
 
-    // Session duration & bounce rate
+    // A visit expires after 30 minutes without an event. This keeps a browser
+    // tab left open for hours from inflating the average visit duration.
     $sessionMetricsSql = "
+        WITH event_gaps AS (
+            SELECT id,
+                   session_id,
+                   timestamp,
+                   LAG(timestamp) OVER (
+                       PARTITION BY session_id
+                       ORDER BY timestamp, id
+                   ) AS previous_timestamp
+            FROM user_activity
+            WHERE timestamp >= :start_date AND timestamp <= :end_date {$siteCondition}
+        ),
+        sessionized_events AS (
+            SELECT id,
+                   session_id,
+                   timestamp,
+                   SUM(CASE
+                       WHEN previous_timestamp IS NULL
+                         OR strftime('%s', timestamp) - strftime('%s', previous_timestamp) >= 1800
+                       THEN 1 ELSE 0
+                   END) OVER (
+                       PARTITION BY session_id
+                       ORDER BY timestamp, id
+                       ROWS UNBOUNDED PRECEDING
+                   ) AS visit_number
+            FROM event_gaps
+        ),
+        visits AS (
+            SELECT session_id,
+                   visit_number,
+                   COUNT(*) AS action_count,
+                   strftime('%s', MAX(timestamp)) - strftime('%s', MIN(timestamp)) AS duration
+            FROM sessionized_events
+            GROUP BY session_id, visit_number
+        )
         SELECT 
             COUNT(*) as total_sessions,
             AVG(duration) as avg_duration,
             100.0 * SUM(CASE WHEN action_count = 1 THEN 1 ELSE 0 END) / MAX(1, COUNT(*)) as bounce_rate
-        FROM (
-            SELECT session_id,
-                   COUNT(*) as action_count,
-                   (strftime('%s', MAX(timestamp)) - strftime('%s', MIN(timestamp))) as duration
-            FROM user_activity
-            WHERE timestamp >= :start_date AND timestamp <= :end_date {$siteCondition}
-            GROUP BY session_id
-        )
+        FROM visits
     ";
     $sessStmt = $db->prepare($sessionMetricsSql);
     $sessStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
@@ -134,18 +179,45 @@ try {
         $prevSessions = (int)($prevSumRow['sessions'] ?? 0);
 
         $prevSessSql = "
+            WITH event_gaps AS (
+                SELECT id,
+                       session_id,
+                       timestamp,
+                       LAG(timestamp) OVER (
+                           PARTITION BY session_id
+                           ORDER BY timestamp, id
+                       ) AS previous_timestamp
+                FROM user_activity
+                WHERE timestamp >= :prev_start AND timestamp < :prev_end {$siteCondition}
+            ),
+            sessionized_events AS (
+                SELECT id,
+                       session_id,
+                       timestamp,
+                       SUM(CASE
+                           WHEN previous_timestamp IS NULL
+                             OR strftime('%s', timestamp) - strftime('%s', previous_timestamp) >= 1800
+                           THEN 1 ELSE 0
+                       END) OVER (
+                           PARTITION BY session_id
+                           ORDER BY timestamp, id
+                           ROWS UNBOUNDED PRECEDING
+                       ) AS visit_number
+                FROM event_gaps
+            ),
+            visits AS (
+                SELECT session_id,
+                       visit_number,
+                       COUNT(*) AS action_count,
+                       strftime('%s', MAX(timestamp)) - strftime('%s', MIN(timestamp)) AS duration
+                FROM sessionized_events
+                GROUP BY session_id, visit_number
+            )
             SELECT 
                 COUNT(*) as total_sessions,
                 AVG(duration) as avg_duration,
                 100.0 * SUM(CASE WHEN action_count = 1 THEN 1 ELSE 0 END) / MAX(1, COUNT(*)) as bounce_rate
-            FROM (
-                SELECT session_id,
-                       COUNT(*) as action_count,
-                       (strftime('%s', MAX(timestamp)) - strftime('%s', MIN(timestamp))) as duration
-                FROM user_activity
-                WHERE timestamp >= :prev_start AND timestamp < :prev_end {$siteCondition}
-                GROUP BY session_id
-            )
+            FROM visits
         ";
         $pSessStmt = $db->prepare($prevSessSql);
         $pSessStmt->bindValue(':prev_start', $prevStartDateStr, SQLITE3_TEXT);
@@ -608,9 +680,11 @@ try {
         'range' => $range,
         'site_id' => $cleanSite,
         'available_sites' => $availableSites,
+        'filters' => (object)$activeFilters,
         'summary' => [
             'visitors' => $totalVisitors,
             'sessions' => $totalSessions,
+            'session_count' => (int)($sumRow['sessions'] ?? 0),
             'pageviews' => $totalPageviews,
             'events' => $totalEvents,
             'bounce_rate' => $bounceRate,

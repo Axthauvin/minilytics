@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
+if (PHP_SAPI !== 'cli') { require_once __DIR__ . '/auth.php'; Auth::requireAdmin(); }
 
 function seedAnalyticsData(int $days = 7, bool $clearFirst = false): array {
     $db = Database::getConnection();

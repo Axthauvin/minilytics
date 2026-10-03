@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -26,9 +27,9 @@ if (isset($options['help'])) {
     echo "Options:\n";
     echo "  --zip <path>        Path to Umami .zip export archive\n";
     echo "  --folder <path>     Path to folder containing Umami CSVs\n";
-    echo "  --site-id <id>      Target Minilytics site ID (e.g. ecrismalettre)\n";
-    echo "  --site-name <name>  Display name for the website\n";
-    echo "  --domain <domain>   Domain name (e.g. ecrismalettre.fr)\n";
+    echo "  --site-id <id>      Target Minilytics site ID (e.g. example)\n";
+    echo "  --site-name <name>  Display name for the website (e.g. Example)\n";
+    echo "  --domain <domain>   Domain name (e.g. example.com)\n";
     echo "  --help              Display this help message\n\n";
     exit(0);
 }

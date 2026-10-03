@@ -3,8 +3,33 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
+require_once __DIR__ . '/auth.php';
+Auth::requireLogin();
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/filters.php';
+
+$formatDurationLabel = static function (int $seconds): string {
+    $seconds = max(0, $seconds);
+    if ($seconds < 60) {
+        return "{$seconds}s";
+    }
+
+    $days = intdiv($seconds, 86400);
+    $seconds %= 86400;
+    $hours = intdiv($seconds, 3600);
+    $seconds %= 3600;
+    $minutes = intdiv($seconds, 60);
+    $seconds %= 60;
+
+    $parts = [];
+    if ($days > 0) $parts[] = "{$days}d";
+    if ($hours > 0 || $days > 0) $parts[] = "{$hours}h";
+    if ($minutes > 0 || $hours > 0 || $days > 0) $parts[] = "{$minutes}m";
+    if ($seconds > 0 || empty($parts)) $parts[] = "{$seconds}s";
+
+    return implode(' ', $parts);
+};
 
 try {
     $siteId = $_GET['site_id'] ?? $_GET['site'] ?? null;
@@ -59,7 +84,7 @@ try {
             $lastTime = $ts;
 
             $offsetSec = $ts - $firstTime;
-            $offsetLabel = ($offsetSec < 60) ? "+{$offsetSec}s" : ("+" . floor($offsetSec / 60) . "m " . ($offsetSec % 60) . "s");
+            $offsetLabel = '+' . $formatDurationLabel($offsetSec);
 
             $events[] = [
                 'id' => (int) $row['id'],
@@ -79,9 +104,7 @@ try {
         }
 
         $durationSec = max(0, $lastTime - $firstTime);
-        $durationLabel = ($durationSec < 60)
-            ? "{$durationSec}s"
-            : (floor($durationSec / 60) . "m " . ($durationSec % 60) . "s");
+        $durationLabel = $formatDurationLabel($durationSec);
 
         echo json_encode([
             'success' => true,
@@ -168,6 +191,12 @@ try {
         $params[':search'] = "%{$search}%";
     }
 
+    // Overview filters (pages, referrers, environment, countries)
+    $filterCondition = AnalyticsFilters::apply($db, AnalyticsFilters::fromRequest($_GET), $startDateStr, $endDateStr);
+    if ($filterCondition !== '') {
+        $where[] = preg_replace('/^\s*AND\s+/', '', $filterCondition);
+    }
+
     $whereClause = implode(' AND ', $where);
 
     // Total distinct sessions count
@@ -203,9 +232,7 @@ try {
     while ($sr = $sRes->fetchArray(SQLITE3_ASSOC)) {
         $sId = $sr['session_id'];
         $durSec = max(0, (int) $sr['duration_seconds']);
-        $durLabel = ($durSec < 60)
-            ? "{$durSec}s"
-            : (floor($durSec / 60) . "m " . ($durSec % 60) . "s");
+        $durLabel = $formatDurationLabel($durSec);
 
         // Fetch real metadata and journey flow for this session (up to 8 items)
         $flowStmt = $db->prepare("SELECT action, timestamp FROM user_activity WHERE session_id = :sid ORDER BY timestamp ASC, id ASC LIMIT 8");

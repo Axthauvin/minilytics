@@ -1,0 +1,164 @@
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color: #172033;
+  background: #f7f9fc;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.auth-card {
+  width: min(100%, 420px);
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 18px 50px #0f172a14;
+  padding: 34px;
+}
+
+.auth-card img {
+  margin-bottom: 20px;
+}
+
+.auth-card h1 {
+  font-size: 24px;
+  margin: 0 0 8px;
+}
+
+.auth-card p {
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0 0 24px;
+}
+
+.auth-card label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 16px 0;
+}
+.auth-card input {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 11px 12px;
+  font: inherit;
+}
+
+.auth-card button {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font: 600 14px inherit;
+  padding: 12px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.auth-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.eyebrow {
+  display: block;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 9px;
+}
+
+.password-input {
+  position: relative;
+  display: block;
+}
+
+.password-input input {
+  padding-right: 62px;
+}
+
+.password-input .password-toggle {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: #767676;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.password-strength {
+  margin: -7px 0 16px;
+}
+
+.password-strength-track {
+  height: 5px;
+  overflow: hidden;
+  background: #e2e8f0;
+  border-radius: 99px;
+}
+
+.password-strength-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: #cbd5e1;
+  transition:
+    width 0.18s,
+    background 0.18s;
+}
+
+.password-strength p {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.password-strength[data-strength="1"] span {
+  width: 20%;
+  background: #ef4444;
+}
+
+.password-strength[data-strength="2"] span {
+  width: 40%;
+  background: #f97316;
+}
+
+.password-strength[data-strength="3"] span {
+  width: 60%;
+  background: #eab308;
+}
+
+.password-strength[data-strength="4"] span {
+  width: 80%;
+  background: #22c55e;
+}
+
+.password-strength[data-strength="5"] span {
+  width: 100%;
+  background: #16a34a;
+}

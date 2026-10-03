@@ -12,6 +12,7 @@
             </div>
         </div>
         <div style="display: flex; align-items: center; gap: 10px;">
+            <a href="#settings" class="btn-outline">Settings</a>
             <button type="button" class="btn-outline" id="btnWebsitesImport" title="Import from Umami, Google Analytics, Plausible...">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>

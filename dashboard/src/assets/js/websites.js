@@ -191,11 +191,13 @@ const WebsitesPage = {
         }
 
         if (filtered.length === 0) {
+            const isEmptyWorkspace = this.sites.length === 0 && !this.searchQuery;
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="5" class="empty-state">
-                        <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 4px;">No websites found</h3>
-                        <p style="font-size: 13px; color: var(--text-muted);">${this.searchQuery ? 'No websites match your search.' : 'You have not added any website yet.'}</p>
+                    <td colspan="5" class="empty-state ${isEmptyWorkspace ? 'empty-site-onboarding' : ''}">
+                        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 7px;">${isEmptyWorkspace ? 'Add your first website' : 'No websites found'}</h3>
+                        <p style="font-size: 13px; color: var(--text-muted);">${this.searchQuery ? 'No websites match your search.' : 'Create a website to get your tracking script and start receiving analytics.'}</p>
+                        ${isEmptyWorkspace ? '<button type="button" class="btn-primary empty-add-site" onclick="document.getElementById(\'btnWebsitesAddSite\').click()">Add a website</button>' : ''}
                     </td>
                 </tr>
             `;
@@ -304,15 +306,15 @@ const WebsitesPage = {
         if (confirm(msg)) {
             try {
                 await Api.deleteSite(siteId);
-                
-                if (window.App && window.App.currentSiteId === siteId) {
-                    window.App.currentSiteId = 'all';
-                }
+                const deletedActiveSite = window.App && window.App.currentSiteId === siteId;
 
                 await this.load();
 
                 if (window.App) {
                     window.App.updateSiteSelect(this.sites);
+                    if (deletedActiveSite) {
+                        window.App.returnToWebsites();
+                    }
                 }
             } catch (err) {
                 alert(`Failed to delete website: ${err.message}`);

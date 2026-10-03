@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
+require_once __DIR__ . '/auth.php';
+Auth::requireLogin();
 
 require_once __DIR__ . '/db.php';
 
@@ -216,6 +218,7 @@ try {
     $stepSeconds = $intervalHours * 3600;
 
     $chartData = [];
+    $currStep = $effectiveStart;
     while ($currStep <= $endStep) {
         $eventsCount = 0;
         $sessionsCount = 0;

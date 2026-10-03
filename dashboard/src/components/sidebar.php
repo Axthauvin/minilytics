@@ -35,10 +35,10 @@
                 </span>
             </div>
             <div class="site-meta">
-                <div class="site-name" id="sidebarSiteName">Demo Site</div>
+                <div class="site-name" id="sidebarSiteName">No website selected</div>
                 <div class="site-sub">
                     <span class="live-dot-green"></span>
-                    <span id="sidebarSiteDomain">demo_site</span>
+                    <span id="sidebarSiteDomain">Select a website to view analytics</span>
                 </div>
             </div>
         </div>
@@ -83,6 +83,14 @@
                         <span class="nav-title">Events</span>
                     </a>
                 </li>
+                <li class="nav-item" data-page="funnels">
+                    <a href="#funnels">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 4h18l-7 8v6l-4 2v-8z"></path>
+                        </svg>
+                        <span class="nav-title">Funnels</span>
+                    </a>
+                </li>
             </ul>
         </nav>
 
@@ -92,9 +100,9 @@
                 <li class="nav-item">
                     <a href="javascript:void(0)" id="btnSidebarImport" title="Import from Umami, GA4, Plausible...">
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="17 8 12 3 7 8"/>
-                            <line x1="12" y1="3" x2="12" y2="15"/>
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
                         </svg>
                         <span class="nav-title">Import Data</span>
                     </a>
@@ -105,19 +113,20 @@
 
     <!-- Bottom Actions -->
     <div class="sidebar-footer">
-        <a href="/demo.html" target="_blank" class="footer-link" title="Open Tracking Demo Site">
+        <a href="#settings" class="footer-link nav-item" data-page="settings" title="Manage users and access">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" />
+                <circle cx="12" cy="12" r="3" />
             </svg>
-            <span>Live Demo Page</span>
+            <span>Settings</span>
         </a>
 
         <div class="sidebar-user-row">
-            <div class="user-avatar">A</div>
+            <div class="user-avatar"><?php $authUser = Auth::user();
+                                        echo htmlspecialchars(strtoupper(substr($authUser['email'] ?? 'A', 0, 1))); ?></div>
             <div class="user-info">
-                <span class="user-name">Admin</span>
-                <span class="user-role">Minilytics Local</span>
+                <span class="user-name"><?php echo htmlspecialchars($authUser['email'] ?? 'Admin'); ?></span>
+                <a class="user-role" href="/dashboard/logout.php">Sign out</a>
             </div>
         </div>
     </div>

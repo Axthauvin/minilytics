@@ -23,10 +23,21 @@ class Database {
 
     public static function sanitizeSiteId(?string $siteId): string {
         if (empty($siteId) || $siteId === 'all') {
-            $sites = self::getAvailableSites();
-            return !empty($sites) ? $sites[0]['id'] : 'demo_site';
+            throw new InvalidArgumentException('Select a website before accessing analytics.');
         }
-        return preg_replace('/[^a-zA-Z0-9_\-]/', '', strtolower($siteId)) ?: 'demo_site';
+
+        $cleanSiteId = preg_replace('/[^a-zA-Z0-9_\-]/', '', strtolower($siteId));
+        if ($cleanSiteId === '') {
+            throw new InvalidArgumentException('A valid website must be selected before accessing analytics.');
+        }
+
+        foreach (self::getAvailableSites() as $site) {
+            if (($site['id'] ?? '') === $cleanSiteId) {
+                return $cleanSiteId;
+            }
+        }
+
+        throw new InvalidArgumentException('The selected website does not exist.');
     }
 
     public static function getAvailableSites(): array {
@@ -44,6 +55,7 @@ class Database {
 
         foreach ($dbFiles as $file) {
             $base = basename($file, '.db');
+            if ($base === 'auth') continue;
             if (!in_array($base, $knownIds)) {
                 $sites[] = [
                     'id' => $base,
@@ -52,17 +64,6 @@ class Database {
                     'created_at' => gmdate('Y-m-d H:i:s', filemtime($file))
                 ];
             }
-        }
-
-        // Ensure at least demo_site is present if no sites exist
-        if (empty($sites)) {
-            $sites[] = [
-                'id' => 'demo_site',
-                'name' => 'Demo Site',
-                'domain' => 'localhost',
-                'created_at' => gmdate('Y-m-d H:i:s')
-            ];
-            self::saveSites($sites);
         }
 
         return $sites;

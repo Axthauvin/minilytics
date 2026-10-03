@@ -1,21 +1,76 @@
 /**
  * Minilytics Overview Page Controller
  * Umami-inspired layout featuring:
- * - 5 top metric square cards (Visitors, Visits, Views, Bounce rate, Visit duration) with trend pills
- * - Full-width line chart with daily X-axis steps
+ * - Five core metric cards with trend pills
+ * - Full-width chart, switchable between line and vertical bars
  * - 4 spacious analytical breakdown cards with Lucide icons (no emojis)
  */
 
 const OverviewPage = {
   chart: null,
   currentData: null,
-  activeChartMetric: "pageviews",
+  chartType: "line",
   activePageTab: "paths",
   activeEnvTab: "browsers",
 
   init() {
-    this.chart = new MinilyticsChart("overviewChart", "chartTooltip");
+    this.chart = new MinilyticsChart("overviewChart", "chartTooltip", {
+      activeSeries: ["pageviews", "visitors"],
+    });
     this.bindEvents();
+    this.bindFilterEvents();
+  },
+
+  /**
+   * Hover actions on breakdown rows:
+   *  - funnel icon  -> toggle the value in the shared filters (multi-select)
+   *  - people icon  -> add the value to the filters and open the related sessions
+   */
+  bindFilterEvents() {
+    const grid = document.querySelector("#page-overview .overview-breakdowns-grid");
+    grid?.addEventListener("click", (e) => {
+      const btn = e.target.closest(".pill-action-btn");
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const { filterDim: dim, filterValue: value } = btn.dataset;
+      if (!dim) return;
+      if (btn.classList.contains("pill-sessions-btn")) {
+        Filters.add(dim, value, { silent: true });
+        Filters.persist();
+        Filters.openSessions();
+      } else {
+        Filters.toggle(dim, value);
+      }
+    });
+
+    Filters.onChange(() => {
+      if (window.App?.currentPage === "overview") {
+        this.load(window.App.currentRange, window.App.currentSiteId, window.App.customDates);
+      }
+    });
+  },
+
+  /** Hover action buttons appended to each breakdown row. */
+  rowActions(dim, value, label) {
+    const active = Filters.has(dim, value);
+    const v = Filters.escape(value);
+    const l = Filters.escape(label || value);
+    return `
+      <div class="pill-actions">
+        <button type="button" class="pill-action-btn pill-filter-btn${active ? " active" : ""}" data-filter-dim="${dim}" data-filter-value="${v}"
+                title="${active ? `Remove filter “${l}”` : `Filter by “${l}”`}" aria-pressed="${active}">
+          ${Icons.get("filter", { size: 13 })}
+        </button>
+        <button type="button" class="pill-action-btn pill-sessions-btn" data-filter-dim="${dim}" data-filter-value="${v}"
+                title="View sessions for “${l}”">
+          ${Icons.get("users", { size: 13 })}
+        </button>
+      </div>`;
+  },
+
+  rowClass(dim, value) {
+    return Filters.has(dim, value) ? "clean-pill-row is-filterable is-filtered" : "clean-pill-row is-filterable";
   },
 
   bindEvents() {
@@ -34,6 +89,17 @@ const OverviewPage = {
             btn.classList.remove("active");
           }
         }
+      });
+    });
+
+    const chartTypeBtns = document.querySelectorAll(
+      "#chartTypeToggles .chart-toggle-btn",
+    );
+    chartTypeBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        this.chartType = btn.dataset.chartType;
+        chartTypeBtns.forEach((b) => b.classList.toggle("active", b === btn));
+        this.chart?.setChartType(this.chartType);
       });
     });
 
@@ -80,12 +146,16 @@ const OverviewPage = {
     if (dataContainer) dataContainer.style.display = "block";
 
     const activeSite = siteId || window.App?.currentSiteId || "";
+    Filters.useSite(activeSite);
+    const token = (this._loadToken = (this._loadToken || 0) + 1);
     try {
       if (window.App && typeof window.App.setLoading === "function") {
         window.App.setLoading(true, "Loading analytics overview...");
       }
 
       const data = await Api.getStats(range, activeSite, customDates);
+      // A newer request (e.g. another filter click) superseded this one
+      if (token !== this._loadToken) return;
       this.currentData = data;
 
       // Populate sites dropdown if needed
@@ -93,6 +163,10 @@ const OverviewPage = {
         window.App.updateSiteSelect(data.available_sites || []);
       }
 
+      Filters.renderBar(document.getElementById("overviewFilterBar"), {
+        sessionsCount: data.summary?.session_count,
+        showSessionsLink: true,
+      });
       this.renderSummary(data.summary);
       this.renderChart(data.timeseries);
       this.renderPages();
@@ -100,10 +174,11 @@ const OverviewPage = {
       this.renderEnvironment();
       this.renderCountries();
     } catch (err) {
+      if (token !== this._loadToken) return;
       window.App?.displayNoDataMessage(siteId);
       console.error("Error loading overview:", err);
     } finally {
-      if (window.App && typeof window.App.setLoading === "function") {
+      if (token === this._loadToken && window.App && typeof window.App.setLoading === "function") {
         window.App.setLoading(false);
       }
     }
@@ -143,11 +218,11 @@ const OverviewPage = {
       if (text) text.textContent = "0%";
     } else if (deltaStr.startsWith("+")) {
       badge.classList.add(inverse ? "negative" : "positive");
-      if (arrow) arrow.textContent = inverse ? "↓" : "↑";
+      if (arrow) arrow.textContent = "↑";
       if (text) text.textContent = deltaStr.replace("+", "");
     } else if (deltaStr.startsWith("-")) {
       badge.classList.add(inverse ? "positive" : "negative");
-      if (arrow) arrow.textContent = inverse ? "↑" : "↓";
+      if (arrow) arrow.textContent = "↓";
       if (text) text.textContent = deltaStr.replace("-", "");
     } else {
       badge.classList.add("neutral");
@@ -164,7 +239,6 @@ const OverviewPage = {
     };
     setTxt("chartTotalViews", sum.pageviews || 0);
     setTxt("chartTotalVisitors", sum.visitors || 0);
-    setTxt("chartTotalVisits", sum.sessions || 0);
   },
 
   renderSummary(sum) {
@@ -177,7 +251,7 @@ const OverviewPage = {
       if (el) el.textContent = val;
     };
 
-    // 5 top Umami square cards
+    // Core overview metrics
     setTxt("statVisitors", this.formatNumber(sum.visitors || 0));
     setTxt("statSessions", this.formatNumber(sum.sessions || 0));
     setTxt("statPageviews", this.formatNumber(sum.pageviews || 0));
@@ -246,12 +320,13 @@ const OverviewPage = {
         const iconSvg = Icons.get("file-text", { size: 14, color: "#64748b" });
 
         return `
-                <li class="clean-pill-row">
+                <li class="${this.rowClass("page", p.path)}">
                     <div class="pill-progress-bg" style="width: ${pct}%;"></div>
                     <div class="pill-left">
                         <span class="pill-title" title="${this.escapeHtml(p.path)}">${this.escapeHtml(label)}</span>
                     </div>
                     <div class="pill-right">
+                        ${this.rowActions("page", p.path, label)}
                         <span class="pill-stat">${p.views.toLocaleString()}</span>
                         <span class="pill-pct">${pct}%</span>
                     </div>
@@ -271,12 +346,28 @@ const OverviewPage = {
     const normalize = (d) => (d || "").toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0].split(":")[0].trim();
     const ownDomain = normalize(siteObj?.domain || "");
 
-    const referrers = (this.currentData.top_referrers || []).filter((r) => {
+    const filtered = (this.currentData.top_referrers || []).filter((r) => {
       if (!ownDomain) return true;
       if (!r.domain || r.domain === "direct" || r.domain === "Direct / None") return true;
       const refDom = normalize(r.domain);
       return refDom !== ownDomain;
     });
+
+    // Merge raw referrer URLs sharing the same domain into a single row so each
+    // row maps to exactly one filter value.
+    const byDomain = new Map();
+    filtered.forEach((r) => {
+      const isDirect = !r.domain || r.domain === "direct" || r.domain === "Direct / None";
+      const key = isDirect ? "direct" : r.domain;
+      const existing = byDomain.get(key);
+      if (existing) {
+        existing.views += r.views || 0;
+        existing.percentage = Math.round((existing.percentage + (r.percentage || 0)) * 10) / 10;
+      } else {
+        byDomain.set(key, { ...r, domain: key, views: r.views || 0, percentage: r.percentage || 0 });
+      }
+    });
+    const referrers = [...byDomain.values()].sort((a, b) => b.views - a.views);
 
     if (referrers.length === 0) {
       list.innerHTML = `<li class="clean-pill-row empty"><span class="pill-muted">No referrer data recorded yet</span></li>`;
@@ -285,8 +376,7 @@ const OverviewPage = {
 
     list.innerHTML = referrers
       .map((r) => {
-        const isDirect =
-          !r.domain || r.domain === "direct" || r.domain === "Direct / None";
+        const isDirect = r.domain === "direct";
         const domain = isDirect ? "Direct / None" : r.domain;
         const pct = r.percentage || 0;
 
@@ -299,13 +389,14 @@ const OverviewPage = {
                    <span class="pill-icon-fallback" style="display:none;">${Icons.get("globe", { size: 15, color: "#64748b" })}</span>`;
 
         return `
-                <li class="clean-pill-row">
+                <li class="${this.rowClass("referrer", r.domain)}">
                     <div class="pill-progress-bg" style="width: ${pct}%;"></div>
                     <div class="pill-left">
                         ${iconHtml}
-                        <span class="pill-title" title="${this.escapeHtml(r.raw || domain)}">${this.escapeHtml(domain)}</span>
+                        <span class="pill-title" title="${this.escapeHtml(isDirect ? domain : r.domain)}">${this.escapeHtml(domain)}</span>
                     </div>
                     <div class="pill-right">
+                        ${this.rowActions("referrer", r.domain, domain)}
                         <span class="pill-stat">${r.views.toLocaleString()}</span>
                         <span class="pill-pct">${pct}%</span>
                     </div>
@@ -339,14 +430,16 @@ const OverviewPage = {
         }
 
         const pct = item.percentage || 0;
+        const dim = { browsers: "browser", os: "os", devices: "device" }[this.activeEnvTab] || "browser";
         return `
-                <li class="clean-pill-row">
+                <li class="${this.rowClass(dim, item.name)}">
                     <div class="pill-progress-bg" style="width: ${pct}%;"></div>
                     <div class="pill-left">
                         <span class="pill-icon-box">${iconSvg}</span>
                         <span class="pill-title">${this.escapeHtml(item.name)}</span>
                     </div>
                     <div class="pill-right">
+                        ${this.rowActions(dim, item.name)}
                         <span class="pill-stat">${item.count.toLocaleString()}</span>
                         <span class="pill-pct">${pct}%</span>
                     </div>
@@ -371,7 +464,7 @@ const OverviewPage = {
         const code = c.code || "UN";
         const pct = c.percentage || 0;
         return `
-                <li class="clean-pill-row">
+                <li class="${this.rowClass("country", c.name)}">
                     <div class="pill-progress-bg" style="width: ${pct}%;"></div>
                     <div class="pill-left">
                         ${Icons.getCountryFlag(code, { size: 14 })}
@@ -379,6 +472,7 @@ const OverviewPage = {
                         <span class="country-sub-code">${this.escapeHtml(code)}</span>
                     </div>
                     <div class="pill-right">
+                        ${this.rowActions("country", c.name)}
                         <span class="pill-stat">${c.count.toLocaleString()}</span>
                         <span class="pill-pct">${pct}%</span>
                     </div>

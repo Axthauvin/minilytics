@@ -18,6 +18,12 @@ const SessionsPage = {
 
   init() {
     this.bindEvents();
+    Filters.onChange(() => {
+      if (window.App?.currentPage !== "sessions") return;
+      this.filters.page = 1;
+      this.showListView();
+      this.load();
+    });
   },
 
   bindEvents() {
@@ -121,6 +127,8 @@ const SessionsPage = {
     const activeSite =
       siteId || window.App?.currentSiteId || this.filters.siteId || "";
     if (activeSite) this.filters.siteId = activeSite;
+    Filters.useSite(activeSite);
+    Filters.renderBar(document.getElementById("sessionsFilterBar"));
 
     try {
       if (window.App && typeof window.App.setLoading === "function") {
@@ -148,7 +156,7 @@ const SessionsPage = {
     const select = document.getElementById("sessionEventFilter");
     if (!select) return;
     const current = this.filters.eventName || "all";
-    let optionsHtml = `<option value="all" ${current === "all" ? "selected" : ""}>Tous les événements</option>`;
+    let optionsHtml = `<option value="all" ${current === "all" ? "selected" : ""}>All events</option>`;
 
     const hasCurrent = types.some((t) => t.name === current);
     if (current !== "all" && !hasCurrent) {
@@ -200,13 +208,13 @@ const SessionsPage = {
         options.year = "numeric";
       }
 
-      const formatted = d.toLocaleDateString("fr-FR", options);
+      const formatted = d.toLocaleDateString("en-US", options);
       const cap = formatted.charAt(0).toUpperCase() + formatted.slice(1);
 
       if (dayKey === todayKey) {
-        return `Aujourd'hui · ${cap}`;
+        return `Today · ${cap}`;
       } else if (dayKey === yesterdayKey) {
-        return `Hier · ${cap}`;
+        return `Yesterday · ${cap}`;
       }
       return cap;
     } catch (e) {
@@ -227,8 +235,8 @@ const SessionsPage = {
     if (sessions.length === 0) {
       container.innerHTML = `
                 <div class="data-table-card" style="padding: 48px; text-align: center;">
-                    <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 4px;">Aucune session trouvée</h3>
-                    <p style="font-size: 13px; color: var(--text-muted);">Aucune activité enregistrée pour ces critères de filtre.</p>
+                    <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 4px;">No sessions found</h3>
+                    <p style="font-size: 13px; color: var(--text-muted);">No activity was recorded for these filters.</p>
                 </div>
             `;
       return;
@@ -246,7 +254,7 @@ const SessionsPage = {
         html += `
           <div class="session-day-delimiter">
             <div class="session-day-line"></div>
-            <div class="session-day-badge" onclick="SessionsPage.filterByDay('${dayKey}')" title="Filtrer uniquement sur ${this.escapeHtml(dayLabel)}">
+            <div class="session-day-badge" onclick="SessionsPage.filterByDay('${dayKey}')" title="Filter to ${this.escapeHtml(dayLabel)}">
               ${Icons.get("calendar", { size: 13, color: "var(--text-muted)" })}
               <span>${this.escapeHtml(dayLabel)}</span>
             </div>
@@ -400,7 +408,7 @@ const SessionsPage = {
     // Extract first event details for screen / locale
     const firstEvt =
       session.events && session.events[0] ? session.events[0].data : {};
-    setTxt("detailLocale", firstEvt.language || "fr");
+    setTxt("detailLocale", firstEvt.language || "en");
 
     const devEl = document.getElementById("detailDevice");
     const devVal = session.device || firstEvt.device || "Desktop";
@@ -410,7 +418,7 @@ const SessionsPage = {
     setTxt("detailScreen", firstEvt.screen || "–");
     setTxt("detailViewport", firstEvt.viewport || "–");
 
-    // Render Parcours de pages (Page Journey matching screenshot with clean properties card)
+    // Render the page journey with a clean properties card.
     const journeyContainer = document.getElementById("journeyStepsList");
     if (!journeyContainer) return;
 
@@ -501,7 +509,7 @@ const SessionsPage = {
                                         ${Icons.get("tag", { size: 11, color: "#475569" })}
                                         <span>${customKeys.length}</span>
                                     </span>
-                                    <span class="props-text">Propriétés</span>
+                                    <span class="props-text">Properties</span>
                                     <span class="props-chevron">${Icons.get("chevron-down", { size: 12, color: "#64748b" })}</span>
                                 </button>
                             `
@@ -548,7 +556,7 @@ const SessionsPage = {
                     </div>
                 </div>
                 <div class="journey-step-content" style="padding-bottom: 0; display: flex; align-items: center; min-height: 28px;">
-                    <span class="journey-end-text">Fin de session</span>
+                    <span class="journey-end-text">Session ended</span>
                 </div>
             </div>
         `;
@@ -561,11 +569,11 @@ const SessionsPage = {
     try {
       const d = new Date(ts.includes("T") ? ts : ts.replace(" ", "T") + "Z");
       if (isNaN(d.getTime())) return ts;
-      const dayMonth = d.toLocaleDateString("fr-FR", {
+      const dayMonth = d.toLocaleDateString("en-US", {
         day: "numeric",
         month: "short",
       });
-      const timeStr = d.toLocaleTimeString("fr-FR", {
+      const timeStr = d.toLocaleTimeString("en-US", {
         hour: "numeric",
         minute: "2-digit",
         second: "2-digit",
@@ -598,12 +606,18 @@ const SessionsPage = {
     if (diffSec === 0) {
       return "0s";
     }
-    if (diffSec < 60) {
-      return `${diffSec}s`;
-    }
+    const days = Math.floor(diffSec / 86400);
+    diffSec %= 86400;
+    const hours = Math.floor(diffSec / 3600);
+    diffSec %= 3600;
     const mins = Math.floor(diffSec / 60);
     const secs = diffSec % 60;
-    return `${mins}m ${secs}s`;
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0 || days > 0) parts.push(`${hours}h`);
+    if (mins > 0 || hours > 0 || days > 0) parts.push(`${mins}m`);
+    if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+    return parts.join(" ");
   },
 
   toggleStepProps(id, btn) {

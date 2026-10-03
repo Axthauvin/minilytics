@@ -1,6 +1,6 @@
 /**
  * Minilytics Smooth Multi-Series Canvas Area Chart Engine
- * Superimposes Views, Visitors, and Visits on the same time-series chart.
+ * Renders time-series data as a line/area chart or vertical bars.
  * Features:
  * - Smooth Bézier curves for all active series
  * - Cohesive shared Y-axis scaling
@@ -18,25 +18,26 @@ class MinilyticsChart {
         this.ctx = this.canvas.getContext('2d');
         this.data = [];
         this.hoveredIndex = -1;
+        this.chartType = options.chartType === 'bar' ? 'bar' : 'line';
 
         const defaultSeriesConfig = {
             pageviews: {
                 key: 'pageviews',
                 label: 'Views',
                 singular: 'view',
-                color: '#2563eb', // Blue
-                gradientStart: 'rgba(37, 99, 235, 0.18)',
-                gradientEnd: 'rgba(37, 99, 235, 0.00)',
-                lineWidth: 2.5
+                color: '#60a5fa', // Light blue
+                gradientStart: 'rgba(147, 197, 253, 0.5)',
+                gradientEnd: 'rgba(191, 219, 254, 0.06)',
+                lineWidth: 3.25
             },
             visitors: {
                 key: 'visitors',
                 label: 'Visitors',
                 singular: 'visitor',
-                color: '#8b5cf6', // Violet / Purple
-                gradientStart: 'rgba(139, 92, 246, 0.14)',
-                gradientEnd: 'rgba(139, 92, 246, 0.00)',
-                lineWidth: 2.2
+                color: '#a78bfa', // Light violet
+                gradientStart: 'rgba(196, 181, 253, 0.42)',
+                gradientEnd: 'rgba(221, 214, 254, 0.05)',
+                lineWidth: 3
             },
             sessions: {
                 key: 'sessions',
@@ -115,6 +116,14 @@ class MinilyticsChart {
         this.draw();
     }
 
+    setChartType(chartType) {
+        if (!['line', 'bar'].includes(chartType)) return;
+        this.chartType = chartType;
+        this.hoveredIndex = -1;
+        if (this.tooltip) this.tooltip.classList.remove('visible');
+        this.draw();
+    }
+
     resize() {
         if (!this.canvas) return;
         const rect = this.canvas.getBoundingClientRect();
@@ -150,16 +159,17 @@ class MinilyticsChart {
             }
             this.draw();
         });
+
     }
 
     handleHover(mouseX, mouseY) {
         if (!this.data || this.data.length === 0) return;
 
         const plotWidth = this.width - this.padding.left - this.padding.right;
-        const stepX = plotWidth / Math.max(1, this.data.length - 1);
-
         const relativeX = mouseX - this.padding.left;
-        let index = Math.round(relativeX / stepX);
+        let index = this.chartType === 'bar'
+            ? Math.floor(relativeX / (plotWidth / this.data.length))
+            : Math.round(relativeX / (plotWidth / Math.max(1, this.data.length - 1)));
         index = Math.max(0, Math.min(this.data.length - 1, index));
 
         this.hoveredIndex = index;
@@ -178,12 +188,11 @@ class MinilyticsChart {
         const metricsHtml = seriesKeys.map(key => {
             const cfg = this.seriesConfig[key];
             const val = Number(item[key]) || 0;
-            const label = val <= 1 ? cfg.singular : cfg.label.toLowerCase();
             return `
-                <div class="chart-tooltip-metric" style="margin-top: 4px;">
-                    <span class="chart-tooltip-dot" style="background: ${cfg.color}; box-shadow: 0 0 6px ${cfg.color}99;"></span>
+                <div class="chart-tooltip-metric">
+                    <span class="chart-tooltip-dot" style="background: ${cfg.color};"></span>
+                    <span class="chart-tooltip-name">${cfg.label}</span>
                     <span class="chart-tooltip-val">${val.toLocaleString()}</span>
-                    <span class="chart-tooltip-name">${label}</span>
                 </div>
             `;
         }).join('');
@@ -197,7 +206,9 @@ class MinilyticsChart {
         const plotWidth = this.width - this.padding.left - this.padding.right;
         const plotHeight = this.height - this.padding.top - this.padding.bottom;
         const stepX = plotWidth / Math.max(1, this.data.length - 1);
-        const pointX = this.padding.left + index * stepX;
+        const pointX = this.chartType === 'bar'
+            ? this.padding.left + (index + 0.5) * (plotWidth / this.data.length)
+            : this.padding.left + index * stepX;
 
         // Find max value across all active series to place tooltip
         const allActiveValues = [];
@@ -294,11 +305,13 @@ class MinilyticsChart {
         // 3. Draw dashed vertical crosshair if hovering
         const activeIdx = this.hoveredIndex >= 0 ? this.hoveredIndex : (this.data.length > 3 ? this.data.length - 1 : -1);
         if (activeIdx >= 0 && activeIdx < this.data.length && this.hoveredIndex >= 0) {
-            const crosshairX = plotX + activeIdx * stepX;
+            const crosshairX = this.chartType === 'bar'
+                ? plotX + (activeIdx + 0.5) * (plotWidth / this.data.length)
+                : plotX + activeIdx * stepX;
             ctx.save();
             ctx.beginPath();
             ctx.setLineDash([3, 3]);
-            ctx.strokeStyle = '#cbd5e1';
+            ctx.strokeStyle = '#94a3b8';
             ctx.lineWidth = 1;
             ctx.moveTo(crosshairX, plotY);
             ctx.lineTo(crosshairX, plotY + plotHeight);
@@ -313,7 +326,27 @@ class MinilyticsChart {
             if (this.activeSeries.has(k) && !renderOrder.includes(k)) renderOrder.push(k);
         });
 
-        renderOrder.forEach(key => {
+        if (this.chartType === 'bar') {
+            const slotWidth = plotWidth / this.data.length;
+            // Metrics share a single slot. Since visitors are a subset of views,
+            // drawing them last makes the smaller visitor bar visible in front.
+            const barWidth = Math.max(1, Math.min(slotWidth * 0.72, 96));
+
+            renderOrder.forEach((key) => {
+                const cfg = this.seriesConfig[key];
+                this.data.forEach((item, index) => {
+                    const value = Number(item[key]) || 0;
+                    const x = plotX + index * slotWidth + (slotWidth - barWidth) / 2;
+                    const y = getY(value);
+                    const height = Math.max(0, plotY + plotHeight - y);
+                    if (height === 0) return;
+                    ctx.fillStyle = cfg.color;
+                    ctx.beginPath();
+                    ctx.roundRect(x, y, barWidth, height, [3, 3, 0, 0]);
+                    ctx.fill();
+                });
+            });
+        } else renderOrder.forEach(key => {
             const cfg = this.seriesConfig[key];
             const points = this.data.map((item, i) => ({
                 x: plotX + i * stepX,
@@ -398,11 +431,14 @@ class MinilyticsChart {
 
         const labelInterval = Math.max(1, Math.floor(this.data.length / 7));
         for (let i = 0; i < this.data.length; i += labelInterval) {
-            const ptX = plotX + i * stepX;
+            const ptX = this.chartType === 'bar'
+                ? plotX + (i + 0.5) * (plotWidth / this.data.length)
+                : plotX + i * stepX;
             const label = this.data[i].label || '';
             ctx.fillText(label, ptX, plotY + plotHeight + 10);
         }
     }
+
 }
 
 window.MinilyticsChart = MinilyticsChart;

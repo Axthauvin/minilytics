@@ -30,6 +30,7 @@ const App = {
     OverviewPage.init();
     EventsPage.init();
     SessionsPage.init();
+    FunnelsPage.init();
 
     // Handle URL routing
     window.addEventListener("hashchange", () => this.handleRoute());
@@ -60,13 +61,18 @@ const App = {
     }
 
     // Sidebar navigation links (preserve active site parameter!)
-    document.querySelectorAll(".sidebar-nav .nav-item[data-page]").forEach((item) => {
+    document.querySelectorAll(".nav-item[data-page]").forEach((item) => {
       item.addEventListener("click", (e) => {
         const page = item.dataset.page;
         if (!page) return;
         e.preventDefault();
         const url = new URL(window.location);
-        if (this.currentSiteId) {
+        if (page === "settings") {
+          this.currentSiteId = null;
+          sessionStorage.removeItem("minilytics_current_site");
+          url.searchParams.delete("site");
+          url.searchParams.delete("site_id");
+        } else if (this.currentSiteId) {
           url.searchParams.set("site", this.currentSiteId);
         }
         url.hash = `#${page}`;
@@ -517,6 +523,17 @@ const App = {
       return;
     }
 
+    if (hash === "settings") {
+      this.currentSiteId = null;
+      sessionStorage.removeItem("minilytics_current_site");
+      const url = new URL(window.location);
+      url.searchParams.delete("site");
+      url.searchParams.delete("site_id");
+      window.history.replaceState({}, "", url);
+      this.navigateTo("settings");
+      return;
+    }
+
     // Check memory or sessionStorage if not in query string
     if (!siteParam || siteParam === "all") {
       const saved = this.currentSiteId || sessionStorage.getItem("minilytics_current_site");
@@ -526,6 +543,18 @@ const App = {
     }
 
     if (siteParam && siteParam !== "all") {
+      try {
+        const res = await Api.getSites();
+        const matchingSite = (res.sites || []).find((site) => site.id === siteParam);
+        if (!matchingSite) {
+          this.returnToWebsites();
+          return;
+        }
+      } catch (e) {
+        this.returnToWebsites();
+        return;
+      }
+
       this.currentSiteId = siteParam;
       sessionStorage.setItem("minilytics_current_site", siteParam);
 
@@ -545,11 +574,15 @@ const App = {
     }
 
     // No site selected anywhere
-    if (hash === "overview" || hash === "sessions" || hash === "events") {
+    if (hash === "overview" || hash === "sessions" || hash === "events" || hash === "funnels") {
       try {
         const res = await Api.getSites();
         const sites = res.sites || [];
-        const firstSite = sites[0] ? sites[0].id : "demo_site";
+        if (!sites[0]) {
+          this.navigateTo("websites");
+          return;
+        }
+        const firstSite = sites[0].id;
         this.currentSiteId = firstSite;
         sessionStorage.setItem("minilytics_current_site", firstSite);
 
@@ -559,8 +592,7 @@ const App = {
 
         this.navigateTo(hash);
       } catch (e) {
-        this.currentSiteId = "demo_site";
-        this.navigateTo(hash);
+        this.navigateTo("websites");
       }
       return;
     }
@@ -570,7 +602,7 @@ const App = {
   },
 
   navigateTo(pageName) {
-    if (!["websites", "overview", "events", "sessions"].includes(pageName)) {
+    if (!["websites", "overview", "events", "sessions", "funnels", "settings"].includes(pageName)) {
       pageName = "websites";
     }
 
@@ -578,7 +610,7 @@ const App = {
 
     const appContainer = document.querySelector(".app-container");
     if (appContainer) {
-      if (pageName === "websites") {
+      if (pageName === "websites" || pageName === "settings") {
         appContainer.classList.add("is-portal");
       } else {
         appContainer.classList.remove("is-portal");
@@ -620,6 +652,8 @@ const App = {
       overview: "Analytics Overview",
       events: "Events Stream",
       sessions: "User Sessions",
+      funnels: "Funnels",
+      settings: "Settings",
     };
     const titleElem = document.getElementById("headerPageTitle");
     if (titleElem) {
@@ -639,7 +673,22 @@ const App = {
       EventsPage.load(this.currentRange, this.currentSiteId, this.customDates);
     } else if (this.currentPage === "sessions") {
       SessionsPage.load(this.currentRange, this.currentSiteId, this.customDates);
+    } else if (this.currentPage === "funnels") {
+      FunnelsPage.load(this.currentRange, this.currentSiteId, this.customDates);
+    } else if (this.currentPage === "settings") {
+      SettingsPage.load();
     }
+  },
+
+  returnToWebsites() {
+    this.currentSiteId = null;
+    sessionStorage.removeItem("minilytics_current_site");
+    const url = new URL(window.location);
+    url.searchParams.delete("site");
+    url.searchParams.delete("site_id");
+    url.hash = "#websites";
+    window.history.replaceState({}, "", url);
+    this.navigateTo("websites");
   },
 
   setLoading(isLoading, message = "Loading analytics data...") {

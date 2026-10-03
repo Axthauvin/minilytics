@@ -16,3 +16,34 @@
   color: #333;
   margin-bottom: 10px;
 }
+
+/* ── Interactive filters (Overview breakdowns + Sessions) ───────────────── */
+.active-filters-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; padding: 10px 12px; background: var(--primary-subtle); border: 1px solid #c7d2fe; border-radius: var(--radius-md); }
+.active-filters-bar[hidden] { display: none; }
+.active-filters-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.active-filters-title { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.04em; margin-right: 2px; }
+.filter-group { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; padding: 3px 4px 3px 8px; background: #fff; border: 1px solid #e0e7ff; border-radius: var(--radius-full); }
+.filter-group-label { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--text-secondary); margin-right: 2px; }
+.filter-group-joiner, .filter-chip-joiner { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: lowercase; }
+.filter-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 260px; padding: 2px 4px 2px 9px; background: var(--primary-subtle); color: var(--primary-hover); border-radius: var(--radius-full); font-size: 12px; font-weight: 600; }
+.filter-chip-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filter-chip-remove { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; flex-shrink: 0; transition: var(--transition); }
+.filter-chip-remove:hover { background: #c7d2fe; }
+.active-filters-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.filter-bar-btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text-secondary); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: var(--transition); }
+.filter-bar-btn:hover { border-color: #cbd5e1; color: var(--text-primary); }
+.filter-bar-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.filter-bar-btn.primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+/* Row hover actions */
+.pill-actions { display: inline-flex; align-items: center; gap: 2px; max-width: 0; opacity: 0; overflow: hidden; transition: max-width 0.15s ease, opacity 0.15s ease; }
+.clean-pill-row.is-filterable:hover .pill-actions,
+.clean-pill-row.is-filterable:focus-within .pill-actions,
+.clean-pill-row.is-filtered .pill-actions { max-width: 64px; opacity: 1; }
+.pill-action-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text-secondary); cursor: pointer; transition: var(--transition); }
+.pill-action-btn:hover { background: #fff; border-color: var(--border); color: var(--primary); }
+.pill-filter-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.pill-filter-btn.active:hover { background: var(--primary-hover); color: #fff; }
+.clean-pill-row.is-filtered { border-color: #c7d2fe; box-shadow: inset 3px 0 0 var(--primary); }
+.clean-pill-row.is-filtered .pill-progress-bg { background: #e0e7ff; }
+@media (hover: none) { .clean-pill-row.is-filterable .pill-actions { max-width: 64px; opacity: 1; } }
