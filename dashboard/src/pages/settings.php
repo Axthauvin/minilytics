@@ -38,8 +38,22 @@
         <div class="settings-card-heading"><div><h3>Tracking & data protection</h3><p>Allowed domains, internal traffic, retention and the private script key.</p></div></div>
         <form id="trackingSettingsForm" class="tracking-form">
             <div class="tracking-field tracking-field--site"><label for="trackingSiteSelect">Website</label><select id="trackingSiteSelect"></select></div>
-            <div class="tracking-field"><label for="trackingDomains">Allowed domains</label><input id="trackingDomains" placeholder="example.com, app.example.com"><small>Only these domains can send events for this website.</small></div>
-            <div class="tracking-field"><label for="trackingInternalIps">Internal IP addresses to ignore</label><input id="trackingInternalIps" placeholder="203.0.113.10, 2001:db8::1"><small>Comma-separated addresses. They are visible only in the ignored traffic log.</small></div>
+            <div class="tracking-field">
+                <label for="trackingDomainsInput">Allowed domains</label>
+                <div class="tracking-tag-editor" id="trackingDomainsEditor">
+                    <div class="tracking-tag-list" id="trackingDomainsList" aria-live="polite"></div>
+                    <div class="tracking-tag-add"><input id="trackingDomainsInput" placeholder="example.com" autocomplete="off"><button class="btn-outline btn-sm" id="addTrackingDomain" type="button">Add</button></div>
+                </div>
+                <small>Add one domain at a time. Only these domains can send events for this website.</small>
+            </div>
+            <div class="tracking-field">
+                <label for="trackingInternalIpsInput">Internal IP addresses to ignore</label>
+                <div class="tracking-tag-editor" id="trackingInternalIpsEditor">
+                    <div class="tracking-tag-list" id="trackingInternalIpsList" aria-live="polite"></div>
+                    <div class="tracking-tag-add"><input id="trackingInternalIpsInput" placeholder="203.0.113.10" autocomplete="off"><button class="btn-outline btn-sm" id="addTrackingInternalIp" type="button">Add</button></div>
+                </div>
+                <small>Add one address at a time. They are visible only in the ignored traffic log.</small>
+            </div>
             <div class="tracking-field tracking-field--retention"><label for="trackingRetention">Data retention</label><div class="tracking-number"><input id="trackingRetention" type="number" min="1" max="760" value="395"><span>days</span></div></div>
             <label class="tracking-checkbox"><input id="trackingRotateKey" type="checkbox"><span><strong>Rotate the tracking key</strong><small>The current snippet will stop working until it is replaced.</small></span></label>
             <div class="tracking-actions"><button class="btn-primary" type="submit">Save tracking settings</button></div>

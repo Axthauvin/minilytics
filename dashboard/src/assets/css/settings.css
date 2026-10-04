@@ -99,6 +99,54 @@
 .tracking-form select { cursor: pointer; max-width: 340px; }
 .tracking-form input:focus,
 .tracking-form select:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(59,130,246,.13); }
+.tracking-tag-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 42px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg-surface);
+}
+.tracking-tag-editor:focus-within { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(59,130,246,.13); }
+.tracking-tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.tracking-tag-list:empty { display: none; }
+.tracking-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 4px 6px 4px 8px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 12px;
+  line-height: 1.2;
+}
+.tracking-tag-value { overflow-wrap: anywhere; }
+.tracking-tag-remove {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #1d4ed8;
+  cursor: pointer;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+}
+.tracking-tag-remove:hover { background: #dbeafe; }
+.tracking-tag-remove:focus-visible { outline: 2px solid #2563eb; outline-offset: 1px; }
+.tracking-tag-add { display: flex; gap: 7px; }
+.tracking-form .tracking-tag-add input { height: 34px; min-width: 0; border: 0; border-radius: 4px; }
+.tracking-form .tracking-tag-add input:focus { box-shadow: none; }
+.tracking-tag-add button { flex: 0 0 auto; }
 .tracking-field small,
 .tracking-checkbox small { display: block; color: var(--text-muted); font-size: 12px; font-weight: 400; line-height: 1.45; margin-top: 5px; }
 .tracking-number { display: flex; align-items: center; gap: 9px; max-width: 190px; }
@@ -271,6 +319,7 @@
   .tracking-actions { grid-column: auto; }
   .tracking-actions { justify-content: stretch; }
   .tracking-actions .btn-primary { width: 100%; }
+  .tracking-tag-add button { width: auto; }
   .user-list-row {
     flex-direction: column;
     align-items: flex-start;

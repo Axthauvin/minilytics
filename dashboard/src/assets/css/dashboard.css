@@ -560,9 +560,8 @@ html.sidebar-preload-collapsed .sidebar {
 
 .sidebar.collapsed .sidebar-header-row,
 html.sidebar-preload-collapsed .sidebar .sidebar-header-row {
-    flex-direction: column;
+    position: relative;
     justify-content: center;
-    gap: 10px;
     margin-bottom: 14px;
     padding: 0;
 }
@@ -571,6 +570,7 @@ html.sidebar-preload-collapsed .sidebar .sidebar-header-row {
 html.sidebar-preload-collapsed .sidebar .sidebar-brand-link {
     justify-content: center;
     width: 100%;
+    transition: opacity .15s ease;
 }
 
 .sidebar.collapsed .sidebar-brand-text,
@@ -580,6 +580,31 @@ html.sidebar-preload-collapsed .sidebar .sidebar-brand-text {
 
 .sidebar.collapsed .icon-collapse-arrow {
     transform: rotate(180deg);
+}
+
+/* When the compact navigation is hovered, its expand control takes the
+   logo's place instead of adding a second row beneath it. */
+.sidebar.collapsed .btn-sidebar-collapse,
+html.sidebar-preload-collapsed .sidebar .btn-sidebar-collapse {
+    position: absolute;
+    inset: 0;
+    width: 32px;
+    height: 32px;
+    margin: auto;
+    opacity: 0;
+    pointer-events: none;
+}
+.sidebar.collapsed:hover .sidebar-brand-link,
+html.sidebar-preload-collapsed .sidebar:hover .sidebar-brand-link {
+    opacity: 0;
+    pointer-events: none;
+}
+.sidebar.collapsed:hover .btn-sidebar-collapse,
+html.sidebar-preload-collapsed .sidebar:hover .btn-sidebar-collapse,
+.sidebar.collapsed .btn-sidebar-collapse:focus-visible,
+html.sidebar-preload-collapsed .sidebar .btn-sidebar-collapse:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .sidebar.collapsed .btn-back-websites,
@@ -707,35 +732,9 @@ html.sidebar-preload-collapsed .sidebar .user-avatar {
     gap: 12px;
 }
 
+/* The navigation drawer is available from the header on phones only. */
 .btn-sidebar-toggle-header {
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    color: var(--text-secondary);
-    width: 32px;
-    height: 32px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: var(--transition);
-    flex-shrink: 0;
-}
-
-.btn-sidebar-toggle-header:hover {
-    background: var(--bg-surface);
-    color: var(--text-primary);
-    border-color: #cbd5e1;
-    box-shadow: var(--shadow-sm);
-}
-
-.header-toggle-icon {
-    transition: transform 0.22s ease;
-}
-
-body.sidebar-is-collapsed .header-icon-arrow {
-    transform: rotate(180deg);
-    transform-origin: center;
+    display: none;
 }
 
 .header-title-wrapper {
@@ -3066,6 +3065,21 @@ pre, .json-box, .code-box {
     .content-container { padding: 16px 14px 32px; }
     .top-header { height: auto; min-height: 58px; padding: 10px 14px; gap: 10px; align-items: flex-start; }
     .header-left { min-width: 0; padding-top: 1px; }
+    .btn-sidebar-toggle-header {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 32px;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--bg-surface);
+        color: var(--text-secondary);
+        cursor: pointer;
+    }
+    .btn-sidebar-toggle-header:hover { color: var(--text-primary); border-color: #cbd5e1; }
     .header-page-title { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .header-title-wrapper { min-width: 0; }
     .header-actions { margin-left: auto; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
@@ -3091,9 +3105,13 @@ pre, .json-box, .code-box {
     .mobile-nav-backdrop { position: fixed; inset: 0; z-index: 110; border: 0; background: rgba(15, 23, 42, .42); opacity: 0; pointer-events: none; transition: opacity .22s ease; }
     body.sidebar-mobile-open .mobile-nav-backdrop { display: block; opacity: 1; pointer-events: auto; }
     .sidebar.collapsed .sidebar-header-row,
-    html.sidebar-preload-collapsed .sidebar .sidebar-header-row { flex-direction: row; justify-content: space-between; gap: 0; margin-bottom: 16px; padding: 2px; }
+    html.sidebar-preload-collapsed .sidebar .sidebar-header-row { position: static; flex-direction: row; justify-content: space-between; gap: 0; margin-bottom: 16px; padding: 2px; }
     .sidebar.collapsed .sidebar-brand-link,
     html.sidebar-preload-collapsed .sidebar .sidebar-brand-link { justify-content: flex-start; width: auto; }
+    .sidebar.collapsed .btn-sidebar-collapse,
+    html.sidebar-preload-collapsed .sidebar .btn-sidebar-collapse { position: static; inset: auto; width: 28px; height: 28px; margin: 0; opacity: 1; pointer-events: auto; }
+    .sidebar.collapsed:hover .sidebar-brand-link,
+    html.sidebar-preload-collapsed .sidebar:hover .sidebar-brand-link { opacity: 1; pointer-events: auto; }
     .sidebar.collapsed .sidebar-brand-text,
     html.sidebar-preload-collapsed .sidebar .sidebar-brand-text,
     .sidebar.collapsed .btn-back-websites span,

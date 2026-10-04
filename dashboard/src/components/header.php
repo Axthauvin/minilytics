@@ -1,7 +1,7 @@
 <!-- Top Header Component (Minimalist Analytics Header) -->
 <header class="top-header">
     <div class="header-left">
-        <button type="button" class="btn-sidebar-toggle-header" id="btnHeaderSidebarToggle" title="Toggle navigation" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">
+        <button type="button" class="btn-sidebar-toggle-header" id="btnHeaderSidebarToggle" title="Open navigation" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar">
             <svg class="header-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <path d="M4 7h16M4 12h16M4 17h16"></path>
             </svg>

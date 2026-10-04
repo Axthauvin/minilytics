@@ -1,47 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <defs>
-    <linearGradient id="miniBgGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#0f172a"/>
-      <stop offset="100%" stop-color="#1e1b4b"/>
-    </linearGradient>
-    <linearGradient id="miniBorderGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.45"/>
-      <stop offset="50%" stop-color="#6366f1" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#a855f7" stop-opacity="0.2"/>
-    </linearGradient>
-    <linearGradient id="miniBar1" x1="0" y1="24" x2="0" y2="16" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#4338ca" stop-opacity="0.7"/>
-      <stop offset="100%" stop-color="#6366f1" stop-opacity="0.95"/>
-    </linearGradient>
-    <linearGradient id="miniBar2" x1="0" y1="24" x2="0" y2="11.5" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#818cf8"/>
-    </linearGradient>
-    <linearGradient id="miniBar3" x1="0" y1="24" x2="0" y2="7.5" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.85"/>
-      <stop offset="100%" stop-color="#38bdf8"/>
-    </linearGradient>
-    <linearGradient id="miniTrendGrad" x1="6" y1="18" x2="25.5" y2="8" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#818cf8"/>
-      <stop offset="60%" stop-color="#38bdf8"/>
-      <stop offset="100%" stop-color="#ffffff"/>
-    </linearGradient>
-  </defs>
-
-  <!-- Background squircle with subtle border highlight -->
-  <rect x="1" y="1" width="30" height="30" rx="7.5" fill="url(#miniBgGrad)"/>
-  <rect x="1" y="1" width="30" height="30" rx="7.5" stroke="url(#miniBorderGrad)" stroke-width="1"/>
-
-  <!-- Analytics Columns -->
-  <rect x="6.5" y="16" width="3.5" height="7.5" rx="1.75" fill="url(#miniBar1)"/>
-  <rect x="12.5" y="11.5" width="3.5" height="12" rx="1.75" fill="url(#miniBar2)"/>
-  <rect x="18.5" y="7.5" width="3.5" height="16" rx="1.75" fill="url(#miniBar3)"/>
-
-  <!-- Dynamic Trendline -->
-  <path d="M6 18L12 13.5L18 15L25.5 8" stroke="url(#miniTrendGrad)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-
-  <!-- Beacon Pulse Point -->
-  <circle cx="25.5" cy="8" r="3.6" fill="#38bdf8" fill-opacity="0.3"/>
-  <circle cx="25.5" cy="8" r="2.2" fill="#38bdf8"/>
-  <circle cx="25.5" cy="8" r="1.1" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="Minilytics">
+  <rect x="1" y="1" width="30" height="30" rx="8" fill="#EEF2FF" stroke="#C7D2FE"/>
+  <path d="M7 23.5V18.5C7 17.672 7.672 17 8.5 17H9.5C10.328 17 11 17.672 11 18.5V23.5H7Z" fill="#A5B4FC"/>
+  <path d="M13 23.5V13.5C13 12.672 13.672 12 14.5 12H15.5C16.328 12 17 12.672 17 13.5V23.5H13Z" fill="#818CF8"/>
+  <path d="M19 23.5V8.5C19 7.672 19.672 7 20.5 7H21.5C22.328 7 23 7.672 23 8.5V23.5H19Z" fill="#4F46E5"/>
+  <path d="M7.5 15.5L12.5 11.5L16 13.5L23.5 7" stroke="#4338CA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="23.5" cy="7" r="2" fill="#FFF" stroke="#4338CA" stroke-width="1.5"/>
 </svg>

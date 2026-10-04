@@ -110,10 +110,6 @@ const App = {
     } else {
       document.documentElement.classList.remove("sidebar-preload-collapsed");
     }
-    if (headerToggleBtn) {
-      headerToggleBtn.setAttribute("aria-expanded", String(!isMobile() && !isCollapsed));
-    }
-
     const toggleSidebar = () => {
       if (isMobile()) {
         const isOpen = document.body.classList.toggle("sidebar-mobile-open");
@@ -123,7 +119,6 @@ const App = {
       const willBeCollapsed = !sidebar.classList.contains("collapsed");
       sidebar.classList.toggle("collapsed", willBeCollapsed);
       document.body.classList.toggle("sidebar-is-collapsed", willBeCollapsed);
-      if (headerToggleBtn) headerToggleBtn.setAttribute("aria-expanded", String(!willBeCollapsed));
       if (willBeCollapsed) {
         document.documentElement.classList.add("sidebar-preload-collapsed");
       } else {
@@ -155,9 +150,10 @@ const App = {
     if (headerToggleBtn) {
       headerToggleBtn.addEventListener("click", (e) => {
         e.preventDefault();
-        toggleSidebar();
+        if (isMobile()) toggleSidebar();
       });
     }
+
 
     if (mobileBackdrop) mobileBackdrop.addEventListener("click", closeMobileNavigation);
     document.querySelectorAll(".sidebar a").forEach((link) => {
@@ -186,15 +182,10 @@ const App = {
 
   updateSidebarCollapseLabels(isCollapsed) {
     const collapseBtn = document.getElementById("btnSidebarCollapse");
-    const headerToggleBtn = document.getElementById("btnHeaderSidebarToggle");
     const label = isCollapsed ? "Agrandir la navigation (Ctrl+B)" : "Réduire la navigation (Ctrl+B)";
     if (collapseBtn) {
       collapseBtn.setAttribute("title", label);
       collapseBtn.setAttribute("aria-label", label);
-    }
-    if (headerToggleBtn) {
-      headerToggleBtn.setAttribute("title", label);
-      headerToggleBtn.setAttribute("aria-label", label);
     }
   },
 

@@ -1,6 +1,7 @@
 const SettingsPage = {
   initialized: false,
   currentUser: null,
+  trackingTags: { domains: [], internalIps: [] },
 
   init() {
     if (this.initialized) return;
@@ -29,6 +30,8 @@ const SettingsPage = {
     if (trackingForm) trackingForm.addEventListener('submit', (event) => this.saveTracking(event));
     const siteSelect = document.getElementById('trackingSiteSelect');
     if (siteSelect) siteSelect.addEventListener('change', () => this.loadTrackingConfig());
+    this.setupTrackingTagEditor('domains', 'trackingDomainsInput', 'addTrackingDomain');
+    this.setupTrackingTagEditor('internalIps', 'trackingInternalIpsInput', 'addTrackingInternalIp');
     const copySnippet = document.getElementById('copyTrackingSnippet');
     if (copySnippet) copySnippet.addEventListener('click', () => ClipboardHelper.copy(document.getElementById('trackingSnippet').value, copySnippet));
   },
@@ -165,17 +168,56 @@ const SettingsPage = {
   async loadTrackingConfig() {
     const select = document.getElementById('trackingSiteSelect'); if (!select || !select.value) return;
     try { const data = await Api.getTrackingConfig(select.value); const site = data.site;
-      document.getElementById('trackingDomains').value = (site.allowed_domains || []).join(', ');
-      document.getElementById('trackingInternalIps').value = (site.internal_ips || []).join(', ');
+      this.setTrackingTags('domains', site.allowed_domains || []);
+      this.setTrackingTags('internalIps', site.internal_ips || []);
       document.getElementById('trackingRetention').value = site.retention_days || 395;
     } catch (e) { this.setTrackingFeedback(e.message, 'error'); }
   },
 
   async saveTracking(event) {
     event.preventDefault(); const select = document.getElementById('trackingSiteSelect');
-    try { const data = await Api.updateSiteConfig({ id: select.value, allowed_domains: document.getElementById('trackingDomains').value, internal_ips: document.getElementById('trackingInternalIps').value, retention_days: document.getElementById('trackingRetention').value, rotate_key: document.getElementById('trackingRotateKey').checked });
+    try { const data = await Api.updateSiteConfig({ id: select.value, allowed_domains: this.trackingTags.domains, internal_ips: this.trackingTags.internalIps, retention_days: document.getElementById('trackingRetention').value, rotate_key: document.getElementById('trackingRotateKey').checked });
+      this.setTrackingTags('domains', data.site.allowed_domains || []); this.setTrackingTags('internalIps', data.site.internal_ips || []);
       document.getElementById('trackingRotateKey').checked = false; document.getElementById('trackingSnippet').value = data.snippet; document.getElementById('trackingSnippetResult').hidden = false; this.setTrackingFeedback('Tracking settings saved.', 'success');
     } catch (e) { this.setTrackingFeedback(e.message, 'error'); }
+  },
+
+  setupTrackingTagEditor(kind, inputId, buttonId) {
+    const input = document.getElementById(inputId); const button = document.getElementById(buttonId);
+    if (!input || !button) return;
+    const add = () => this.addTrackingTags(kind, input);
+    button.addEventListener('click', add);
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ',') { event.preventDefault(); add(); }
+      if (event.key === 'Backspace' && !input.value && this.trackingTags[kind].length) this.removeTrackingTag(kind, this.trackingTags[kind].length - 1);
+    });
+    input.addEventListener('blur', () => { if (input.value.trim()) add(); });
+  },
+
+  addTrackingTags(kind, input) {
+    const values = input.value.split(/[\s,]+/).map(value => value.trim()).filter(Boolean);
+    if (!values.length) return;
+    const existing = this.trackingTags[kind].map(value => value.toLowerCase());
+    values.forEach(value => { if (!existing.includes(value.toLowerCase())) { this.trackingTags[kind].push(value); existing.push(value.toLowerCase()); } });
+    input.value = ''; this.renderTrackingTags(kind);
+  },
+
+  setTrackingTags(kind, values) {
+    this.trackingTags[kind] = [...new Set((Array.isArray(values) ? values : []).map(value => String(value).trim()).filter(Boolean))];
+    this.renderTrackingTags(kind);
+  },
+
+  removeTrackingTag(kind, index) { this.trackingTags[kind].splice(index, 1); this.renderTrackingTags(kind); },
+
+  renderTrackingTags(kind) {
+    const list = document.getElementById(kind === 'domains' ? 'trackingDomainsList' : 'trackingInternalIpsList');
+    if (!list) return;
+    list.replaceChildren(...this.trackingTags[kind].map((value, index) => {
+      const tag = document.createElement('span'); tag.className = 'tracking-tag';
+      const text = document.createElement('span'); text.className = 'tracking-tag-value'; text.textContent = value;
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'tracking-tag-remove'; remove.setAttribute('aria-label', `Remove ${value}`); remove.title = `Remove ${value}`; remove.textContent = '×';
+      remove.addEventListener('click', () => this.removeTrackingTag(kind, index)); tag.append(text, remove); return tag;
+    }));
   },
 
   setTrackingFeedback(message, type = '') { const el=document.getElementById('trackingFeedback'); if (!el) return; el.textContent=message; el.className='settings-feedback'; if(type==='error')el.classList.add('settings-error'); if(type==='success')el.classList.add('settings-success'); },
