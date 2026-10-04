@@ -158,6 +158,7 @@ const OverviewPage = {
       // A newer request (e.g. another filter click) superseded this one
       if (token !== this._loadToken) return;
       this.currentData = data;
+      this.updateTrackingModeNotice(activeSite);
 
       // Populate sites dropdown if needed
       if (window.App && typeof window.App.updateSiteSelect === "function") {
@@ -182,6 +183,21 @@ const OverviewPage = {
       if (token === this._loadToken && window.App && typeof window.App.setLoading === "function") {
         window.App.setLoading(false);
       }
+    }
+  },
+
+  async updateTrackingModeNotice(siteId) {
+    const notice = document.getElementById("trackingModeNotice");
+    if (!notice) return;
+    if (!siteId) { notice.hidden = true; return; }
+    try {
+      const { snippet } = await Api.getTrackingConfig(siteId);
+      const strictMode = /data-privacy-mode=["']strict["']/.test(snippet || "");
+      notice.hidden = !strictMode;
+    } catch (_) {
+      // The notice is advisory; analytics rendering must not fail if the
+      // protected tracking configuration cannot be read.
+      notice.hidden = true;
     }
   },
 

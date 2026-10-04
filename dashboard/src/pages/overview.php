@@ -7,6 +7,14 @@
     </div>
 
     <div id="overviewDataContainer">
+        <aside class="tracking-mode-notice" id="trackingModeNotice" hidden role="status">
+            <div class="tracking-mode-notice__icon" aria-hidden="true">i</div>
+            <div>
+                <strong>Strict privacy mode is active</strong>
+                <p>Your generated tracking script uses the default strict mode. It records only minimal, privacy-focused analytics. To use persistent cookies or collect additional analytics data, implement a consent banner before enabling those options.</p>
+            </div>
+        </aside>
+
         <!-- Active filters (pages, referrers, environment, countries) -->
         <div class="active-filters-bar" id="overviewFilterBar" hidden></div>
 
