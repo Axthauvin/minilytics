@@ -108,6 +108,8 @@ Add a single `<script>` tag inside your HTML `<head>`:
 
 Add `data-debug="true"` to the script while integrating Minilytics. The browser console then confirms accepted events and reports configuration errors, network/CORS failures, and rejected tracking-endpoint responses (such as an invalid site key or unauthorized domain). Remove the attribute once the integration is verified.
 
+If the console reports that tracking is opted out with `reason: "local_storage"`, run `minilytics.optIn()` in the console and reload the page to re-enable it for that browser profile. `do_not_track` and `global_privacy_control` are browser privacy preferences; Minilytics intentionally will not override them.
+
 ### How to track events on your website:
 
 **Using the JavaScript API**:

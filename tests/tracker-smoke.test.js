@@ -137,3 +137,19 @@ test('tracker reports a rejected endpoint response in the browser console', asyn
     endpoint: 'http://localhost:8080/track.php',
   });
 });
+
+test('tracker explains the local opt-out and does not send an event', () => {
+  const { beacons, context } = loadTracker({ attributes: { 'data-debug': 'true' } });
+  context.localStorage.setItem('minilytics_opt_out', 'true');
+  const logs = [];
+  context.console.debug = (...args) => logs.push(args);
+
+  context.minilytics.track('button_click');
+  assert.equal(beacons.length, 1, 'the custom event must not be sent');
+  assert.equal(logs[0][0], '[Minilytics] Event was not sent because tracking is opted out.');
+  assert.deepEqual(JSON.parse(JSON.stringify(logs[0][1])), {
+    event: 'button_click',
+    reason: 'local_storage',
+    resolution: 'For this browser profile, run minilytics.optIn() and reload the page.',
+  });
+});
