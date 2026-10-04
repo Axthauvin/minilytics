@@ -88,7 +88,14 @@ const App = {
     const sidebar = document.getElementById("sidebar");
     const collapseBtn = document.getElementById("btnSidebarCollapse");
     const headerToggleBtn = document.getElementById("btnHeaderSidebarToggle");
+    const mobileBackdrop = document.getElementById("mobileNavBackdrop");
     if (!sidebar) return;
+
+    const isMobile = () => window.matchMedia("(max-width: 767px)").matches;
+    const closeMobileNavigation = () => {
+      document.body.classList.remove("sidebar-mobile-open");
+      if (headerToggleBtn) headerToggleBtn.setAttribute("aria-expanded", "false");
+    };
 
     // Check stored state on initialization
     let isCollapsed = false;
@@ -103,11 +110,20 @@ const App = {
     } else {
       document.documentElement.classList.remove("sidebar-preload-collapsed");
     }
+    if (headerToggleBtn) {
+      headerToggleBtn.setAttribute("aria-expanded", String(!isMobile() && !isCollapsed));
+    }
 
     const toggleSidebar = () => {
+      if (isMobile()) {
+        const isOpen = document.body.classList.toggle("sidebar-mobile-open");
+        if (headerToggleBtn) headerToggleBtn.setAttribute("aria-expanded", String(isOpen));
+        return;
+      }
       const willBeCollapsed = !sidebar.classList.contains("collapsed");
       sidebar.classList.toggle("collapsed", willBeCollapsed);
       document.body.classList.toggle("sidebar-is-collapsed", willBeCollapsed);
+      if (headerToggleBtn) headerToggleBtn.setAttribute("aria-expanded", String(!willBeCollapsed));
       if (willBeCollapsed) {
         document.documentElement.classList.add("sidebar-preload-collapsed");
       } else {
@@ -142,6 +158,19 @@ const App = {
         toggleSidebar();
       });
     }
+
+    if (mobileBackdrop) mobileBackdrop.addEventListener("click", closeMobileNavigation);
+    document.querySelectorAll(".sidebar a").forEach((link) => {
+      link.addEventListener("click", () => {
+        if (isMobile()) closeMobileNavigation();
+      });
+    });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeMobileNavigation();
+    });
+    window.addEventListener("resize", () => {
+      if (!isMobile()) closeMobileNavigation();
+    });
 
     // Keyboard shortcut: Ctrl+B or Cmd+B
     window.addEventListener("keydown", (e) => {

@@ -48,7 +48,7 @@
         </div>
         <div class="modal-body">
             <!-- Metadata summary row -->
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; background: #f8fafc; padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-card);">
+            <div class="modal-summary-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; background: #f8fafc; padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-card);">
                 <div>
                     <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Duration</div>
                     <div id="inspectDuration" style="font-size: 15px; font-weight: 700; color: var(--text-primary);">-</div>
@@ -350,7 +350,7 @@
                             <strong>Detected from your export</strong>
                             <span>We prefilled these website details from the analytics data. You can change any field before importing.</span>
                         </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div class="import-site-fields" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                             <div>
                                 <label style="display: block; font-size: 12.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Website Name</label>
                                 <input type="text" id="importNewSiteName" placeholder="e.g. Example" class="search-input" style="padding-left: 10px;">

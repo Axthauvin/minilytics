@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "Weak password",
         "Fair password",
         "Good password",
-        "Almost secure — add the missing requirement",
+        "Almost secure, add the missing requirement",
         "Secure password",
       ];
       meter.dataset.strength = password ? String(score) : "0";

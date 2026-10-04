@@ -398,11 +398,27 @@ const Icons = {
       slug = "duckduckgo";
     } else if (b.includes("yandex")) {
       slug = "yandex";
+    } else if (
+      b.includes("arc") ||
+      b.includes("whale") ||
+      b.includes("miui") ||
+      b.includes("qq browser") ||
+      b.includes("android browser")
+    ) {
+      // These browsers use Chromium and do not all publish a stable icon in
+      // browser-icon, so show the recognisable Chromium family mark.
+      slug = "chrome";
     } else if (b.includes("chromium")) {
       slug = "chromium";
     } else if (b.includes("chrome") || b.includes("crios")) {
       slug = "chrome";
     } else if (b.includes("firefox") || b.includes("fxios")) {
+      slug = "firefox";
+    } else if (
+      b.includes("waterfox") ||
+      b.includes("palemoon") ||
+      b.includes("seamonkey")
+    ) {
       slug = "firefox";
     } else if (b.includes("safari")) {
       slug = "safari";
@@ -448,7 +464,11 @@ const Icons = {
     const o = (os || "").toLowerCase().trim();
     let slug = null;
 
-    if (o.includes("android")) {
+    if (o.includes("chrome os") || o.includes("chromeos") || o.includes("cros")) {
+      slug = "chromeos";
+    } else if (o.includes("windows phone")) {
+      slug = "windows";
+    } else if (o.includes("android")) {
       slug = "android";
     } else if (
       o.includes("ios") ||
@@ -467,8 +487,12 @@ const Icons = {
       slug = "apple";
     } else if (o.includes("windows") || o.includes("win")) {
       slug = "windows";
-    } else if (o.includes("chrome")) {
-      slug = "chromeos";
+    } else if (o.includes("harmony")) {
+      slug = "huawei";
+    } else if (o.includes("fire os")) {
+      slug = "amazon";
+    } else if (o.includes("kaios")) {
+      slug = "kaios";
     } else if (o.includes("kali")) {
       slug = "kalilinux";
     } else if (o.includes("ubuntu")) {

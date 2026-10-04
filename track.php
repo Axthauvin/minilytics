@@ -15,6 +15,25 @@ function failTracking(string $message, int $status = 400): never { http_response
 function trackingHost(string $value): string { return Database::normalizeHost((string)(parse_url($value, PHP_URL_HOST) ?: $value)); }
 function trackingIp(): string { return trim(explode(',', $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'] ?? '')[0]); }
 function botReason(string $ua): ?string { return $ua === '' ? 'missing_user_agent' : (preg_match('/bot|crawler|spider|slurp|facebookexternalhit|preview|headless|lighthouse|pingdom|uptimerobot|curl|wget/i', $ua) ? 'known_bot_user_agent' : null); }
+function browserFromUserAgent(string $ua): string {
+    if (preg_match('/edg(?:e|a|ios)?\//i', $ua)) return 'Microsoft Edge';
+    if (preg_match('/opr\//i', $ua) || stripos($ua, 'opera') !== false) return 'Opera';
+    if (stripos($ua, 'samsungbrowser') !== false) return 'Samsung Internet';
+    if (stripos($ua, 'firefox') !== false || stripos($ua, 'fxios') !== false) return 'Firefox';
+    if (stripos($ua, 'crios') !== false) return 'Chrome';
+    if (stripos($ua, 'chrome') !== false || stripos($ua, 'chromium') !== false) return 'Chrome';
+    if (stripos($ua, 'safari') !== false) return 'Safari';
+    return 'Other';
+}
+function osFromUserAgent(string $ua): string {
+    if (stripos($ua, 'cros') !== false) return 'Chrome OS';
+    if (stripos($ua, 'windows') !== false) return 'Windows';
+    if (stripos($ua, 'android') !== false) return 'Android';
+    if (preg_match('/iphone|ipad|ipod/i', $ua)) return 'iOS';
+    if (stripos($ua, 'mac os') !== false || stripos($ua, 'macintosh') !== false) return 'macOS';
+    if (stripos($ua, 'linux') !== false) return 'Linux';
+    return 'Other';
+}
 function cleanValue(mixed $value, int $depth = 0): mixed {
     if ($depth > 3) return null;
     if (is_string($value)) return substr($value, 0, 500);
@@ -57,9 +76,12 @@ if (in_array($ip, (array)($site['internal_ips'] ?? []), true)) { recordIgnored($
 $name = preg_replace('/[^a-zA-Z0-9_\-:.]/', '_', substr((string)$payload['name'], 0, 100));
 if ($name === '') failTracking('Invalid event name.');
 $data = cleanValue($payload['data']);
-unset($data['url'], $data['search'], $data['hash'], $data['screen'], $data['viewport']);
+unset($data['url'], $data['search'], $data['hash']);
 if (isset($data['path'])) $data['path'] = '/' . ltrim((string)$data['path'], '/');
 if (isset($data['referrer'])) $data['referrer'] = trackingHost((string)$data['referrer']);
+if (empty($data['browser'])) $data['browser'] = browserFromUserAgent($ua);
+if (empty($data['os'])) $data['os'] = osFromUserAgent($ua);
+if (empty($data['device'])) $data['device'] = preg_match('/mobile|iphone|ipod|android.+mobile/i', $ua) ? 'Mobile' : (preg_match('/ipad|tablet|android/i', $ua) ? 'Tablet' : 'Desktop');
 $session = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)($payload['session_id'] ?? '')) ?: bin2hex(random_bytes(16));
 $visitor = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)($payload['visitor_id'] ?? '')) ?: $session;
 $action = ['site_id' => $site['id'], 'name' => $name, 'data' => $data];

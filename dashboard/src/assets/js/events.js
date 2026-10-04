@@ -199,6 +199,8 @@ const EventsPage = {
       "language",
       "country",
       "country_code",
+      "region",
+      "city",
       "hostname",
       "site_id",
       "session_id",
@@ -321,7 +323,7 @@ const EventsPage = {
                     </div>
                 </div>
                 <div class="journey-step-content" style="padding-bottom:0; display:flex; align-items:center; min-height:28px;">
-                    <span class="journey-end-text">${events.length} event${events.length === 1 ? "" : "s"} — page ${this.filters.page}</span>
+                    <span class="journey-end-text">${events.length} event${events.length === 1 ? "" : "s"}, page ${this.filters.page}</span>
                 </div>
             </div>`;
 

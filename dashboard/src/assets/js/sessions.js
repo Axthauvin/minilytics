@@ -276,9 +276,10 @@ const SessionsPage = {
         const avatarUrl =
           s.avatar_url || Icons.getDiceBearGlyphUrl(s.session_id);
         const fallbackSvg = Icons.getIdenticonSvgDataUri(s.session_id, 40);
-        const shortId = (s.session_id || "").substring(0, 8);
+        const sessionId = s.session_id || "Unknown";
         const country = s.country || "Unknown";
         const countryCode = s.country_code || "UN";
+        const city = s.city || "";
         const os = s.os || "Unknown OS";
         const browser = s.browser || "Unknown Browser";
         const timeAgo = s.time_ago || s.started_at;
@@ -296,10 +297,10 @@ const SessionsPage = {
                   </div>
                   <div class="session-card-info">
                       <div class="session-card-title-row">
-                          <span class="session-visitor-name">Session #${shortId}</span>
+                          <span class="session-visitor-name session-id-full" title="${this.escapeHtml(sessionId)}">Session ${this.escapeHtml(sessionId)}</span>
                           <span class="session-badge-country">
                               ${Icons.getCountryFlag(countryCode, { size: 14 })}
-                              <span>${this.escapeHtml(country)}</span>
+                              <span>${this.escapeHtml(city ? `${country}, ${city}` : country)}</span>
                           </span>
                       </div>
                       <div class="session-card-sub-row">
@@ -372,10 +373,6 @@ const SessionsPage = {
     if (!session) return;
 
     const sId = session.session_id || "";
-    const shortId =
-      sId.length > 18
-        ? `${sId.substring(0, 8)}...${sId.substring(sId.length - 6)}`
-        : sId;
     const countryCode = session.country_code || "UN";
 
     // Header and metadata
@@ -384,7 +381,7 @@ const SessionsPage = {
       if (el) el.textContent = val;
     };
 
-    setTxt("detailSessionId", shortId);
+    setTxt("detailSessionId", sId || "Unknown");
 
     const avatarUrl = session.avatar_url || Icons.getDiceBearGlyphUrl(sId);
     const fallbackSvg = Icons.getIdenticonSvgDataUri(sId, 64);
@@ -402,7 +399,10 @@ const SessionsPage = {
       flagEl.innerHTML = Icons.getCountryFlag(countryCode, { size: 16 });
     }
 
-    setTxt("detailCountryName", session.country || "Unknown");
+    const locationLabel = session.city
+      ? `${session.country || "Unknown"}, ${session.city}`
+      : session.country || "Unknown";
+    setTxt("detailCountryName", locationLabel);
 
     const techEl = document.getElementById("detailTechRow");
     if (techEl) {
@@ -445,6 +445,8 @@ const SessionsPage = {
       "language",
       "country",
       "country_code",
+      "region",
+      "city",
       "hostname",
       "site_id",
       "session_id",

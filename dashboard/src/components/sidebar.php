@@ -2,7 +2,7 @@
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
         <div class="sidebar-header-row">
-            <a href="#websites" class="sidebar-brand-link" id="sidebarBrandLink" title="Minilytics — All Websites">
+            <a href="#websites" class="sidebar-brand-link" id="sidebarBrandLink" title="Minilytics | All Websites">
                 <img src="/dashboard/src/assets/logo.svg" class="sidebar-brand-icon" width="28" height="28" alt="Minilytics Logo">
                 <span class="sidebar-brand-text">Minilytics</span>
             </a>

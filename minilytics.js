@@ -22,7 +22,12 @@
   // Strict mode deliberately has no device fingerprint or persistent identifier.
   function getVisitorId() { if (!visitorId) visitorId = sessionId(); return visitorId; }
   function campaign() { var p = new URLSearchParams(location.search), r = {}; ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(function (k) { if (p.has(k)) r[k] = p.get(k).slice(0, 200); }); return r; }
-  function context() { return Object.assign({ path: location.pathname || '/', title: document.title.slice(0, 300), hostname: location.hostname, referrer: document.referrer ? new URL(document.referrer).hostname : null, language: navigator.language || null }, campaign()); }
+  function context() {
+    var screenSize = window.screen && screen.width && screen.height ? screen.width + '×' + screen.height : null;
+    var viewport = window.innerWidth && window.innerHeight ? window.innerWidth + '×' + window.innerHeight : null;
+    var device = window.matchMedia && window.matchMedia('(max-width: 767px)').matches ? 'Mobile' : window.matchMedia && window.matchMedia('(max-width: 1024px)').matches ? 'Tablet' : 'Desktop';
+    return Object.assign({ path: location.pathname || '/', title: document.title.slice(0, 300), hostname: location.hostname, referrer: document.referrer ? new URL(document.referrer).hostname : null, language: navigator.language || null, screen: screenSize, viewport: viewport, device: device }, campaign());
+  }
   function sanitise(data) { var out = {}; Object.keys(data || {}).forEach(function (k) { if (!/password|token|secret|email|phone|address|card/i.test(k)) out[k] = data[k]; }); return out; }
   function send(name, data) {
     if (!siteId || !siteKey || optedOut()) return;

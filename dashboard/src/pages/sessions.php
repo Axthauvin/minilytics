@@ -90,7 +90,7 @@
             <!-- Left Column: Page Journey -->
             <div class="session-journey-card">
                 <div class="journey-header">
-                    <h3 class="journey-title">PAGE JOURNEY</h3>
+                    <h3 class="journey-title">Page journey</h3>
                 </div>
                 <div class="journey-steps-container" id="journeyStepsList">
                     <!-- Populated dynamically by SessionsPage.renderDetailView -->
@@ -122,7 +122,7 @@
                 </div>
 
                 <div class="session-meta-section">
-                    <h4 class="meta-section-title">SESSION INFORMATION</h4>
+                    <h4 class="meta-section-title">Session information</h4>
                     <div class="meta-field-row">
                         <span class="meta-field-label">Session duration</span>
                         <span class="meta-field-val" id="detailDuration">0s</span>
@@ -138,7 +138,7 @@
                 </div>
 
                 <div class="session-meta-section">
-                    <h4 class="meta-section-title">DEVICE & ENVIRONMENT</h4>
+                    <h4 class="meta-section-title">Device and environment</h4>
                     <div class="meta-field-row">
                         <span class="meta-field-label">Device type</span>
                         <span class="meta-field-val" id="detailDevice">Desktop</span>

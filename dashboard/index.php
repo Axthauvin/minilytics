@@ -18,7 +18,7 @@ if ($path === '/dashboard') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/dashboard/">
-    <title>Minilytics — Privacy-Friendly Web Analytics</title>
+    <title>Minilytics | Privacy-Friendly Web Analytics</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -49,6 +49,7 @@ if ($path === '/dashboard') {
     <div class="app-container">
         <!-- Left Sidebar Navigation -->
         <?php include __DIR__ . '/src/components/sidebar.php'; ?>
+        <button type="button" class="mobile-nav-backdrop" id="mobileNavBackdrop" aria-label="Close navigation" tabindex="-1"></button>
 
         <!-- Main Content Area -->
         <div class="main-wrapper">

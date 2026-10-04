@@ -58,6 +58,7 @@ try {
         $device = 'Desktop';
         $country = 'Unknown';
         $countryCode = 'UN';
+        $city = '';
 
         while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
             $act = json_decode($row['action'], true) ?: [];
@@ -80,6 +81,8 @@ try {
                     $country = $data['country'];
                 if (!empty($data['country_code']))
                     $countryCode = $data['country_code'];
+                if (!empty($data['city']))
+                    $city = $data['city'];
             }
             $lastTime = $ts;
 
@@ -122,6 +125,7 @@ try {
                 'device' => $device,
                 'country' => $country,
                 'country_code' => $countryCode,
+                'city' => $city,
                 'avatar_url' => "https://api.dicebear.com/10.x/glyphs/svg?seed=" . rawurlencode($specificSessionId),
                 'events' => $events
             ]
@@ -247,6 +251,7 @@ try {
         $device = 'Desktop';
         $country = 'Unknown';
         $countryCode = 'UN';
+        $city = '';
 
         while ($fr = $flowRes->fetchArray(SQLITE3_ASSOC)) {
             $act = json_decode($fr['action'], true) ?: [];
@@ -268,6 +273,8 @@ try {
                     $country = $data['country'];
                 if (!empty($data['country_code']))
                     $countryCode = $data['country_code'];
+                if (!empty($data['city']))
+                    $city = $data['city'];
             }
 
             if ($name === 'pageview') {
@@ -306,6 +313,7 @@ try {
             'device' => $device,
             'country' => $country,
             'country_code' => strtoupper($countryCode),
+            'city' => $city,
             'avatar_url' => "https://api.dicebear.com/10.x/glyphs/svg?seed=" . rawurlencode($sId),
             'flow' => $flow
         ];
