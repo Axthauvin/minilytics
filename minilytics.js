@@ -5,9 +5,13 @@
   var siteKey = script && script.getAttribute('data-site-key');
   var endpoint = (script && script.getAttribute('data-endpoint')) || (script && script.src ? new URL(script.src, location.href).origin + '/track.php' : '/track.php');
   var autoTrack = !script || script.getAttribute('data-auto-track') !== 'false';
+  var debug = !!script && script.getAttribute('data-debug') === 'true';
   var SESSION_KEY = 'minilytics_session_v2_' + siteId;
   var LAST_KEY = SESSION_KEY + '_last';
-  var visitorId = null, lastPath = null, engaged = false;
+  var visitorId = null, lastPath = null, engaged = false, configurationReported = false;
+
+  function reportError(message, details) { if (window.console && window.console.error) window.console.error('[Minilytics] ' + message, details || ''); }
+  function reportDebug(message, details) { if (debug && window.console && window.console.debug) window.console.debug('[Minilytics] ' + message, details || ''); }
 
   function optedOut() { try { return localStorage.getItem('minilytics_opt_out') === 'true' || navigator.globalPrivacyControl === true || navigator.doNotTrack === '1'; } catch (_) { return false; } }
   function id() { return (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID().replace(/-/g, '') : Math.random().toString(36).slice(2) + Date.now().toString(36); }
@@ -30,10 +34,24 @@
   }
   function sanitise(data) { var out = {}; Object.keys(data || {}).forEach(function (k) { if (!/password|token|secret|email|phone|address|card/i.test(k)) out[k] = data[k]; }); return out; }
   function send(name, data) {
-    if (!siteId || !siteKey || optedOut()) return;
+    if (!siteId || !siteKey) {
+      if (!configurationReported) { configurationReported = true; reportError('Tracking is not configured: both data-site-id and data-site-key are required.', { endpoint: endpoint, hasSiteId: !!siteId, hasSiteKey: !!siteKey }); }
+      return;
+    }
+    if (optedOut()) { reportDebug('Event was not sent because tracking is opted out.', { event: name }); return; }
     var payload = JSON.stringify({ site_id: siteId, site_key: siteKey, session_id: sessionId(), visitor_id: getVisitorId(), name: name, data: Object.assign(context(), sanitise(data)) });
-    if (navigator.sendBeacon) navigator.sendBeacon(endpoint, new Blob([payload], {type: 'application/json'}));
-    else fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: payload, keepalive: true }).catch(function () {});
+    var metadata = { event: name, endpoint: endpoint };
+    if (typeof fetch === 'function') {
+      try {
+        fetch(endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: payload, keepalive: true }).then(function (response) {
+          if (response.ok) { reportDebug('Event accepted by the tracking endpoint.', metadata); return; }
+          response.text().then(function (body) { reportError('Tracking endpoint rejected an event.', Object.assign({ status: response.status, statusText: response.statusText, response: body.slice(0, 500) }, metadata)); }).catch(function () { reportError('Tracking endpoint rejected an event.', Object.assign({ status: response.status, statusText: response.statusText }, metadata)); });
+        }).catch(function (error) { reportError('Tracking request failed. Check the endpoint URL, CORS policy, and network connection.', Object.assign({ error: error && error.message ? error.message : String(error) }, metadata)); });
+      } catch (error) { reportError('Tracking request could not be started.', Object.assign({ error: error && error.message ? error.message : String(error) }, metadata)); }
+    } else if (navigator.sendBeacon) {
+      if (navigator.sendBeacon(endpoint, new Blob([payload], {type: 'application/json'}))) reportDebug('Event queued with sendBeacon; the server response cannot be inspected by this browser API.', metadata);
+      else reportError('Tracking request could not be queued by sendBeacon.', metadata);
+    } else reportError('Tracking is unavailable: this browser supports neither fetch nor sendBeacon.', metadata);
   }
   function pageview(data) { var path = location.pathname + location.search; if (path !== lastPath) { send('pageview', data); lastPath = path; } }
   window.minilytics = { track: function (name, data) { name === 'pageview' || !name ? pageview(data) : send(name, data); }, pageview: pageview, optOut: function () { try { localStorage.setItem('minilytics_opt_out', 'true'); } catch (_) {} }, optIn: function () { try { localStorage.removeItem('minilytics_opt_out'); } catch (_) {} }, sessionId: sessionId, siteId: siteId };

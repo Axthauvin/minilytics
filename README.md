@@ -11,6 +11,16 @@ php -S localhost:8080
 - **Dashboard**: Open `http://localhost:8080/dashboard/` in your browser.
 - **Demo Website**: Open `http://localhost:8080/demo.html` to trigger tracking events.
 
+### Verify the tracker
+
+Run the smoke test after changing the tracker or the demo snippet:
+
+```bash
+node --test tests/tracker-smoke.test.js
+```
+
+It verifies that the demo loads the tracker from the same origin and that a pageview and a custom event are sent to the expected `track.php` endpoint.
+
 ## Storage Architecture (Multi-Tenant SQLite)
 
 All analytics data is stored inside a `data/` folder at the root. Each website has its **own isolated SQLite database**:
@@ -93,6 +103,10 @@ Add a single `<script>` tag inside your HTML `<head>`:
   data-site-id="my_site"
 ></script>
 ```
+
+### Diagnose tracking problems
+
+Add `data-debug="true"` to the script while integrating Minilytics. The browser console then confirms accepted events and reports configuration errors, network/CORS failures, and rejected tracking-endpoint responses (such as an invalid site key or unauthorized domain). Remove the attribute once the integration is verified.
 
 ### How to track events on your website:
 
