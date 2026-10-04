@@ -10,6 +10,7 @@ const tracker = fs.readFileSync(path.join(root, 'minilytics.js'), 'utf8');
 function storage() {
   const values = new Map();
   return {
+    values,
     getItem: (key) => values.get(key) ?? null,
     setItem: (key, value) => values.set(key, String(value)),
     removeItem: (key) => values.delete(key),
@@ -55,6 +56,7 @@ function loadTracker(options = {}) {
         beacons.push({ endpoint, body });
         return true;
       },
+      ...options.navigator,
     },
     console: { error: (...args) => errors.push(args), debug() {} },
     screen: { width: 1440, height: 900 },
@@ -94,9 +96,8 @@ test('tracker auto-records a pageview and custom events on the script origin', a
       hostname: 'localhost',
       referrer: null,
       language: 'en-US',
-      screen: '1440×900',
-      viewport: '1280×720',
       device: 'Desktop',
+      tracking_mode: 'strict',
     },
   });
 
@@ -152,4 +153,29 @@ test('tracker explains the local opt-out and does not send an event', () => {
     reason: 'local_storage',
     resolution: 'For this browser profile, run minilytics.optIn() and reload the page.',
   });
+});
+
+test('strict mode sends a page-scoped event despite GPC without using web storage', async () => {
+  const { beacons, context } = loadTracker({ navigator: { globalPrivacyControl: true } });
+
+  assert.equal(beacons.length, 1);
+  const event = await payload(beacons[0].body);
+  assert.equal(event.data.tracking_mode, 'strict');
+  assert.equal(event.session_id, event.visitor_id);
+  assert.equal(context.sessionStorage.values.size, 0);
+  assert.equal(context.localStorage.values.size, 0);
+});
+
+test('enriched mode waits for consent and remains blocked by GPC', () => {
+  const pending = loadTracker({ attributes: { 'data-privacy-mode': 'enriched' } });
+  assert.equal(pending.beacons.length, 0);
+  assert.equal(pending.context.minilytics.consent(), true);
+  assert.equal(pending.beacons.length, 1);
+
+  const protectedBrowser = loadTracker({
+    attributes: { 'data-privacy-mode': 'enriched' },
+    navigator: { globalPrivacyControl: true },
+  });
+  assert.equal(protectedBrowser.context.minilytics.consent(), false);
+  assert.equal(protectedBrowser.beacons.length, 0);
 });

@@ -11,7 +11,7 @@
             <div class="tracking-mode-notice__icon" aria-hidden="true">i</div>
             <div>
                 <strong>Strict privacy mode is active</strong>
-                <p>Your generated tracking script uses the default strict mode. It records only minimal, privacy-focused analytics. To use persistent cookies or collect additional analytics data, implement a consent banner before enabling those options.</p>
+                <p>Your generated tracking script uses the default strict mode. It records only minimal, privacy-focused analytics without client-side storage. To enable optional enriched analytics, implement a consent banner before switching modes.</p>
             </div>
         </aside>
 

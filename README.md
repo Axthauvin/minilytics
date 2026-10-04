@@ -108,7 +108,30 @@ Add a single `<script>` tag inside your HTML `<head>`:
 
 Add `data-debug="true"` to the script while integrating Minilytics. The browser console then confirms accepted events and reports configuration errors, network/CORS failures, and rejected tracking-endpoint responses (such as an invalid site key or unauthorized domain). Remove the attribute once the integration is verified.
 
-If the console reports that tracking is opted out with `reason: "local_storage"`, run `minilytics.optIn()` in the console and reload the page to re-enable it for that browser profile. `do_not_track` and `global_privacy_control` are browser privacy preferences; Minilytics intentionally will not override them.
+If the console reports that tracking is opted out with `reason: "local_storage"`, run `minilytics.optIn()` in the console and reload the page to re-enable it for that browser profile.
+
+### Privacy modes
+
+`strict` is the default mode. It writes no cookies, `localStorage`, or `sessionStorage`: events share a random identifier only while the current page is open. It records minimal first-party analytics and custom events, including when GPC or Do Not Track is enabled. Those browser preferences prevent the optional enriched mode instead.
+
+`enriched` is opt-in. It does not send events until the website's cookie banner calls `minilytics.consent()` after the visitor accepts analytics cookies. The banner itself owns the consent cookie; MiniLytics does not create one. Call `minilytics.withdrawConsent()` when consent is withdrawn. Enriched mode remains disabled when the browser sends GPC or Do Not Track.
+
+```html
+<script
+  defer
+  src="https://analytics.example.com/minilytics.js"
+  data-site-id="my_site"
+  data-site-key="your-private-key"
+  data-privacy-mode="enriched"
+></script>
+<script>
+  // In the "accept analytics cookies" callback of your consent banner:
+  minilytics.consent();
+
+  // In its withdrawal callback:
+  minilytics.withdrawConsent();
+</script>
+```
 
 ### How to track events on your website:
 
@@ -131,7 +154,7 @@ minilytics.track("button_click", { buttonId: "signup", plan: "pro" });
 
 Each website now has a private `data-site-key` and an allowlist of domains. Copy the generated snippet from the Website manager; do not hand-write a snippet. In **Settings → Tracking & data protection**, administrators can set allowed domains, internal IP addresses to exclude, a retention period, and rotate the key.
 
-The default tracker is strict: it does not fingerprint devices, removes URL query strings/fragments, respects Global Privacy Control / Do Not Track, and provides `minilytics.optOut()` / `minilytics.optIn()`. Bot and internal requests are rejected before metrics are stored and remain visible in Acquisition.
+The default tracker is strict: it does not fingerprint devices, removes URL query strings/fragments, writes no client-side storage, and provides `minilytics.optOut()` / `minilytics.optIn()`. It keeps analytics minimal when a browser sends Global Privacy Control / Do Not Track; those signals block the optional enriched mode. Bot and internal requests are rejected before metrics are stored and remain visible in Acquisition.
 
 Retention is applied whenever a site's database is opened. To save SQLite snapshots from a scheduler:
 
