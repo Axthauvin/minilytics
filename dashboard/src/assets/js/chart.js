@@ -18,11 +18,18 @@ class MinilyticsChart {
         this.ctx = this.canvas.getContext('2d');
         this.data = [];
         this.hoveredIndex = -1;
+        this.lockedIndex = null;
         this.chartType = options.chartType === 'bar' ? 'bar' : 'line';
         this.onPointClick = typeof options.onPointClick === 'function'
             ? options.onPointClick
             : null;
+        this.onTooltipMetricClick = typeof options.onTooltipMetricClick === 'function'
+            ? options.onTooltipMetricClick
+            : null;
         this.sortTooltipMetrics = options.sortTooltipMetrics === true;
+        this.hideZeroTooltipMetrics = options.hideZeroTooltipMetrics === true;
+        this.lockTooltipOnClick = options.lockTooltipOnClick === true;
+        this.highlightAnomalies = options.highlightAnomalies === true;
 
         const defaultSeriesConfig = {
             pageviews: {
@@ -69,6 +76,12 @@ class MinilyticsChart {
 
         this.padding = { top: 25, right: 20, bottom: 32, left: 36 };
 
+        if (this.tooltip && this.onTooltipMetricClick) {
+            this.tooltip.classList.add('is-interactive');
+            this.tooltip.addEventListener('mouseenter', () => clearTimeout(this.tooltipHideTimer));
+            this.tooltip.addEventListener('mouseleave', () => this.hideTooltip());
+        }
+
         this.initEvents();
         window.addEventListener('resize', () => this.resize());
     }
@@ -79,6 +92,7 @@ class MinilyticsChart {
             this.activeSeries = new Set(Array.isArray(activeSeries) ? activeSeries : [activeSeries]);
         }
         this.hoveredIndex = -1;
+        this.lockedIndex = null;
         if (this.tooltip) {
             this.tooltip.classList.remove('visible');
         }
@@ -157,25 +171,67 @@ class MinilyticsChart {
         });
 
         this.canvas.addEventListener('click', (e) => {
-            if (!this.onPointClick || !this.data?.length) return;
+            if (!this.data?.length) return;
             const rect = this.canvas.getBoundingClientRect();
             const index = this.getIndexAtX(e.clientX - rect.left);
             const item = this.data[index];
-            if (item) this.onPointClick(item, index);
+            if (!item) return;
+            if (this.lockTooltipOnClick) this.lockTooltip(index);
+            else if (this.onPointClick) this.onPointClick(item, index);
         });
 
         this.canvas.addEventListener('mouseleave', () => {
-            this.hoveredIndex = -1;
-            if (this.tooltip) {
-                this.tooltip.classList.remove('visible');
+            if (this.lockedIndex !== null) return;
+            if (this.onTooltipMetricClick) {
+                clearTimeout(this.tooltipHideTimer);
+                this.tooltipHideTimer = setTimeout(() => this.hideTooltip(), 120);
+            } else {
+                this.hideTooltip();
             }
-            this.draw();
         });
 
     }
 
+    hideTooltip() {
+        if (this.lockedIndex !== null) return;
+        this.hoveredIndex = -1;
+        if (this.tooltip) this.tooltip.classList.remove('visible');
+        this.draw();
+    }
+
+    lockTooltip(index) {
+        if (!this.data[index]) return;
+        clearTimeout(this.tooltipHideTimer);
+        this.lockedIndex = index;
+        this.hoveredIndex = index;
+        this.draw();
+        this.updateTooltip(index);
+    }
+
+    unlockTooltip() {
+        this.lockedIndex = null;
+        this.hoveredIndex = -1;
+        if (this.tooltip) this.tooltip.classList.remove('visible');
+        this.draw();
+    }
+
+    isAnomalousPoint(seriesKey, value, index) {
+        if (!this.highlightAnomalies || value < 5) return false;
+        // Compare against the preceding week, including zero days. This makes
+        // a jump such as 0 → 80 visible even for a frequently used event.
+        const values = this.data.slice(Math.max(0, index - 7), index)
+            .map((point) => Number(point[seriesKey]) || 0)
+            .sort((left, right) => left - right);
+        if (values.length < 4) return false;
+        const middle = Math.floor(values.length / 2);
+        const median = values.length % 2 ? values[middle] : (values[middle - 1] + values[middle]) / 2;
+        if (median === 0) return value >= 5;
+        return value >= median * 3;
+    }
+
     handleHover(mouseX, mouseY) {
         if (!this.data || this.data.length === 0) return;
+        if (this.lockedIndex !== null) return;
 
         const index = this.getIndexAtX(mouseX);
 
@@ -207,23 +263,40 @@ class MinilyticsChart {
             });
         }
         
-        const metricsHtml = seriesKeys.map(key => {
+        const visibleSeriesKeys = this.hideZeroTooltipMetrics
+            ? seriesKeys.filter(key => (Number(item[key]) || 0) > 0)
+            : seriesKeys;
+        const metricsHtml = visibleSeriesKeys.map(key => {
             const cfg = this.seriesConfig[key];
             const val = Number(item[key]) || 0;
+            const tag = this.onTooltipMetricClick ? 'button' : 'div';
+            const isAnomaly = this.isAnomalousPoint(key, val, index);
             return `
-                <div class="chart-tooltip-metric">
+                <${tag} class="chart-tooltip-metric${this.onTooltipMetricClick ? ' is-actionable' : ''}" ${this.onTooltipMetricClick ? `data-tooltip-series="${key}" type="button"` : ''}>
                     <span class="chart-tooltip-dot" style="background: ${cfg.color};"></span>
                     <span class="chart-tooltip-name">${cfg.label}</span>
+                    ${isAnomaly ? '<span class="chart-tooltip-anomaly" title="Unusual peak: at least 3× the median for this event">!</span>' : ''}
                     <span class="chart-tooltip-val">${val.toLocaleString()}</span>
-                </div>
+                </${tag}>
             `;
         }).join('');
+        const isLocked = this.lockedIndex === index;
 
         this.tooltip.innerHTML = `
-            <div class="chart-tooltip-date">${dateStr}</div>
+            <div class="chart-tooltip-date">${dateStr}${isLocked ? '<span class="chart-tooltip-pinned">Pinned</span>' : ''}</div>
             <div class="chart-tooltip-metrics-list">${metricsHtml}</div>
-            ${this.onPointClick ? '<div class="chart-tooltip-hint">Click to view sessions</div>' : ''}
+            ${isLocked && this.onPointClick ? '<div class="chart-tooltip-actions"><button type="button" data-tooltip-action="sessions">View sessions for this day</button><button type="button" class="chart-tooltip-unpin" data-tooltip-action="unpin" aria-label="Unpin tooltip">×</button></div>' : (this.onTooltipMetricClick ? '<div class="chart-tooltip-hint">Click the graph to pin this list, then select an event</div>' : (this.onPointClick ? '<div class="chart-tooltip-hint">Click to view sessions</div>' : ''))}
         `;
+        if (this.onTooltipMetricClick) {
+            this.tooltip.querySelectorAll('[data-tooltip-series]').forEach((button) => {
+                button.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    this.onTooltipMetricClick(item, button.dataset.tooltipSeries, index);
+                });
+            });
+        }
+        this.tooltip.querySelector('[data-tooltip-action="sessions"]')?.addEventListener('click', () => this.onPointClick(item, index));
+        this.tooltip.querySelector('[data-tooltip-action="unpin"]')?.addEventListener('click', () => this.unlockTooltip());
 
         const plotY = this.padding.top;
         const plotWidth = this.width - this.padding.left - this.padding.right;

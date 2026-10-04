@@ -47,9 +47,13 @@ try {
     }
     $startDateStr = gmdate('Y-m-d H:i:s', $startUnix);
     $endDateStr = gmdate('Y-m-d H:i:s', $endUnix);
+    // The Events Explorer is reserved for product/custom events. Pageviews
+    // belong to the traffic overview and would otherwise flatten every other
+    // series on this multi-event chart.
+    $eventOnlyClause = "json_extract(action, '$.name') NOT LIKE '_ml_%' AND json_extract(action, '$.name') <> 'pageview'";
 
     // Build WHERE clauses
-    $where = ["timestamp >= :start_date AND timestamp <= :end_date", "json_extract(action, '$.name') NOT LIKE '_ml_%'"];
+    $where = ["timestamp >= :start_date AND timestamp <= :end_date", $eventOnlyClause];
     $params = [
         ':start_date' => $startDateStr,
         ':end_date' => $endDateStr,
@@ -127,7 +131,7 @@ try {
     $typesSql = "SELECT json_extract(action, '$.name') as name, COUNT(*) as count 
                  FROM user_activity 
                  WHERE timestamp >= :start_date AND timestamp <= :end_date
-                   AND json_extract(action, '$.name') NOT LIKE '_ml_%'
+                   AND {$eventOnlyClause}
                  GROUP BY name 
                  ORDER BY count DESC";
     $tStmt = $db->prepare($typesSql);
@@ -157,7 +161,7 @@ try {
     $intervalHours = $useHourly ? 1 : 24;
     $chartGroupFmt = $useHourly ? "%Y-%m-%d %H:00" : "%Y-%m-%d";
 
-    $chartWhere = ["timestamp >= :chart_start AND timestamp <= :chart_end", "json_extract(action, '$.name') NOT LIKE '_ml_%'"];
+    $chartWhere = ["timestamp >= :chart_start AND timestamp <= :chart_end", $eventOnlyClause];
     $chartParams = [
         ':chart_start' => $startDateStr,
         ':chart_end' => $endDateStr,

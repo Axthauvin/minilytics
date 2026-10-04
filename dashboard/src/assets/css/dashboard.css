@@ -1394,7 +1394,8 @@ html.sidebar-preload-collapsed .sidebar .user-avatar {
     position: absolute;
     z-index: 50;
     pointer-events: none;
-    min-width: 172px;
+    width: min(300px, calc(100% - 8px));
+    min-width: 0;
     background: #ffffff;
     color: #0f172a;
     padding: 14px 16px;
@@ -1407,7 +1408,13 @@ html.sidebar-preload-collapsed .sidebar .user-avatar {
     transition: opacity 0.12s ease, transform 0.1s ease;
     white-space: nowrap;
     line-height: 1.4;
+    box-sizing: border-box;
+    max-height: 190px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
+.chart-tooltip.is-interactive { pointer-events: auto; }
 
 .chart-tooltip.visible {
     opacity: 1;
@@ -1418,19 +1425,45 @@ html.sidebar-preload-collapsed .sidebar .user-avatar {
     font-size: 13px;
     font-weight: 700;
     color: #0f172a;
-    margin-bottom: 10px;
-    padding-bottom: 10px;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
     border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.chart-tooltip-pinned {
+    float: right;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
 }
 
 .chart-tooltip-metric {
     display: flex;
+    min-width: 0;
     align-items: center;
     gap: 8px;
     font-size: 13px;
     font-weight: 500;
     color: #334155;
 }
+.chart-tooltip-metric.is-actionable {
+    width: 100%;
+    border: 0;
+    border-radius: 6px;
+    padding: 4px 5px;
+    margin: -4px -5px;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.chart-tooltip-metric.is-actionable:hover { background: #f1f5f9; }
 
 .chart-tooltip-dot {
     width: 12px;
@@ -1446,12 +1479,31 @@ html.sidebar-preload-collapsed .sidebar .user-avatar {
     font-size: 14px;
     font-weight: 700;
     color: #0f172a;
+    flex-shrink: 0;
 }
 
 .chart-tooltip-name {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 13px;
     font-weight: 500;
     color: #64748b;
+}
+.chart-tooltip-anomaly {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #fef3c7;
+    color: #b45309;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
 }
 
 .chart-tooltip-hint {
@@ -1461,6 +1513,46 @@ html.sidebar-preload-collapsed .sidebar .user-avatar {
     font-size: 11px;
     font-weight: 600;
     color: var(--primary);
+}
+.chart-tooltip-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 7px;
+    padding-top: 7px;
+    border-top: 1px solid #e2e8f0;
+}
+.chart-tooltip-actions button:first-child {
+    flex: 1;
+    border: 0;
+    border-radius: 6px;
+    padding: 7px 9px;
+    background: #0f172a;
+    color: #ffffff;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.chart-tooltip-actions button:first-child:hover { background: #334155; }
+.chart-tooltip-unpin {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #64748b;
+    font: inherit;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+}
+.chart-tooltip-metrics-list {
+    flex: 0 1 auto;
+    max-height: 84px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
 }
 
 /* ==========================================================================
@@ -3045,6 +3137,45 @@ pre, .json-box, .code-box {
 }
 
 /* ── Events page series multi-select ────────────────────────────────── */
+.event-insights-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    margin: -2px 0 18px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: #fbfdff;
+}
+.event-insight {
+    min-width: 0;
+    padding: 11px 14px;
+    border-right: 1px solid var(--border);
+}
+.event-insight:last-child { border-right: 0; }
+.event-insight-label {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--text-muted);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.event-insight-value {
+    display: inline-block;
+    margin-right: 6px;
+    color: var(--text-primary);
+    font-size: 17px;
+    font-variant-numeric: tabular-nums;
+}
+.event-insight-detail {
+    color: var(--text-secondary);
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: baseline;
+}
 .event-series-combobox {
     position: relative;
     min-width: 190px;
@@ -3231,6 +3362,9 @@ pre, .json-box, .code-box {
 }
 
 @media (max-width: 767px) {
+    .event-insights-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .event-insight:nth-child(2) { border-right: 0; }
+    .event-insight:nth-child(-n + 2) { border-bottom: 1px solid var(--border); }
     body { font-size: 13px; overflow-x: hidden; }
     .content-container { padding: 16px 14px 32px; }
     .top-header { height: auto; min-height: 58px; padding: 10px 14px; gap: 10px; align-items: flex-start; }

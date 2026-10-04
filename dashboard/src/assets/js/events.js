@@ -18,7 +18,11 @@ const EventsPage = {
     this.trendChart = new MinilyticsChart("eventsTrendChart", "eventsTrendTooltip", {
       activeSeries: ["events"],
       sortTooltipMetrics: true,
+      hideZeroTooltipMetrics: true,
+      lockTooltipOnClick: true,
+      highlightAnomalies: true,
       onPointClick: (item) => this.openSessionsForPoint(item),
+      onTooltipMetricClick: (item, seriesKey) => this.openSessionsForPoint(item, seriesKey),
       seriesConfig: {
         events: {
           key: "events", label: "Events", singular: "event", color: "#f59e0b",
@@ -77,17 +81,22 @@ const EventsPage = {
   },
 
   /** Open the sessions recorded on the day (or hour) represented by a chart point. */
-  openSessionsForPoint(item) {
+  openSessionsForPoint(item, seriesKey = "") {
     const timestamp = Number(item?.timestamp);
     if (!Number.isFinite(timestamp)) return;
     const day = new Date(timestamp * 1000).toISOString().slice(0, 10);
     const sessions = window.SessionsPage;
     if (sessions?.filters) {
       sessions.filters.date = day;
+      sessions.filters.eventName = seriesKey
+        ? this.trendChart?.seriesConfig?.[seriesKey]?.label || "all"
+        : "all";
       sessions.filters.page = 1;
     }
     const dateInput = document.getElementById("sessionDateFilter");
     if (dateInput) window.SessionsPage?.datePicker?.setValue(day);
+    const eventSelect = document.getElementById("sessionEventFilter");
+    if (eventSelect && sessions?.filters?.eventName) eventSelect.value = sessions.filters.eventName;
     const clearButton = document.getElementById("clearDateFilterBtn");
     if (clearButton) clearButton.style.display = "inline-flex";
     window.Filters?.openSessions();
@@ -107,6 +116,7 @@ const EventsPage = {
       }
 
       const data = await Api.getEvents(this.filters);
+      this.renderInsights(data.total || 0, data.types || [], data.chart_data || [], data.series || []);
       this.renderTrend(data.chart_data || [], data.series || []);
       this.renderEvents(data.events || []);
       this.renderPagination(data);
@@ -121,6 +131,39 @@ const EventsPage = {
   },
 
   // ── Rendering ────────────────────────────────────────────────────────────
+
+  renderInsights(total, types, points, series) {
+    const container = document.getElementById("eventInsightsStrip");
+    if (!container) return;
+    const topEvent = types[0];
+    let peak = null;
+    const namesByKey = new Map(series.map((item) => [item.key, item.name]));
+    points.forEach((point) => {
+      series.forEach((item) => {
+        const count = Number(point[item.key]) || 0;
+        if (!peak || count > peak.count) {
+          peak = { count, name: namesByKey.get(item.key) || item.name, label: point.full_label || point.label || "" };
+        }
+      });
+    });
+
+    const metrics = [
+      { label: "Events tracked", value: Number(total).toLocaleString(), detail: "in this period" },
+      { label: "Event types", value: types.length.toLocaleString(), detail: "distinct series" },
+      topEvent
+        ? { label: "Top event", value: Number(topEvent.count).toLocaleString(), detail: topEvent.name }
+        : { label: "Top event", value: "—", detail: "No events" },
+      peak && peak.count > 0
+        ? { label: "Largest peak", value: peak.count.toLocaleString(), detail: `${peak.name} · ${peak.label}` }
+        : { label: "Largest peak", value: "—", detail: "No events" },
+    ];
+    container.innerHTML = metrics.map((metric) => `
+      <div class="event-insight">
+        <span class="event-insight-label">${this.esc(metric.label)}</span>
+        <strong class="event-insight-value">${this.esc(metric.value)}</strong>
+        <span class="event-insight-detail" title="${this.esc(metric.detail)}">${this.esc(metric.detail)}</span>
+      </div>`).join("");
+  },
 
   renderTrend(points, series) {
     const label = document.getElementById("eventsTrendLabel");

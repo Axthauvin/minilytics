@@ -16,6 +16,7 @@
     </div>
     <!-- Event trend: multiple event series can be compared over the active period. -->
     <div class="chart-container-card full-width-chart" style="margin-bottom: 24px;">
+        <div class="event-insights-strip" id="eventInsightsStrip" aria-label="Event insights"></div>
         <div class="chart-header">
             <div>
                 <span class="chart-eyebrow">EVENT MONITORING</span>
