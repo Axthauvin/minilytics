@@ -204,6 +204,8 @@ const EventsPage = {
       "hostname",
       "site_id",
       "session_id",
+      "tracking_mode",
+      "_ml_tracking_mode",
       "path",
       "title",
       "url",

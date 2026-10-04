@@ -49,6 +49,7 @@ try {
         $res = $dStmt->execute();
 
         $events = [];
+        $foundEvents = false;
         $firstTime = null;
         $lastTime = null;
         $entryPage = null;
@@ -59,8 +60,10 @@ try {
         $country = 'Unknown';
         $countryCode = 'UN';
         $city = '';
+        $trackingMode = 'unknown';
 
         while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
+            $foundEvents = true;
             $act = json_decode($row['action'], true) ?: [];
             $ts = strtotime($row['timestamp'] . ' UTC');
 
@@ -83,12 +86,16 @@ try {
                     $countryCode = $data['country_code'];
                 if (!empty($data['city']))
                     $city = $data['city'];
+                if (!empty($data['_ml_tracking_mode']))
+                    $trackingMode = $data['_ml_tracking_mode'];
             }
             $lastTime = $ts;
 
             $offsetSec = $ts - $firstTime;
             $offsetLabel = '+' . $formatDurationLabel($offsetSec);
 
+            // Engagement is an internal timing signal, not a visitor-facing event.
+            if (($act['name'] ?? '') === '_ml_engaged') continue;
             $events[] = [
                 'id' => (int) $row['id'],
                 'name' => $act['name'] ?? 'unknown',
@@ -100,7 +107,7 @@ try {
             ];
         }
 
-        if (empty($events)) {
+        if (!$foundEvents) {
             http_response_code(404);
             echo json_encode(['error' => 'Session not found']);
             exit;
@@ -113,8 +120,8 @@ try {
             'success' => true,
             'session' => [
                 'session_id' => $specificSessionId,
-                'started_at' => $events[0]['timestamp'],
-                'ended_at' => end($events)['timestamp'],
+                'started_at' => gmdate('Y-m-d H:i:s', $firstTime),
+                'ended_at' => gmdate('Y-m-d H:i:s', $lastTime),
                 'duration_seconds' => $durationSec,
                 'duration_label' => $durationLabel,
                 'event_count' => count($events),
@@ -126,6 +133,7 @@ try {
                 'country' => $country,
                 'country_code' => $countryCode,
                 'city' => $city,
+                'tracking_mode' => $trackingMode,
                 'avatar_url' => "https://api.dicebear.com/10.x/glyphs/svg?seed=" . rawurlencode($specificSessionId),
                 'events' => $events
             ]
@@ -217,7 +225,7 @@ try {
             COALESCE(MAX(visitor_id), session_id) as visitor_id,
             MIN(timestamp) as started_at,
             MAX(timestamp) as last_active_at,
-            COUNT(*) as event_count,
+            SUM(CASE WHEN json_extract(action, '$.name') <> '_ml_engaged' THEN 1 ELSE 0 END) as event_count,
             (strftime('%s', MAX(timestamp)) - strftime('%s', MIN(timestamp))) as duration_seconds
         FROM user_activity
         WHERE {$whereClause}
@@ -277,6 +285,7 @@ try {
                     $city = $data['city'];
             }
 
+            if ($name === '_ml_engaged') continue;
             if ($name === 'pageview') {
                 $p = $data['path'] ?? '/';
                 $flow[] = ['type' => 'pageview', 'label' => $p];
@@ -332,7 +341,7 @@ try {
     $evtRes = $evtTypesStmt->execute();
     $availableEvents = [];
     while ($er = $evtRes->fetchArray(SQLITE3_ASSOC)) {
-        if (!empty($er['name'])) {
+        if (!empty($er['name']) && $er['name'] !== '_ml_engaged') {
             $availableEvents[] = [
                 'name' => $er['name'],
                 'count' => (int)$er['count']

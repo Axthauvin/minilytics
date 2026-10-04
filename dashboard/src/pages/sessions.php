@@ -151,6 +151,7 @@
                         <span class="meta-field-label">Viewport</span>
                         <span class="meta-field-val" id="detailViewport">–</span>
                     </div>
+                    <p class="session-consent-notice" id="detailConsentNotice" hidden></p>
                 </div>
             </div>
         </div>

@@ -99,12 +99,6 @@
       window.innerWidth && window.innerHeight
         ? window.innerWidth + "×" + window.innerHeight
         : null;
-    var device =
-      window.matchMedia && window.matchMedia("(max-width: 767px)").matches
-        ? "Mobile"
-        : window.matchMedia && window.matchMedia("(max-width: 1024px)").matches
-          ? "Tablet"
-          : "Desktop";
     var base = {
       tracking_mode: privacyMode,
       path: location.pathname || "/",
@@ -114,7 +108,6 @@
         ? new URL(document.referrer).hostname
         : null,
       language: navigator.language || null,
-      device: device,
     };
     if (privacyMode === "enriched") {
       base.screen = screenSize;

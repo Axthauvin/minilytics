@@ -67,6 +67,7 @@ const App = {
         if (!page) return;
         e.preventDefault();
         const url = new URL(window.location);
+        if (page !== "sessions") url.searchParams.delete("session_id");
         if (page === "settings") {
           this.currentSiteId = null;
           sessionStorage.removeItem("minilytics_current_site");

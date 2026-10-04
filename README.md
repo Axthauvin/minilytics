@@ -112,7 +112,9 @@ If the console reports that tracking is opted out with `reason: "local_storage"`
 
 ### Privacy modes
 
-`strict` is the default mode. It writes no cookies, `localStorage`, or `sessionStorage`: events share a random identifier only while the current page is open. It records minimal first-party analytics and custom events, including when GPC or Do Not Track is enabled. Those browser preferences prevent the optional enriched mode instead.
+`strict` is the default mode. It writes no cookies, `localStorage`, or `sessionStorage`, and the browser sends no durable identifier. It records minimal first-party analytics and custom events, including when GPC or Do Not Track is enabled. Those browser preferences prevent the optional enriched mode instead.
+
+For strict-mode reports, the server derives a site-scoped visitor key from the request IP, User-Agent, a private server secret, and a monthly rotating salt. The raw IP and User-Agent are not stored in event data. The secret is generated once at `data/.tracking-secret`; set `MINILYTICS_TRACKING_SECRET` when deploying multiple application nodes so they calculate the same keys.
 
 `enriched` is opt-in. It does not send events until the website's cookie banner calls `minilytics.consent()` after the visitor accepts analytics cookies. The banner itself owns the consent cookie; MiniLytics does not create one. Call `minilytics.withdrawConsent()` when consent is withdrawn. Enriched mode remains disabled when the browser sends GPC or Do Not Track.
 
@@ -155,6 +157,8 @@ minilytics.track("button_click", { buttonId: "signup", plan: "pro" });
 Each website now has a private `data-site-key` and an allowlist of domains. Copy the generated snippet from the Website manager; do not hand-write a snippet. In **Settings → Tracking & data protection**, administrators can set allowed domains, internal IP addresses to exclude, a retention period, and rotate the key.
 
 The default tracker is strict: it does not fingerprint devices, removes URL query strings/fragments, writes no client-side storage, and provides `minilytics.optOut()` / `minilytics.optIn()`. It keeps analytics minimal when a browser sends Global Privacy Control / Do Not Track; those signals block the optional enriched mode. Bot and internal requests are rejected before metrics are stored and remain visible in Acquisition.
+
+Country detection uses the `CF-IPCountry` header supplied by Cloudflare or the `GEOIP_COUNTRY_CODE` header from an Apache GeoIP module. No third-party geolocation API is called. All ISO country codes are supported; PHP's `intl` extension resolves them to display names, with the exact ISO code used as a fallback. Local development traffic is labelled “Local development”; a public VPS without either header remains “Unknown” until a GeoIP provider is configured at the web-server layer.
 
 Retention is applied whenever a site's database is opened. To save SQLite snapshots from a scheduler:
 

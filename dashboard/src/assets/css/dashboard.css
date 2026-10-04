@@ -1884,6 +1884,9 @@ html.sidebar-preload-collapsed .sidebar .user-avatar {
     display: block;
 }
 
+.session-consent-notice { margin: 12px 0 0; padding: 9px 10px; border: 1px solid #bfdbfe; border-radius: 7px; background: #eff6ff; color: #1e3a8a; font-size: 12px; line-height: 1.45; }
+.session-consent-notice[hidden] { display: none; }
+
 .session-card-info {
     display: flex;
     flex-direction: column;

@@ -142,6 +142,7 @@ const SessionsPage = {
       }
       this.renderSessions(this.rawSessions, data.total);
       this.renderPagination(data);
+      this.restoreSelectedSession(activeSite);
     } catch (err) {
       window.App?.displayNoDataMessage(siteId);
       console.error("Error loading sessions:", err);
@@ -341,10 +342,25 @@ const SessionsPage = {
     if (next) next.disabled = data.page >= data.total_pages;
   },
 
-  async inspectSession(sessionId, siteId) {
+  restoreSelectedSession(siteId) {
+    const requestedId = new URLSearchParams(window.location.search).get("session_id");
+    if (!requestedId || this.activeSession?.session_id === requestedId || this.restoredSessionId === requestedId) return;
+    this.restoredSessionId = requestedId;
+    this.inspectSession(requestedId, siteId, false);
+  },
+
+  syncSelectedSession(sessionId) {
+    const url = new URL(window.location);
+    if (sessionId) url.searchParams.set("session_id", sessionId);
+    else url.searchParams.delete("session_id");
+    window.history.replaceState({}, "", url);
+  },
+
+  async inspectSession(sessionId, siteId, syncUrl = true) {
     try {
       const data = await Api.getSessionDetails(sessionId, siteId);
       this.activeSession = data.session;
+      if (syncUrl) this.syncSelectedSession(data.session.session_id);
       this.renderDetailView(data.session);
       this.showDetailView();
     } catch (err) {
@@ -367,6 +383,9 @@ const SessionsPage = {
     const detail = document.getElementById("sessionDetailView");
     if (detail) detail.style.display = "none";
     if (list) list.style.display = "block";
+    this.activeSession = null;
+    this.restoredSessionId = null;
+    this.syncSelectedSession(null);
   },
 
   renderDetailView(session) {
@@ -426,8 +445,16 @@ const SessionsPage = {
     if (devEl) {
       devEl.innerHTML = `<span class="tech-item">${Icons.getDeviceIcon(devVal, 13)} <span>${this.escapeHtml(devVal)}</span></span>`;
     }
-    setTxt("detailScreen", firstEvt.screen || "–");
-    setTxt("detailViewport", firstEvt.viewport || "–");
+    setTxt("detailScreen", firstEvt.screen || "Not collected");
+    setTxt("detailViewport", firstEvt.viewport || "Not collected");
+    const consentNotice = document.getElementById("detailConsentNotice");
+    if (consentNotice) {
+      const hasDetailedEnvironment = Boolean(firstEvt.screen && firstEvt.viewport);
+      consentNotice.hidden = hasDetailedEnvironment;
+      consentNotice.textContent = session.tracking_mode === "strict"
+        ? "Detailed environment data is not collected in strict mode. Enable enriched analytics through your consent banner to collect it."
+        : "Detailed environment data was not collected for this session. Analytics consent may not have been granted.";
+    }
 
     // Render the page journey with a clean properties card.
     const journeyContainer = document.getElementById("journeyStepsList");
@@ -456,6 +483,8 @@ const SessionsPage = {
       "referrer",
       "search",
       "hash",
+      "tracking_mode",
+      "_ml_tracking_mode",
     ]);
 
     events.forEach((evt, idx) => {
