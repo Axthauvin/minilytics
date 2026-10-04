@@ -215,17 +215,20 @@ const App = {
     const cancelCustomBtn = document.getElementById("btnCancelCustomRange");
     const closeCustomBtn = document.getElementById("btnCloseCustomRange");
 
+    this.customRangeStartPicker = new MinilyticsCalendarPicker(customStart);
+    this.customRangeEndPicker = new MinilyticsCalendarPicker(customEnd);
+
     if (rangeSelect) {
       rangeSelect.addEventListener("change", (e) => {
         const val = e.target.value;
         if (val === "custom") {
           if (customPopover) {
-            if (!customStart.value) {
+            if (!this.customRangeStartPicker.getValue()) {
               const now = new Date();
               const prior = new Date();
               prior.setDate(prior.getDate() - 30);
-              customStart.value = prior.toISOString().split("T")[0];
-              customEnd.value = now.toISOString().split("T")[0];
+              this.customRangeStartPicker.setValue(prior.toISOString().split("T")[0]);
+              this.customRangeEndPicker.setValue(now.toISOString().split("T")[0]);
             }
             customPopover.style.display = "flex";
           }
@@ -240,16 +243,16 @@ const App = {
 
     if (applyCustomBtn && customStart && customEnd) {
       applyCustomBtn.addEventListener("click", () => {
-        let fromVal = customStart.value;
-        let toVal = customEnd.value;
+        let fromVal = this.customRangeStartPicker.getValue();
+        let toVal = this.customRangeEndPicker.getValue();
         if (!fromVal || !toVal) {
           alert("Please select both start and end dates.");
           return;
         }
         if (fromVal > toVal) {
           [fromVal, toVal] = [toVal, fromVal];
-          customStart.value = fromVal;
-          customEnd.value = toVal;
+          this.customRangeStartPicker.setValue(fromVal);
+          this.customRangeEndPicker.setValue(toVal);
         }
 
         this.currentRange = "custom";
@@ -257,7 +260,7 @@ const App = {
 
         const customOpt = rangeSelect?.querySelector('option[value="custom"]');
         if (customOpt) {
-          customOpt.textContent = `Custom (${fromVal} - ${toVal})`;
+          customOpt.textContent = `${MinilyticsCalendarPicker.formatIsoDate(fromVal)} — ${MinilyticsCalendarPicker.formatIsoDate(toVal)}`;
         }
         if (rangeSelect) rangeSelect.value = "custom";
         if (customPopover) customPopover.style.display = "none";
@@ -281,7 +284,9 @@ const App = {
         customPopover &&
         customPopover.style.display === "flex" &&
         !customPopover.contains(e.target) &&
-        !rangeSelect?.contains(e.target)
+        !rangeSelect?.contains(e.target) &&
+        // Calendar popovers are portalled to <body>, outside this container.
+        !e.target.closest(".calendar-popover")
       ) {
         closePopover();
       }

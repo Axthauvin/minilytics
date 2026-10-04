@@ -7,44 +7,44 @@
         </div>
     </div>
 
-    <!-- Filter & Search Toolbar -->
+    <!-- Active session filter -->
     <div class="filter-toolbar">
-        <div class="search-input-wrapper">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" class="search-input" id="eventSearch" placeholder="Search by event name, session ID, or path...">
-        </div>
-
-        <select class="select-filter" id="eventTypeFilter">
-            <option value="all">All Events</option>
-        </select>
-
-        <!-- Active session filter badge -->
         <div id="activeSessionFilterBox" style="display: none; align-items: center; gap: 6px; background: #e0f2fe; color: #0284c7; padding: 5px 12px; border-radius: var(--radius-md); font-size: 12.5px; font-weight: 600;">
             <span>Session: <span id="activeSessionIdLabel"></span></span>
             <button type="button" id="clearSessionFilterBtn" style="border: none; background: transparent; cursor: pointer; color: #0284c7; font-size: 14px; padding: 0 2px;">✕</button>
         </div>
     </div>
-    <!-- Event Distribution Breakdown Card with Clean Pills (Matching overview.php) -->
-    <div class="data-table-card breakdown-card" style="margin-bottom: 24px;">
-        <div class="breakdown-card-header">
-            <div class="breakdown-header-title-group">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="breakdown-header-icon">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                </svg>
-                <h3 class="breakdown-card-title">Event Distribution</h3>
+    <!-- Event trend: multiple event series can be compared over the active period. -->
+    <div class="chart-container-card full-width-chart" style="margin-bottom: 24px;">
+        <div class="chart-header">
+            <div>
+                <span class="chart-eyebrow">EVENT MONITORING</span>
+                <div class="chart-legend-metrics-row">
+                    <div class="chart-metric-indicator">
+                        <span class="metric-color-dot" style="background: #f59e0b;"></span>
+                        <span class="metric-name" id="eventsTrendLabel">All tracked events</span>
+                    </div>
+                </div>
             </div>
-            <span class="breakdown-card-sub" id="eventsTotalCount">0 events</span>
+            <div class="event-series-combobox" id="eventsSeriesCombobox">
+                <button type="button" class="event-series-combobox-trigger" id="eventsSeriesTrigger" aria-expanded="false" aria-controls="eventsSeriesMenu">
+                    <span id="eventsSeriesSummary">All events</span>
+                    <span aria-hidden="true">⌄</span>
+                </button>
+                <div class="event-series-combobox-menu" id="eventsSeriesMenu" hidden>
+                    <input type="search" class="event-series-search" id="eventsSeriesSearch" placeholder="Search events…" autocomplete="off" aria-label="Search event series">
+                    <div class="event-series-actions">
+                        <button type="button" id="eventsSeriesSelectAll">Select all</button>
+                        <button type="button" id="eventsSeriesClear">Clear</button>
+                    </div>
+                    <div class="event-series-options" id="eventsSeriesOptions" aria-label="Event series"></div>
+                </div>
+            </div>
         </div>
-        <div class="card-column-headers">
-            <span>Event Name</span>
-            <span style="text-align: right;">Count</span>
+        <div class="canvas-wrapper">
+            <canvas id="eventsTrendChart" class="chart-canvas"></canvas>
+            <div id="eventsTrendTooltip" class="chart-tooltip"></div>
         </div>
-        <ul class="clean-pill-list" id="eventsDistribution">
-            <li class="clean-pill-row empty"><span class="pill-muted">Loading events…</span></li>
-        </ul>
     </div>
 
 

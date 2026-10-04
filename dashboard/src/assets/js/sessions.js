@@ -17,6 +17,7 @@ const SessionsPage = {
   activeSession: null,
 
   init() {
+    this.datePicker = new MinilyticsCalendarPicker(document.getElementById("sessionDateFilter"));
     this.bindEvents();
     Filters.onChange(() => {
       if (window.App?.currentPage !== "sessions") return;
@@ -43,7 +44,7 @@ const SessionsPage = {
     const clearDateBtn = document.getElementById("clearDateFilterBtn");
     if (dateFilter) {
       dateFilter.addEventListener("change", (e) => {
-        this.filters.date = e.target.value;
+        this.filters.date = e.target.dataset.isoValue || e.target.value;
         if (clearDateBtn) {
           clearDateBtn.style.display = this.filters.date ? "inline-flex" : "none";
         }
@@ -54,7 +55,7 @@ const SessionsPage = {
 
     if (clearDateBtn) {
       clearDateBtn.addEventListener("click", () => {
-        if (dateFilter) dateFilter.value = "";
+        this.datePicker?.clear();
         this.filters.date = "";
         clearDateBtn.style.display = "none";
         this.filters.page = 1;
@@ -100,9 +101,7 @@ const SessionsPage = {
   filterByDay(dayKey) {
     const dateInput = document.getElementById("sessionDateFilter");
     const clearBtn = document.getElementById("clearDateFilterBtn");
-    if (dateInput) {
-      dateInput.value = dayKey;
-    }
+    if (dateInput) this.datePicker?.setValue(dayKey);
     if (clearBtn) {
       clearBtn.style.display = "inline-flex";
     }

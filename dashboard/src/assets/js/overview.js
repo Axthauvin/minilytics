@@ -332,7 +332,7 @@ const OverviewPage = {
     }
 
     const dateInput = document.getElementById("sessionDateFilter");
-    if (dateInput) dateInput.value = day;
+    if (dateInput) window.SessionsPage?.datePicker?.setValue(day);
     const clearButton = document.getElementById("clearDateFilterBtn");
     if (clearButton) clearButton.style.display = "inline-flex";
 

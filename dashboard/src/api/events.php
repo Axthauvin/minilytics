@@ -49,7 +49,7 @@ try {
     $endDateStr = gmdate('Y-m-d H:i:s', $endUnix);
 
     // Build WHERE clauses
-    $where = ["timestamp >= :start_date AND timestamp <= :end_date"];
+    $where = ["timestamp >= :start_date AND timestamp <= :end_date", "json_extract(action, '$.name') NOT LIKE '_ml_%'"];
     $params = [
         ':start_date' => $startDateStr,
         ':end_date' => $endDateStr,
@@ -127,6 +127,7 @@ try {
     $typesSql = "SELECT json_extract(action, '$.name') as name, COUNT(*) as count 
                  FROM user_activity 
                  WHERE timestamp >= :start_date AND timestamp <= :end_date
+                   AND json_extract(action, '$.name') NOT LIKE '_ml_%'
                  GROUP BY name 
                  ORDER BY count DESC";
     $tStmt = $db->prepare($typesSql);
@@ -143,37 +144,34 @@ try {
             ];
         }
     }
+    $series = [];
+    $seriesByName = [];
+    foreach ($types as $index => $type) {
+        $key = 'event_' . $index;
+        $series[] = ['key' => $key, 'name' => $type['name'], 'count' => $type['count']];
+        $seriesByName[$type['name']] = $key;
+    }
 
     // 4. Chart data: continuous time-series matching overview.js style
     $useHourly = in_array($range, ['today', '24h']);
     $intervalHours = $useHourly ? 1 : 24;
     $chartGroupFmt = $useHourly ? "%Y-%m-%d %H:00" : "%Y-%m-%d";
 
-    $chartWhere = ["timestamp >= :chart_start AND timestamp <= :chart_end"];
+    $chartWhere = ["timestamp >= :chart_start AND timestamp <= :chart_end", "json_extract(action, '$.name') NOT LIKE '_ml_%'"];
     $chartParams = [
         ':chart_start' => $startDateStr,
         ':chart_end' => $endDateStr,
     ];
-    if ($eventName !== '' && $eventName !== 'all') {
-        $chartWhere[] = "json_extract(action, '$.name') = :chart_event_name";
-        $chartParams[':chart_event_name'] = $eventName;
-    }
     if ($sessionId !== '') {
         $chartWhere[] = "session_id = :chart_session_id";
         $chartParams[':chart_session_id'] = $sessionId;
     }
-    if ($search !== '') {
-        $chartWhere[] = "(session_id LIKE :chart_search OR json_extract(action, '$.name') LIKE :chart_search OR action LIKE :chart_search_wild)";
-        $chartParams[':chart_search'] = "%{$search}%";
-        $chartParams[':chart_search_wild'] = "%{$search}%";
-    }
-
     $chartSql = "SELECT strftime('{$chartGroupFmt}', timestamp) as bucket,
-                        COUNT(*) as count,
-                        COUNT(DISTINCT session_id) as sessions
+                        json_extract(action, '$.name') as name,
+                        COUNT(*) as count
                  FROM user_activity
                  WHERE " . implode(' AND ', $chartWhere) . "
-                 GROUP BY bucket
+                 GROUP BY bucket, name
                  ORDER BY bucket ASC";
     $chStmt = $db->prepare($chartSql);
     foreach ($chartParams as $k => $v) {
@@ -183,10 +181,8 @@ try {
 
     $slotMap = [];
     while ($cr = $chRes->fetchArray(SQLITE3_ASSOC)) {
-        $slotMap[$cr['bucket']] = [
-            'events'   => (int)$cr['count'],
-            'sessions' => (int)$cr['sessions'],
-        ];
+        $key = $seriesByName[$cr['name'] ?? ''] ?? null;
+        if ($key !== null) $slotMap[$cr['bucket']][$key] = (int)$cr['count'];
     }
 
     if ($range === 'today' || $range === '24h') {
@@ -220,15 +216,15 @@ try {
     $chartData = [];
     $currStep = $effectiveStart;
     while ($currStep <= $endStep) {
-        $eventsCount = 0;
-        $sessionsCount = 0;
+        $point = ['timestamp' => $currStep];
+        foreach ($series as $item) $point[$item['key']] = 0;
 
-        for ($sub = 0; $sub < $intervalHours; $sub++) {
-            $subKey = gmdate($useHourly ? 'Y-m-d H:00' : 'Y-m-d', (int)($currStep + $sub * 3600));
-            if (isset($slotMap[$subKey])) {
-                $eventsCount += $slotMap[$subKey]['events'];
-                $sessionsCount += $slotMap[$subKey]['sessions'];
-            }
+        // The SQL query already returns a bucket per hour or per day.  A daily
+        // bucket must be added once — repeating it for all 24 hours inflated
+        // every daily count by 24 (for example 80 incorrectly became 1920).
+        $bucketKey = gmdate($useHourly ? 'Y-m-d H:00' : 'Y-m-d', (int)$currStep);
+        if (isset($slotMap[$bucketKey])) {
+            foreach ($slotMap[$bucketKey] as $key => $count) $point[$key] += $count;
         }
 
         if ($range === 'today' || $range === '24h') {
@@ -243,13 +239,9 @@ try {
             ? gmdate('l, F j, Y \a\t h:i A', (int)$currStep) 
             : gmdate('l, F j, Y', (int)$currStep);
 
-        $chartData[] = [
-            'timestamp'  => $currStep,
-            'label'      => $timeLabel,
-            'full_label' => $fullLabel,
-            'events'     => $eventsCount,
-            'sessions'   => $sessionsCount,
-        ];
+        $point['label'] = $timeLabel;
+        $point['full_label'] = $fullLabel;
+        $chartData[] = $point;
 
         $currStep += $stepSeconds;
     }
@@ -258,6 +250,7 @@ try {
         'success'     => true,
         'events'      => $events,
         'types'       => $types,
+        'series'      => $series,
         'chart_data'  => $chartData,
         'total'       => $totalCount,
         'page'        => $page,

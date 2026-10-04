@@ -51,11 +51,11 @@
                 <div class="custom-range-body">
                     <div class="custom-range-field">
                         <label for="customRangeStart">From</label>
-                        <input type="date" id="customRangeStart" class="custom-range-input" />
+                        <input type="text" id="customRangeStart" class="custom-range-input calendar-input" placeholder="Select a date" readonly />
                     </div>
                     <div class="custom-range-field">
                         <label for="customRangeEnd">To</label>
-                        <input type="date" id="customRangeEnd" class="custom-range-input" />
+                        <input type="text" id="customRangeEnd" class="custom-range-input calendar-input" placeholder="Select a date" readonly />
                     </div>
                 </div>
                 <div class="custom-range-footer">

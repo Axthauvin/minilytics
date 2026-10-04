@@ -7,37 +7,29 @@ const EventsPage = {
     range: "7d",
     page: 1,
     limit: 50,
-    search: "",
     eventName: "all",
     sessionId: "",
   },
-  searchDebounce: null,
   eventsMap: {},
 
   // ── Init ────────────────────────────────────────────────────────────────
 
   init() {
+    this.trendChart = new MinilyticsChart("eventsTrendChart", "eventsTrendTooltip", {
+      activeSeries: ["events"],
+      sortTooltipMetrics: true,
+      onPointClick: (item) => this.openSessionsForPoint(item),
+      seriesConfig: {
+        events: {
+          key: "events", label: "Events", singular: "event", color: "#f59e0b",
+          gradientStart: "rgba(245, 158, 11, 0.24)", gradientEnd: "rgba(245, 158, 11, 0.03)", lineWidth: 2.75,
+        },
+      },
+    });
     this.bindEvents();
   },
 
   bindEvents() {
-    document.getElementById("eventSearch")?.addEventListener("input", (e) => {
-      clearTimeout(this.searchDebounce);
-      this.searchDebounce = setTimeout(() => {
-        this.filters.search = e.target.value.trim();
-        this.filters.page = 1;
-        this.load();
-      }, 300);
-    });
-
-    document
-      .getElementById("eventTypeFilter")
-      ?.addEventListener("change", (e) => {
-        this.filters.eventName = e.target.value;
-        this.filters.page = 1;
-        this.load();
-      });
-
     document.getElementById("eventsPrevPage")?.addEventListener("click", () => {
       if (this.filters.page > 1) {
         this.filters.page--;
@@ -58,6 +50,16 @@ const EventsPage = {
         this.filters.page = 1;
         this.load();
       });
+
+    document.addEventListener("click", (event) => {
+      const combobox = document.getElementById("eventsSeriesCombobox");
+      const menu = document.getElementById("eventsSeriesMenu");
+      if (combobox && menu && !combobox.contains(event.target) && !menu.contains(event.target)) {
+        this.setSeriesMenuOpen(false);
+      }
+    });
+    window.addEventListener("resize", () => this.positionSeriesMenu());
+    document.addEventListener("scroll", () => this.positionSeriesMenu(), true);
   },
 
   // ── Public API ───────────────────────────────────────────────────────────
@@ -74,12 +76,21 @@ const EventsPage = {
     this.load();
   },
 
-  filterByType(name) {
-    this.filters.eventName = name;
-    this.filters.page = 1;
-    const sel = document.getElementById("eventTypeFilter");
-    if (sel) sel.value = name;
-    this.load();
+  /** Open the sessions recorded on the day (or hour) represented by a chart point. */
+  openSessionsForPoint(item) {
+    const timestamp = Number(item?.timestamp);
+    if (!Number.isFinite(timestamp)) return;
+    const day = new Date(timestamp * 1000).toISOString().slice(0, 10);
+    const sessions = window.SessionsPage;
+    if (sessions?.filters) {
+      sessions.filters.date = day;
+      sessions.filters.page = 1;
+    }
+    const dateInput = document.getElementById("sessionDateFilter");
+    if (dateInput) window.SessionsPage?.datePicker?.setValue(day);
+    const clearButton = document.getElementById("clearDateFilterBtn");
+    if (clearButton) clearButton.style.display = "inline-flex";
+    window.Filters?.openSessions();
   },
 
   // ── Data loading ─────────────────────────────────────────────────────────
@@ -96,8 +107,7 @@ const EventsPage = {
       }
 
       const data = await Api.getEvents(this.filters);
-      this.renderTypeOptions(data.types || []);
-      this.renderDistribution(data.types || [], data.total || 0);
+      this.renderTrend(data.chart_data || [], data.series || []);
       this.renderEvents(data.events || []);
       this.renderPagination(data);
     } catch (err) {
@@ -112,72 +122,142 @@ const EventsPage = {
 
   // ── Rendering ────────────────────────────────────────────────────────────
 
-  renderDistribution(types, total) {
-    const list = document.getElementById("eventsDistribution");
-    const countEl = document.getElementById("eventsTotalCount");
-    if (!list) return;
+  renderTrend(points, series) {
+    const label = document.getElementById("eventsTrendLabel");
+    const palette = ["#f59e0b", "#2563eb", "#8b5cf6", "#10b981", "#ef4444", "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#6366f1"];
+    const available = new Set(series.map((item) => item.key));
+    const isFirstRender = this.activeSeries === undefined;
+    const previous = this.activeSeries || available;
+    const active = [...previous].filter((key) => available.has(key));
+    // “All events” is an intent, not the finite list returned for the last
+    // range. New series must therefore be selected when the range changes.
+    this.activeSeries = (isFirstRender || this.allSeriesSelected)
+      ? new Set(available)
+      : new Set(active);
+    if (isFirstRender) this.allSeriesSelected = true;
+    if (label) label.textContent = `${series.length} event series monitored`;
+    this.trendPoints = points;
+    this.trendSeries = series;
+    this.trendPalette = palette;
 
-    if (countEl) {
-      countEl.textContent = `${total.toLocaleString()} event${total === 1 ? "" : "s"}`;
+    this.trendChart.seriesConfig = Object.fromEntries(series.map((item, index) => [item.key, {
+      key: item.key, label: item.name, singular: "event", color: palette[index % palette.length],
+      gradientStart: "rgba(255, 255, 255, 0)", gradientEnd: "rgba(255, 255, 255, 0)", lineWidth: 2.4,
+    }]));
+    this.trendChart?.setData(points, [...this.activeSeries]);
+    this.renderSeriesCombobox();
+  },
+
+  renderSeriesCombobox() {
+    const trigger = document.getElementById("eventsSeriesTrigger");
+    const search = document.getElementById("eventsSeriesSearch");
+    const selectAll = document.getElementById("eventsSeriesSelectAll");
+    const clear = document.getElementById("eventsSeriesClear");
+    if (!trigger || !search || !selectAll || !clear) return;
+
+    trigger.onclick = () => this.setSeriesMenuOpen(trigger.getAttribute("aria-expanded") !== "true");
+    search.oninput = () => this.renderSeriesOptions(search.value);
+    selectAll.onclick = () => {
+      this.activeSeries = new Set(this.trendSeries.map((item) => item.key));
+      this.allSeriesSelected = true;
+      this.applySeriesSelection(search.value);
+    };
+    clear.onclick = () => {
+      this.activeSeries = new Set();
+      this.allSeriesSelected = false;
+      this.applySeriesSelection(search.value);
+    };
+    this.updateSeriesSummary();
+    this.renderSeriesOptions(search.value);
+  },
+
+  renderSeriesOptions(query = "") {
+    const options = document.getElementById("eventsSeriesOptions");
+    if (!options) return;
+    const normalizedQuery = query.trim().toLowerCase();
+    const matches = this.trendSeries.filter((item) => item.name.toLowerCase().includes(normalizedQuery));
+    options.innerHTML = matches.length
+      ? matches.map((item, index) => {
+        const seriesIndex = this.trendSeries.findIndex((series) => series.key === item.key);
+        const color = this.trendPalette[seriesIndex % this.trendPalette.length];
+        return `<label class="event-series-option">
+          <input type="checkbox" value="${this.esc(item.key)}" ${this.activeSeries.has(item.key) ? "checked" : ""}>
+          <span class="chart-series-dot" style="background:${color}"></span>
+          <span class="event-series-option-name">${this.esc(item.name)}</span>
+          <span class="event-series-option-count">${item.count}</span>
+        </label>`;
+      }).join("")
+      : '<p class="event-series-empty">No matching events</p>';
+    options.querySelectorAll("input[type=checkbox]").forEach((input) => input.addEventListener("change", () => {
+      if (input.checked) this.activeSeries.add(input.value);
+      else this.activeSeries.delete(input.value);
+      this.applySeriesSelection(query);
+    }));
+  },
+
+  applySeriesSelection(query = "") {
+    this.allSeriesSelected = this.trendSeries.length > 0
+      && this.activeSeries.size === this.trendSeries.length;
+    this.trendChart?.setData(this.trendPoints || [], [...this.activeSeries]);
+    this.updateSeriesSummary();
+    this.renderSeriesOptions(query);
+  },
+
+  updateSeriesSummary() {
+    const summary = document.getElementById("eventsSeriesSummary");
+    if (!summary) return;
+    const total = this.trendSeries?.length || 0;
+    const selected = this.activeSeries?.size || 0;
+    if (selected === total) {
+      summary.textContent = `All events (${total})`;
+    } else if (selected === 1) {
+      const selectedEvent = this.trendSeries.find((item) => this.activeSeries.has(item.key));
+      summary.textContent = selectedEvent?.name || "1 event selected";
+    } else if (selected === 0) {
+      summary.textContent = "No events selected";
+    } else {
+      summary.textContent = `${selected} events selected`;
     }
+  },
 
-    if (!types.length) {
-      list.innerHTML = `<li class="clean-pill-row empty"><span class="pill-muted">No events recorded for this period</span></li>`;
+  setSeriesMenuOpen(open) {
+    const combobox = document.getElementById("eventsSeriesCombobox");
+    const trigger = document.getElementById("eventsSeriesTrigger");
+    const menu = document.getElementById("eventsSeriesMenu");
+    const search = document.getElementById("eventsSeriesSearch");
+    if (!combobox || !trigger || !menu) return;
+    trigger.setAttribute("aria-expanded", String(open));
+    if (open) {
+      // A canvas can create its own compositing layer. Portalling the popup to
+      // <body> guarantees that it is painted above the chart, not inside it.
+      if (menu.parentElement !== document.body) document.body.appendChild(menu);
+      menu.hidden = false;
+      menu.classList.add("event-series-combobox-menu-portal");
+      this.positionSeriesMenu();
+      search?.focus();
       return;
     }
 
-    const active = this.filters.eventName;
-
-    list.innerHTML = types
-      .map((t) => {
-        const pct = total > 0 ? Math.round((t.count / total) * 100) : 0;
-        const isActive = active !== "all" && active === t.name;
-        const iconSvg =
-          t.name === "pageview"
-            ? Icons.get("file-text", { size: 14, color: "#64748b" })
-            : Icons.get("zap", { size: 14, color: "#64748b" });
-
-        return `
-          <li class="clean-pill-row${isActive ? " active" : ""}"
-              style="cursor: pointer; ${isActive ? "border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary);" : ""}"
-              onclick="EventsPage.filterByType('${isActive ? "all" : this.esc(t.name)}')"
-              title="${isActive ? "Remove filter" : `Filter by ${this.esc(t.name)}`}">
-              <div class="pill-progress-bg" style="width: ${pct}%;"></div>
-              <div class="pill-left">
-                  <span class="pill-icon-box">${iconSvg}</span>
-                  <span class="pill-title" style="font-weight: ${isActive ? "700" : "500"};">${this.esc(t.name)}</span>
-              </div>
-              <div class="pill-right">
-                  <span class="pill-stat">${t.count.toLocaleString()}</span>
-                  <span class="pill-pct">${pct}%</span>
-              </div>
-          </li>
-        `;
-      })
-      .join("");
+    menu.hidden = true;
+    menu.classList.remove("event-series-combobox-menu-portal");
+    menu.style.top = "";
+    menu.style.right = "";
+    menu.style.left = "";
+    if (menu.parentElement !== combobox) combobox.appendChild(menu);
   },
 
-  renderTypeOptions(types) {
-    const select = document.getElementById("eventTypeFilter");
-    if (!select) return;
-    const cur = this.filters.eventName || "all";
-    select.innerHTML =
-      `<option value="all" ${cur === "all" ? "selected" : ""}>All Events</option>` +
-      types
-        .map(
-          (t) =>
-            `<option value="${this.esc(t.name)}" ${t.name === cur ? "selected" : ""}>${this.esc(t.name)} (${t.count})</option>`,
-        )
-        .join("");
+  positionSeriesMenu() {
+    const trigger = document.getElementById("eventsSeriesTrigger");
+    const menu = document.getElementById("eventsSeriesMenu");
+    if (!trigger || !menu || menu.hidden || !menu.classList.contains("event-series-combobox-menu-portal")) return;
+    const triggerRect = trigger.getBoundingClientRect();
+    menu.style.top = `${Math.max(8, triggerRect.bottom + 7)}px`;
+    menu.style.right = `${Math.max(12, window.innerWidth - triggerRect.right)}px`;
   },
 
   renderEvents(events) {
     const container = document.getElementById("eventsListContainer");
-    const badge = document.getElementById("eventsTotalCount");
     if (!container) return;
-
-    if (badge)
-      badge.textContent = `${events.length} event${events.length === 1 ? "" : "s"}`;
 
     if (events.length === 0) {
       container.innerHTML = `

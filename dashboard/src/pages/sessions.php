@@ -32,7 +32,7 @@
                     <line x1="8" y1="2" x2="8" y2="6"></line>
                     <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
-                <input type="date" class="date-filter-input" id="sessionDateFilter" title="Filter by specific day">
+                <input type="text" class="date-filter-input calendar-input" id="sessionDateFilter" title="Filter by specific day" placeholder="Select a day" readonly>
                 <button type="button" class="btn-clear-date" id="clearDateFilterBtn" title="Clear day filter" style="display: none;">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>

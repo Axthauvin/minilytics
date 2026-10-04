@@ -22,6 +22,7 @@ class MinilyticsChart {
         this.onPointClick = typeof options.onPointClick === 'function'
             ? options.onPointClick
             : null;
+        this.sortTooltipMetrics = options.sortTooltipMetrics === true;
 
         const defaultSeriesConfig = {
             pageviews: {
@@ -199,6 +200,12 @@ class MinilyticsChart {
 
         // Build list of metrics for all active series
         const seriesKeys = Object.keys(this.seriesConfig).filter(k => this.activeSeries.has(k));
+        if (this.sortTooltipMetrics) {
+            seriesKeys.sort((left, right) => {
+                const difference = (Number(item[right]) || 0) - (Number(item[left]) || 0);
+                return difference || this.seriesConfig[left].label.localeCompare(this.seriesConfig[right].label);
+            });
+        }
         
         const metricsHtml = seriesKeys.map(key => {
             const cfg = this.seriesConfig[key];
@@ -215,7 +222,7 @@ class MinilyticsChart {
         this.tooltip.innerHTML = `
             <div class="chart-tooltip-date">${dateStr}</div>
             <div class="chart-tooltip-metrics-list">${metricsHtml}</div>
-            <div class="chart-tooltip-hint">Click to view sessions</div>
+            ${this.onPointClick ? '<div class="chart-tooltip-hint">Click to view sessions</div>' : ''}
         `;
 
         const plotY = this.padding.top;

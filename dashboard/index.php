@@ -86,6 +86,7 @@ if ($path === '/dashboard') {
     <!-- Modular Application Scripts -->
     <script src="/dashboard/src/assets/js/api.js"></script>
     <script src="/dashboard/src/assets/js/filters.js"></script>
+    <script src="/dashboard/src/assets/js/calendar-picker.js"></script>
     <script src="/dashboard/src/assets/js/chart.js"></script>
     <script src="/dashboard/src/assets/js/websites.js"></script>
     <script src="/dashboard/src/assets/js/import.js"></script>
