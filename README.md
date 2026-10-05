@@ -14,7 +14,7 @@ TODO: add screenshot
 
 - PHP 8.0 or later with the SQLite3 extension enabled
 - A web server that can write to `data/`
-- Outbound HTTPS access from PHP and zlib support to automatically download the local DB-IP City Lite geolocation database (country, region and approximate city)
+- Outbound HTTPS access from PHP, zlib support and roughly 250 MB of free disk space to automatically download the local DB-IP City Lite geolocation database (country, region and approximate city)
 
 The Zip extension is required only to import a ZIP export from another tracking service (like Umami, Google Analytics, or Matomo).
 

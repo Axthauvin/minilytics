@@ -51,32 +51,70 @@ final class GeoLocation {
         if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) return is_file($database);
         try {
             if (is_file($database) && filesize($database) > 1024 && filemtime($database) >= time() - self::MAX_AGE_SECONDS) return true;
-            $compressed = self::download();
-            $contents = is_string($compressed) ? @gzdecode($compressed) : false;
-            if (!is_string($contents) || strlen($contents) < 1024) throw new RuntimeException('Invalid DB-IP City Lite database download.');
+            // The compressed City Lite database is about 60 MB. Stream both
+            // download and decompression so shared hosts never need hundreds
+            // of megabytes of PHP memory during the initial installation.
+            @set_time_limit(180);
+            $compressed = $database . '.download';
             $temporary = $database . '.new';
-            if (@file_put_contents($temporary, $contents, LOCK_EX) === false || !@rename($temporary, $database)) throw new RuntimeException('Unable to install DB-IP City Lite database.');
+            if (!self::downloadTo($compressed) || !self::decompressTo($compressed, $temporary) || filesize($temporary) < 1024 || !@rename($temporary, $database)) throw new RuntimeException('Unable to install DB-IP City Lite database.');
             @unlink($failure);
             return true;
-        } catch (Throwable) {
-            @touch($failure);
+        } catch (Throwable $error) {
+            @file_put_contents($failure, gmdate('c') . ' ' . $error->getMessage() . PHP_EOL, LOCK_EX);
             return is_file($database);
         } finally {
+            @unlink($database . '.download');
+            @unlink($database . '.new');
             flock($lock, LOCK_UN);
             fclose($lock);
         }
     }
 
-    private static function download(): string|false {
+    private static function downloadTo(string $destination): bool {
+        $file = @fopen($destination, 'wb');
+        if ($file === false) return false;
         if (function_exists('curl_init')) {
             $curl = curl_init(self::DATABASE_URL);
-            curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 3, CURLOPT_TIMEOUT => 30, CURLOPT_HTTPHEADER => ['Accept: application/gzip']]);
-            $body = curl_exec($curl);
+            curl_setopt_array($curl, [CURLOPT_FILE => $file, CURLOPT_CONNECTTIMEOUT => 5, CURLOPT_TIMEOUT => 120, CURLOPT_HTTPHEADER => ['Accept: application/gzip']]);
+            $ok = curl_exec($curl);
             $status = (int)curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
             curl_close($curl);
-            return $status === 200 && is_string($body) ? $body : false;
+            fclose($file);
+            return $ok === true && $status === 200;
         }
-        if (!filter_var(ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOLEAN)) return false;
-        return @file_get_contents(self::DATABASE_URL, false, stream_context_create(['http' => ['timeout' => 30]]));
+        if (!filter_var(ini_get('allow_url_fopen'), FILTER_VALIDATE_BOOLEAN)) {
+            fclose($file);
+            return false;
+        }
+        $source = @fopen(self::DATABASE_URL, 'rb', false, stream_context_create(['http' => ['timeout' => 120]]));
+        if ($source === false) {
+            fclose($file);
+            return false;
+        }
+        $copied = stream_copy_to_stream($source, $file);
+        fclose($source);
+        fclose($file);
+        return $copied !== false;
+    }
+
+    private static function decompressTo(string $compressed, string $destination): bool {
+        $input = @gzopen($compressed, 'rb');
+        $output = @fopen($destination, 'wb');
+        if ($input === false || $output === false) {
+            if (is_resource($input)) gzclose($input);
+            if (is_resource($output)) fclose($output);
+            return false;
+        }
+        try {
+            while (!gzeof($input)) {
+                $chunk = gzread($input, 1024 * 1024);
+                if ($chunk === false || ($chunk !== '' && fwrite($output, $chunk) !== strlen($chunk))) return false;
+            }
+            return true;
+        } finally {
+            gzclose($input);
+            fclose($output);
+        }
     }
 }
