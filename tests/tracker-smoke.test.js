@@ -179,3 +179,21 @@ test('enriched mode waits for consent and remains blocked by GPC', () => {
   assert.equal(protectedBrowser.context.minilytics.consent(), false);
   assert.equal(protectedBrowser.beacons.length, 0);
 });
+
+test('automated browser with navigator.webdriver is ignored', () => {
+  const { beacons, context } = loadTracker({
+    attributes: { 'data-debug': 'true' },
+    navigator: { webdriver: true },
+  });
+  const logs = [];
+  context.console.debug = (...args) => logs.push(args);
+
+  assert.equal(beacons.length, 0, 'auto pageview must not be sent for webdriver');
+  context.minilytics.track('bot_event');
+  assert.equal(beacons.length, 0, 'custom events must not be sent for webdriver');
+  assert.equal(logs[0][0], '[Minilytics] Event was not sent because an automated browser was detected.');
+  assert.deepEqual(JSON.parse(JSON.stringify(logs[0][1])), {
+    event: 'bot_event',
+    reason: 'webdriver',
+  });
+});

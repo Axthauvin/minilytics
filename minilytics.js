@@ -36,13 +36,18 @@
     } catch (_) {}
     return null;
   }
+  function automatedBrowserReason() {
+    if (navigator.webdriver === true) return "webdriver";
+    if (window._phantom || window.__nightmare || window.callPhantom) return "headless_globals";
+    return null;
+  }
   function browserPrivacyReason() {
     if (navigator.globalPrivacyControl === true) return "global_privacy_control";
     if (navigator.doNotTrack === "1") return "do_not_track";
     return null;
   }
   function optedOut() {
-    return localOptOutReason() !== null;
+    return localOptOutReason() !== null || automatedBrowserReason() !== null;
   }
   function id() {
     return typeof crypto !== "undefined" && crypto.randomUUID
@@ -148,6 +153,14 @@
           optOutReason === "local_storage"
             ? "For this browser profile, run minilytics.optIn() and reload the page."
             : "Disable this browser privacy preference only if you want to test tracking.",
+      });
+      return false;
+    }
+    var automatedReason = automatedBrowserReason();
+    if (automatedReason) {
+      reportDebug("Event was not sent because an automated browser was detected.", {
+        event: name,
+        reason: automatedReason,
       });
       return false;
     }
