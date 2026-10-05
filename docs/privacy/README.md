@@ -6,7 +6,7 @@ As Minilytics wants to be a plug and play solution, it does not require any conf
 
 Minilytics supports two tracking modes :
 
-- `strict` is the default mode. It creates no cookies, local storage, or session storage. It removes URL query strings and fragments, and does not store raw IP addresses or user agents. The server derives a site-scoped visitor key from those values, a private secret, and a salt that rotates monthly.
+- `strict` is the default mode. It creates no cookies, local storage, or session storage. It records the coarse screen resolution but removes URL query strings and fragments, and does not store raw IP addresses or user agents. The server derives a site-scoped visitor key from those values, a private secret, and a salt that rotates monthly.
 
 - `enriched` is optional. It requires explicit visitor consent and may use `sessionStorage` to maintain a session. It remains disabled when the browser signals Global Privacy Control or Do Not Track.
   To activate this mode, add `data-privacy-mode="enriched"` to the tracking snippet and call `minilytics.consent()` after consent is granted. Call `minilytics.withdrawConsent()` when consent is withdrawn.

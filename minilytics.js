@@ -108,9 +108,11 @@
         ? new URL(document.referrer).hostname
         : null,
       language: navigator.language || null,
+      // Screen resolution is coarse, useful aggregate context and does not
+      // require browser storage. Keep it available in strict mode too.
+      screen: screenSize,
     };
     if (privacyMode === "enriched") {
-      base.screen = screenSize;
       base.viewport = viewport;
     }
     return Object.assign(

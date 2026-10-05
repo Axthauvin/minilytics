@@ -1882,11 +1882,14 @@ html.sidebar-preload-collapsed .sidebar .user-avatar {
 }
 
 .country-flag-img {
+    /* Preserve the flag's full aspect ratio. `cover` clips wide flags inside
+       the fixed presentation box. */
     border-radius: 2px;
     box-shadow: 0 0 1px rgba(0, 0, 0, 0.4);
-    object-fit: cover;
+    object-fit: contain;
     vertical-align: middle;
-    display: inline-block;
+    display: block;
+    max-width: none;
 }
 
 .country-flag-unknown {

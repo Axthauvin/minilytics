@@ -97,6 +97,7 @@ test('tracker auto-records a pageview and custom events on the script origin', a
       referrer: null,
       language: 'en-US',
       tracking_mode: 'strict',
+      screen: '1440×900',
     },
   });
 
@@ -159,6 +160,7 @@ test('strict mode sends a page-scoped event despite GPC without using web storag
   assert.equal(beacons.length, 1);
   const event = await payload(beacons[0].body);
   assert.equal(event.data.tracking_mode, 'strict');
+  assert.equal(event.data.screen, '1440×900');
   assert.equal(event.session_id, event.visitor_id);
   assert.equal(context.sessionStorage.values.size, 0);
   assert.equal(context.localStorage.values.size, 0);

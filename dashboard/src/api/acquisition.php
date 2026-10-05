@@ -21,7 +21,10 @@ try {
             $channel = $medium ? ucfirst(strtolower($medium)) : ($ref ? 'Referral' : 'Direct');
             if (preg_match('/google|bing|duckduckgo|yahoo/', $source.' '.$ref)) $channel='Organic Search';
             elseif (preg_match('/facebook|instagram|linkedin|twitter|tiktok/', $source.' '.$ref)) $channel='Social';
-            elseif (preg_match('/email|newsletter/', $medium)) $channel='Email';
+            // Webmail clients commonly appear as referrers without UTM
+            // parameters. Attribute those sessions to Email rather than the
+            // generic Referral channel.
+            elseif (preg_match('/email|newsletter/', $medium) || preg_match('/(^|\.)(mail\.google|gmail|outlook|outlook\.office|mail\.yahoo|mail\.proton|protonmail|mail\.icloud)\./i', $ref)) $channel='Email';
             elseif (preg_match('/cpc|ppc|paid|display/', $medium)) $channel='Paid';
             $inc('channels',$channel);
         }

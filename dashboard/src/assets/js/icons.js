@@ -372,7 +372,7 @@ const Icons = {
     }
     const code = String(countryCode).toLowerCase().trim();
     const width = Math.round(size * 1.33);
-    return `<span class="country-flag-wrap ${className}" title="${code.toUpperCase()}"><img src="https://flagcdn.com/${code}.svg" alt="${code.toUpperCase()}" class="country-flag-img fi fi-${code}" width="${width}" height="${size}" loading="lazy" onerror="this.onerror=null; this.outerHTML='<span class=\\'fi fi-${code}\\'></span>';" /></span>`;
+    return `<span class="country-flag-wrap ${className}" title="${code.toUpperCase()}"><img src="https://flagcdn.com/${code}.svg" alt="${code.toUpperCase()}" class="country-flag-img" width="${width}" height="${size}" loading="lazy" onerror="this.onerror=null; this.outerHTML='<span class=\\'fi fi-${code}\\'></span>';" /></span>`;
   },
 
   // Rich Vector Brand Icons for Browsers (via jsdelivr browser-icon@1.0.2 with SVG fallback)

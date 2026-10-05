@@ -482,7 +482,7 @@ const SessionsPage = {
       const hasDetailedEnvironment = Boolean(firstEvt.screen && firstEvt.viewport);
       consentNotice.hidden = hasDetailedEnvironment;
       consentNotice.textContent = session.tracking_mode === "strict"
-        ? "Detailed environment data is not collected in strict mode. Enable enriched analytics through your consent banner to collect it."
+        ? "Screen resolution is collected in strict mode, but viewport data requires enriched analytics and visitor consent."
         : "Detailed environment data was not collected for this session. Analytics consent may not have been granted.";
     }
 
