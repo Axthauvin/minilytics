@@ -21,6 +21,8 @@ const App = {
 
     this.bindNavigation();
     this.bindHeaderActions();
+    this.restoreDateRangePreference();
+    this.syncDateRangeControl();
     this.bindModals();
     this.bindAddSiteModal();
     ClipboardHelper.init();
@@ -237,6 +239,8 @@ const App = {
 
         if (customPopover) customPopover.style.display = "none";
         this.currentRange = val;
+        this.customDates = null;
+        this.persistDateRangePreference();
         this.refreshCurrentPage();
       });
     }
@@ -265,6 +269,7 @@ const App = {
         if (rangeSelect) rangeSelect.value = "custom";
         if (customPopover) customPopover.style.display = "none";
 
+        this.persistDateRangePreference();
         this.refreshCurrentPage();
       });
     }
@@ -305,6 +310,58 @@ const App = {
         }, 500);
       });
     }
+  },
+
+  dateRangeStorageKey() {
+    return "minilytics_date_range";
+  },
+
+  /** Restore the user's last selected reporting period after a page reload. */
+  restoreDateRangePreference() {
+    const validRanges = new Set(["today", "24h", "7d", "30d", "90d", "6m", "all", "custom"]);
+    try {
+      const saved = JSON.parse(localStorage.getItem(this.dateRangeStorageKey()) || "null");
+      if (!saved || !validRanges.has(saved.range)) return;
+
+      if (saved.range === "custom") {
+        const { from, to } = saved.customDates || {};
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(from || "") || !/^\d{4}-\d{2}-\d{2}$/.test(to || "")) return;
+        this.currentRange = "custom";
+        this.customDates = from <= to ? { from, to } : { from: to, to: from };
+      } else {
+        this.currentRange = saved.range;
+        this.customDates = null;
+      }
+    } catch (e) {
+      // Storage is optional; retain the default range when it is unavailable.
+    }
+  },
+
+  persistDateRangePreference() {
+    try {
+      localStorage.setItem(this.dateRangeStorageKey(), JSON.stringify({
+        range: this.currentRange,
+        customDates: this.currentRange === "custom" ? this.customDates : null,
+      }));
+    } catch (e) {
+      // Analytics remains usable in browsers where storage is disabled.
+    }
+  },
+
+  syncDateRangeControl() {
+    const rangeSelect = document.getElementById("rangeSelect");
+    if (!rangeSelect) return;
+
+    if (this.currentRange === "custom" && this.customDates) {
+      const { from, to } = this.customDates;
+      this.customRangeStartPicker?.setValue(from);
+      this.customRangeEndPicker?.setValue(to);
+      const customOption = rangeSelect.querySelector('option[value="custom"]');
+      if (customOption) {
+        customOption.textContent = `${MinilyticsCalendarPicker.formatIsoDate(from)} — ${MinilyticsCalendarPicker.formatIsoDate(to)}`;
+      }
+    }
+    rangeSelect.value = this.currentRange;
   },
 
   updateSiteSelect(sites) {

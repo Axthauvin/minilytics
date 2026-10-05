@@ -437,6 +437,7 @@ try {
 
         $timeseries[] = [
             'timestamp' => $currStep,
+            'interval_hours' => $intervalHours,
             'label' => $timeLabel,
             'date_label' => $dateLabel,
             'full_label' => $fullLabel,

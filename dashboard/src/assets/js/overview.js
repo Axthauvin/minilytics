@@ -315,8 +315,40 @@ const OverviewPage = {
 
   renderChart(timeseries) {
     if (this.chart) {
-      this.chart.setData(timeseries);
+      this.chart.setData(this.localizeHourlyChartLabels(timeseries));
     }
+  },
+
+  /**
+   * Timestamps are sent as Unix seconds. Hourly overview buckets used to show
+   * their UTC label directly, which made the chart appear offset from the
+   * viewer's clock. Keep the server-side bucket intact and format its label in
+   * the browser's timezone.
+   */
+  localizeHourlyChartLabels(timeseries) {
+    if (!Array.isArray(timeseries) || timeseries.length === 0) return timeseries;
+    const isHourly = timeseries.every((point) => Number(point.interval_hours) === 1);
+    if (!isHourly) return timeseries;
+
+    const timeFormatter = new Intl.DateTimeFormat(undefined, { hour: "numeric", hour12: true });
+    const dateFormatter = new Intl.DateTimeFormat(undefined, {
+      weekday: "long", year: "numeric", month: "long", day: "numeric",
+    });
+    const fullFormatter = new Intl.DateTimeFormat(undefined, {
+      weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "numeric", minute: "2-digit",
+    });
+
+    return timeseries.map((point) => {
+      const timestamp = Number(point.timestamp);
+      if (!Number.isFinite(timestamp)) return point;
+      const date = new Date(timestamp * 1000);
+      return {
+        ...point,
+        label: timeFormatter.format(date),
+        date_label: dateFormatter.format(date),
+        full_label: fullFormatter.format(date),
+      };
+    });
   },
 
   /** Open the Sessions page with the day represented by a chart point selected. */
