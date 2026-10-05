@@ -103,6 +103,6 @@ try {
     // only affects the funnel's figures, never which event/page can be chosen.
     $events = []; $er = $db->query("SELECT DISTINCT json_extract(action, '$.name') AS name FROM user_activity ORDER BY name"); while($r=$er->fetchArray(SQLITE3_ASSOC)) if($r['name'] && $r['name'] !== 'pageview') $events[]=$r['name'];
     $pages = []; $pr = $db->query("SELECT DISTINCT json_extract(action, '$.data.path') AS path FROM user_activity WHERE json_extract(action, '$.name')='pageview' ORDER BY path"); while($r=$pr->fetchArray(SQLITE3_ASSOC)) if($r['path'] !== null && $r['path'] !== '') $pages[]=$r['path'];
-    $audienceStmt = $db->prepare('SELECT COUNT(DISTINCT session_id) FROM user_activity WHERE timestamp >= :start AND timestamp <= :end'); $audienceStmt->bindValue(':start',$start,SQLITE3_TEXT); $audienceStmt->bindValue(':end',$end,SQLITE3_TEXT); $audience = (int)$audienceStmt->execute()->fetchArray(SQLITE3_NUM)[0];
+    $audienceStmt = $db->prepare('SELECT COUNT(DISTINCT COALESCE(visitor_id, session_id)) FROM user_activity WHERE timestamp >= :start AND timestamp <= :end'); $audienceStmt->bindValue(':start',$start,SQLITE3_TEXT); $audienceStmt->bindValue(':end',$end,SQLITE3_TEXT); $audience = (int)$audienceStmt->execute()->fetchArray(SQLITE3_NUM)[0];
     echo json_encode(['success'=>true,'funnels'=>$items,'audience'=>$audience,'events'=>$events,'pages'=>$pages]);
 } catch (Throwable $e) { http_response_code(400); echo json_encode(['error'=>$e->getMessage()]); }

@@ -614,11 +614,13 @@ try {
         ];
     }
     // 7. Environment Breakdowns (Browsers, OS, Devices)
-    $envQuery = function(string $field) use ($db, $startDateStr, $endDateStr, $totalPageviews, $siteCondition, $siteParams): array {
+    // These are audience dimensions, not pageview dimensions: a visitor is
+    // counted once for each value they used during the selected period.
+    $envQuery = function(string $field) use ($db, $startDateStr, $endDateStr, $totalVisitors, $siteCondition, $siteParams): array {
         $sql = "
             SELECT 
                 COALESCE(json_extract(action, '$.data.{$field}'), 'Unknown') as label,
-                COUNT(*) as count
+                COUNT(DISTINCT COALESCE(visitor_id, session_id)) as count
             FROM user_activity
             WHERE timestamp >= :start_date AND timestamp <= :end_date
               AND json_extract(action, '$.name') = 'pageview'
@@ -635,7 +637,7 @@ try {
         $list = [];
         while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
             $cnt = (int)$row['count'];
-            $pct = $totalPageviews > 0 ? round(($cnt / $totalPageviews) * 100, 1) : 0;
+            $pct = $totalVisitors > 0 ? round(($cnt / $totalVisitors) * 100, 1) : 0;
             $list[] = [
                 'name' => (string)$row['label'],
                 'count' => $cnt,
@@ -654,12 +656,12 @@ try {
         SELECT 
             COALESCE(json_extract(action, '$.data.country'), 'Unknown') as country,
             COALESCE(json_extract(action, '$.data.country_code'), 'UN') as country_code,
-            COUNT(*) as count
+            COUNT(DISTINCT COALESCE(visitor_id, session_id)) as count
         FROM user_activity
         WHERE timestamp >= :start_date AND timestamp <= :end_date
           AND json_extract(action, '$.name') = 'pageview'
           {$siteCondition}
-        GROUP BY country
+        GROUP BY country, country_code
         ORDER BY count DESC
         LIMIT 100
     ";
@@ -671,7 +673,7 @@ try {
     $topCountries = [];
     while ($cr = $cRes->fetchArray(SQLITE3_ASSOC)) {
         $cnt = (int)$cr['count'];
-        $pct = $totalPageviews > 0 ? round(($cnt / $totalPageviews) * 100, 1) : 0;
+        $pct = $totalVisitors > 0 ? round(($cnt / $totalVisitors) * 100, 1) : 0;
         $topCountries[] = [
             'name' => (string)$cr['country'],
             'code' => strtoupper((string)$cr['country_code']),

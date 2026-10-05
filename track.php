@@ -19,6 +19,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     exit;
 }
 require_once __DIR__ . '/dashboard/src/api/db.php';
+require_once __DIR__ . '/dashboard/src/api/geo.php';
 require_once __DIR__ . '/session.php';
 
 function failTracking(string $message, int $status = 400): never
@@ -66,15 +67,30 @@ function deviceFromUserAgent(string $ua): string
     if (preg_match('/mobile|iphone|ipod|android/i', $ua)) return 'Mobile';
     return 'Desktop';
 }
-function trackingLocation(string $ip): array
+function trackingLocation(SQLite3 $db, string $ip): array
 {
-    $code = strtoupper(trim((string)($_SERVER['HTTP_CF_IPCOUNTRY'] ?? $_SERVER['GEOIP_COUNTRY_CODE'] ?? '')));
-    if (preg_match('/^[A-Z]{2}$/', $code) && $code !== 'XX') {
-        $name = class_exists('Locale') ? Locale::getDisplayRegion('und_' . $code, 'en') : $code;
-        return ['country' => $name ?: $code, 'country_code' => $code];
+    // Keep geolocation server-side and privacy-preserving. Different managed
+    // proxies expose the same ISO country code under different header names.
+    // Do not use X-Forwarded-For here: it is an IP chain, not a country code.
+    $locationHeaders = [
+        ['country' => 'HTTP_CF_IPCOUNTRY', 'region' => 'HTTP_CF_REGION_CODE', 'city' => 'HTTP_CF_IPCITY'],
+        ['country' => 'HTTP_X_VERCEL_IP_COUNTRY', 'region' => 'HTTP_X_VERCEL_IP_COUNTRY_REGION', 'city' => 'HTTP_X_VERCEL_IP_CITY'],
+        ['country' => 'HTTP_CLOUDFRONT_VIEWER_COUNTRY', 'region' => 'HTTP_CLOUDFRONT_VIEWER_COUNTRY_REGION', 'city' => 'HTTP_CLOUDFRONT_VIEWER_CITY'],
+        ['country' => 'HTTP_FASTLY_CLIENT_COUNTRY_CODE', 'region' => '', 'city' => ''],
+        ['country' => 'GEOIP_COUNTRY_CODE', 'region' => 'GEOIP_REGION_NAME', 'city' => 'GEOIP_CITY'],
+    ];
+    foreach ($locationHeaders as $headers) {
+        $candidate = trim((string)($_SERVER[$headers['country']] ?? ''));
+        if ($candidate !== '') {
+            $code = strtoupper($candidate);
+            if (preg_match('/^[A-Z]{2}$/', $code) && $code !== 'XX') {
+                $name = class_exists('Locale') ? Locale::getDisplayRegion('und_' . $code, 'en') : $code;
+                return ['country' => $name ?: $code, 'country_code' => $code, 'region' => trim((string)($_SERVER[$headers['region']] ?? '')), 'city' => trim((string)($_SERVER[$headers['city']] ?? ''))];
+            }
+        }
     }
-    if ($ip === '::1' || str_starts_with($ip, '127.') || filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) return ['country' => 'Local development', 'country_code' => 'UN'];
-    return ['country' => 'Unknown', 'country_code' => 'UN'];
+    if ($ip === '::1' || str_starts_with($ip, '127.') || filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) return ['country' => 'Local development', 'country_code' => 'UN', 'region' => '', 'city' => ''];
+    return GeoLocation::lookup($ip) ?? ['country' => 'Unknown', 'country_code' => 'UN', 'region' => '', 'city' => ''];
 }
 function activeSessionId(SQLite3 $db, string $visitorId): ?string
 {
@@ -159,7 +175,7 @@ if (isset($data['referrer'])) $data['referrer'] = trackingHost((string)$data['re
 $data['browser'] = browserFromUserAgent($ua);
 $data['os'] = osFromUserAgent($ua);
 $data['device'] = deviceFromUserAgent($ua);
-$data = array_merge($data, trackingLocation($ip));
+$data = array_merge($data, trackingLocation($db, $ip));
 if ($trackingMode === 'strict') {
     $visitor = generateVisitorId((string)$site['id'], $ip, $ua);
     $session = activeSessionId($db, $visitor) ?? generateSessionId();

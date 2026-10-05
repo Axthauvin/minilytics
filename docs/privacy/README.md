@@ -47,6 +47,8 @@ In a site's settings, administrators can allow specific domains, exclude interna
 
 For a multi-node deployment, configure the same `MINILYTICS_TRACKING_SECRET` value on every node. Otherwise, Minilytics stores a local secret in `data/.tracking-secret`.
 
-When supplied by the infrastructure, location detection uses the `CF-IPCountry` or `GEOIP_COUNTRY_CODE` header. It does not call a third-party geolocation service.
+Minilytics determines country, region and city from the request IP without storing that IP. It first uses location headers supplied by Cloudflare, Vercel, CloudFront, Fastly or Apache GeoIP/MaxMind. Otherwise it uses the local DB-IP City Lite database. The database is downloaded automatically on first use and refreshed monthly; no API key, account, lookup quota or per-visitor external request is involved. City-level IP location is approximate and must not be treated as a precise address.
+
+The bundled reader is licensed under Apache-2.0. DB-IP City Lite data is licensed under CC BY 4.0 and is attributed in the dashboard.
 
 See also: [tracking](../tracking/README.md), [operations](../operations/README.md), [documentation index](../README.md).

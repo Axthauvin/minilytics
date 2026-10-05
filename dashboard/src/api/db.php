@@ -111,14 +111,14 @@ class Database {
                 try {
                     $db = self::getConnection($site['id']);
                     $views = (int)$db->querySingle("SELECT COUNT(*) FROM user_activity WHERE json_extract(action, '$.name') = 'pageview'");
-                    $visitors = (int)$db->querySingle("SELECT COUNT(DISTINCT session_id) FROM user_activity");
-                    $visitors7d = (int)$db->querySingle("SELECT COUNT(DISTINCT session_id) FROM user_activity WHERE timestamp >= '{$sevenDaysAgo}'");
+                    $visitors = (int)$db->querySingle("SELECT COUNT(DISTINCT COALESCE(visitor_id, session_id)) FROM user_activity");
+                    $visitors7d = (int)$db->querySingle("SELECT COUNT(DISTINCT COALESCE(visitor_id, session_id)) FROM user_activity WHERE timestamp >= '{$sevenDaysAgo}'");
                     $liveThresh = gmdate('Y-m-d H:i:s', time() - 300);
-                    $live = (int)$db->querySingle("SELECT COUNT(DISTINCT session_id) FROM user_activity WHERE timestamp >= '{$liveThresh}'");
+                    $live = (int)$db->querySingle("SELECT COUNT(DISTINCT COALESCE(visitor_id, session_id)) FROM user_activity WHERE timestamp >= '{$liveThresh}'");
                     $lastActive = $db->querySingle("SELECT MAX(timestamp) FROM user_activity");
 
                     // Real daily visitors for the 7 days
-                    $spStmt = $db->prepare("SELECT strftime('%Y-%m-%d', timestamp) as day, COUNT(DISTINCT session_id) as v 
+                    $spStmt = $db->prepare("SELECT strftime('%Y-%m-%d', timestamp) as day, COUNT(DISTINCT COALESCE(visitor_id, session_id)) as v
                                            FROM user_activity 
                                            WHERE timestamp >= :start_date 
                                            GROUP BY day");

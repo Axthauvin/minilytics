@@ -73,6 +73,7 @@ if ($path === '/dashboard') {
                 <?php include __DIR__ . '/src/pages/funnels.php'; ?>
                 <?php include __DIR__ . '/src/pages/settings.php'; ?>
             </main>
+            <p style="margin: 0 32px 20px; font-size: 11px; color: var(--text-muted);"><a href="https://db-ip.com" target="_blank" rel="noopener noreferrer" style="color: inherit;">IP Geolocation by DB-IP</a></p>
         </div>
     </div>
 

@@ -183,7 +183,7 @@
             </div>
             <div class="card-column-headers">
                 <span id="envColumnHeader">Browser</span>
-                <span style="text-align: right;">Views</span>
+                <span style="text-align: right;">Visitors</span>
             </div>
             <ul class="clean-pill-list" id="envList">
                 <li class="clean-pill-row empty"><span class="pill-muted">No environment data recorded yet</span></li>
@@ -205,7 +205,7 @@
             </div>
             <div class="card-column-headers">
                 <span>Country</span>
-                <span style="text-align: right;">Views</span>
+                <span style="text-align: right;">Visitors</span>
             </div>
             <ul class="clean-pill-list" id="countriesList">
                 <li class="clean-pill-row empty"><span class="pill-muted">No country data recorded yet</span></li>
