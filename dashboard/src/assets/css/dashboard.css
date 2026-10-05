@@ -520,6 +520,7 @@ body {
     align-items: center;
     gap: 8px;
     padding: 6px 8px;
+    min-width: 0;
 }
 
 .user-avatar {
@@ -533,6 +534,12 @@ body {
     justify-content: center;
     font-weight: 700;
     font-size: 11px;
+    flex: 0 0 24px;
+}
+
+.user-info {
+    min-width: 0;
+    flex: 1;
 }
 
 .user-name {
@@ -541,6 +548,9 @@ body {
     color: var(--text-primary);
     display: block;
     line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .user-role {

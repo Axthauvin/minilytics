@@ -131,7 +131,7 @@
             <div class="user-avatar"><?php $authUser = Auth::user();
                                         echo htmlspecialchars(strtoupper(substr($authUser['email'] ?? 'A', 0, 1))); ?></div>
             <div class="user-info">
-                <span class="user-name"><?php echo htmlspecialchars($authUser['email'] ?? 'Admin'); ?></span>
+                <span class="user-name" title="<?php echo htmlspecialchars($authUser['email'] ?? 'Admin'); ?>"><?php echo htmlspecialchars($authUser['email'] ?? 'Admin'); ?></span>
                 <a class="user-role" href="/dashboard/logout.php">Sign out</a>
             </div>
         </div>
