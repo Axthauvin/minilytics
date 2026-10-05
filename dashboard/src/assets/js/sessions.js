@@ -481,9 +481,13 @@ const SessionsPage = {
     if (consentNotice) {
       const hasDetailedEnvironment = Boolean(firstEvt.screen && firstEvt.viewport);
       consentNotice.hidden = hasDetailedEnvironment;
-      consentNotice.textContent = session.tracking_mode === "strict"
-        ? "Screen resolution is collected in strict mode, but viewport data requires enriched analytics and visitor consent."
-        : "Detailed environment data was not collected for this session. Analytics consent may not have been granted.";
+      if (session.tracking_mode === "strict") {
+        consentNotice.textContent = firstEvt.screen
+          ? "Screen resolution is collected in strict mode, but viewport data requires enriched analytics and visitor consent."
+          : "This historical session did not include screen resolution. Reload the tracked site so it receives the latest tracker; existing sessions cannot be updated.";
+      } else {
+        consentNotice.textContent = "Detailed environment data was not collected for this session. Analytics consent may not have been granted.";
+      }
     }
 
     // Render the page journey with a clean properties card.
