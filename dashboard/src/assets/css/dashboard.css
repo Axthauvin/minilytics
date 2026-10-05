@@ -2930,6 +2930,7 @@ pre, .json-box, .code-box {
     align-items: center;
     gap: 8px;
     min-width: 0;
+    flex-wrap: wrap;
 }
 
 .journey-step-icon {
@@ -2950,6 +2951,7 @@ pre, .json-box, .code-box {
     font-size: 12.5px;
     color: var(--text-muted);
     font-weight: 400;
+    word-break: break-all;
 }
 
 .journey-step-time {
@@ -2962,8 +2964,13 @@ pre, .json-box, .code-box {
 .journey-step-meta-row {
     display: flex;
     align-items: center;
-    gap: 14px;
-    margin-top: 4px;
+    gap: 8px 12px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+
+.events-list-container .journey-steps-container {
+    padding: 20px 24px;
 }
 
 .journey-step-dur {
@@ -3166,42 +3173,55 @@ pre, .json-box, .code-box {
 /* ── Events page series multi-select ────────────────────────────────── */
 .event-insights-strip {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0;
     margin: -2px 0 18px;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     background: #fbfdff;
+    overflow: hidden;
 }
 .event-insight {
     min-width: 0;
-    padding: 11px 14px;
+    padding: 14px 20px;
     border-right: 1px solid var(--border);
 }
 .event-insight:last-child { border-right: 0; }
 .event-insight-label {
     display: block;
-    margin-bottom: 3px;
+    margin-bottom: 4px;
     color: var(--text-muted);
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
 }
+.event-insight-metric {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+}
 .event-insight-value {
     display: inline-block;
-    margin-right: 6px;
+    flex-shrink: 0;
     color: var(--text-primary);
-    font-size: 17px;
+    font-size: 22px;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
+    line-height: 1.2;
 }
 .event-insight-detail {
+    display: block;
+    flex: 1 1 0%;
+    min-width: 0;
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: 13px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     vertical-align: baseline;
+    line-height: 1.2;
 }
 .event-series-combobox {
     position: relative;
@@ -3391,7 +3411,11 @@ pre, .json-box, .code-box {
 @media (max-width: 767px) {
     .event-insights-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .event-insight:nth-child(2) { border-right: 0; }
-    .event-insight:nth-child(-n + 2) { border-bottom: 1px solid var(--border); }
+    .event-insight:nth-child(1),
+    .event-insight:nth-child(2) { border-bottom: 1px solid var(--border); }
+    .event-insight:nth-child(3) { grid-column: 1 / -1; border-right: 0; }
+    .event-series-combobox { width: 100%; min-width: 0; }
+    .events-list-container .journey-steps-container { padding: 16px 14px; }
     body { font-size: 13px; overflow-x: hidden; }
     .content-container { padding: 16px 14px 32px; }
     .top-header { height: auto; min-height: 58px; padding: 10px 14px; gap: 10px; align-items: flex-start; }
@@ -3536,6 +3560,20 @@ pre, .json-box, .code-box {
     .import-site-fields { grid-template-columns: 1fr !important; }
 }
 
+@media (max-width: 480px) {
+    .event-insights-strip {
+        grid-template-columns: 1fr;
+    }
+    .event-insight {
+        grid-column: auto !important;
+        border-right: 0 !important;
+        border-bottom: 1px solid var(--border);
+    }
+    .event-insight:last-child {
+        border-bottom: 0;
+    }
+}
+
 @media (max-width: 420px) {
     .top-header { padding: 9px 10px; }
     .content-container { padding-inline: 10px; }
@@ -3549,6 +3587,13 @@ pre, .json-box, .code-box {
     .metric-val { font-size: 18px; }
     .session-card-right { padding-left: 0; }
     .custom-range-footer .btn { flex: 1; }
+    .event-insight { padding: 11px 14px; }
+    .event-insight-value { font-size: 19px; }
+    .events-list-container .journey-steps-container { padding: 12px 10px; }
+    .journey-step-item { gap: 10px; }
+    .journey-step-circle { width: 24px; height: 24px; font-size: 11px; }
+    .journey-step-left { width: 24px; }
+    .pagination-footer { flex-wrap: wrap; gap: 8px; }
 }
 
 /* ==========================================================================

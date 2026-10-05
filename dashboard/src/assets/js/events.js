@@ -116,7 +116,7 @@ const EventsPage = {
       }
 
       const data = await Api.getEvents(this.filters);
-      this.renderInsights(data.total || 0, data.types || [], data.chart_data || [], data.series || []);
+      this.renderInsights(data.total || 0, data.types || []);
       this.renderTrend(data.chart_data || [], data.series || []);
       this.renderEvents(data.events || []);
       this.renderPagination(data);
@@ -132,20 +132,10 @@ const EventsPage = {
 
   // ── Rendering ────────────────────────────────────────────────────────────
 
-  renderInsights(total, types, points, series) {
+  renderInsights(total, types) {
     const container = document.getElementById("eventInsightsStrip");
     if (!container) return;
     const topEvent = types[0];
-    let peak = null;
-    const namesByKey = new Map(series.map((item) => [item.key, item.name]));
-    points.forEach((point) => {
-      series.forEach((item) => {
-        const count = Number(point[item.key]) || 0;
-        if (!peak || count > peak.count) {
-          peak = { count, name: namesByKey.get(item.key) || item.name, label: point.full_label || point.label || "" };
-        }
-      });
-    });
 
     const metrics = [
       { label: "Events tracked", value: Number(total).toLocaleString(), detail: "in this period" },
@@ -153,15 +143,14 @@ const EventsPage = {
       topEvent
         ? { label: "Top event", value: Number(topEvent.count).toLocaleString(), detail: topEvent.name }
         : { label: "Top event", value: "—", detail: "No events" },
-      peak && peak.count > 0
-        ? { label: "Largest peak", value: peak.count.toLocaleString(), detail: `${peak.name} · ${peak.label}` }
-        : { label: "Largest peak", value: "—", detail: "No events" },
     ];
     container.innerHTML = metrics.map((metric) => `
       <div class="event-insight">
         <span class="event-insight-label">${this.esc(metric.label)}</span>
-        <strong class="event-insight-value">${this.esc(metric.value)}</strong>
-        <span class="event-insight-detail" title="${this.esc(metric.detail)}">${this.esc(metric.detail)}</span>
+        <div class="event-insight-metric">
+          <strong class="event-insight-value">${this.esc(metric.value)}</strong>
+          <span class="event-insight-detail" title="${this.esc(metric.detail)}">${this.esc(metric.detail)}</span>
+        </div>
       </div>`).join("");
   },
 
@@ -294,8 +283,23 @@ const EventsPage = {
     const menu = document.getElementById("eventsSeriesMenu");
     if (!trigger || !menu || menu.hidden || !menu.classList.contains("event-series-combobox-menu-portal")) return;
     const triggerRect = trigger.getBoundingClientRect();
+    const margin = 12;
+    const maxAvailableWidth = Math.max(200, window.innerWidth - margin * 2);
+    const menuWidth = Math.min(330, maxAvailableWidth);
+
     menu.style.top = `${Math.max(8, triggerRect.bottom + 7)}px`;
-    menu.style.right = `${Math.max(12, window.innerWidth - triggerRect.right)}px`;
+    menu.style.width = `${menuWidth}px`;
+    menu.style.maxWidth = `${maxAvailableWidth}px`;
+
+    const rightOffset = Math.max(margin, window.innerWidth - triggerRect.right);
+    if (window.innerWidth - rightOffset - menuWidth < margin) {
+      const leftPos = Math.max(margin, Math.min(triggerRect.left, window.innerWidth - menuWidth - margin));
+      menu.style.left = `${leftPos}px`;
+      menu.style.right = "auto";
+    } else {
+      menu.style.right = `${rightOffset}px`;
+      menu.style.left = "auto";
+    }
   },
 
   renderEvents(events) {
@@ -452,7 +456,7 @@ const EventsPage = {
                 </div>
             </div>`;
 
-    container.innerHTML = `<div class="journey-steps-container" style="padding: 20px 24px;">${rows}${endMarker}</div>`;
+    container.innerHTML = `<div class="journey-steps-container">${rows}${endMarker}</div>`;
   },
 
   toggleStepProps(id, btn) {

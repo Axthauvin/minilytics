@@ -519,7 +519,8 @@ class MinilyticsChart {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
 
-        const labelInterval = Math.max(1, Math.floor(this.data.length / 7));
+        const maxLabels = this.width < 420 ? 3 : (this.width < 640 ? 5 : 7);
+        const labelInterval = Math.max(1, Math.floor(this.data.length / maxLabels));
         for (let i = 0; i < this.data.length; i += labelInterval) {
             const ptX = this.chartType === 'bar'
                 ? plotX + (i + 0.5) * (plotWidth / this.data.length)
