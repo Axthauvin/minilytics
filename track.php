@@ -19,7 +19,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     exit;
 }
 require_once __DIR__ . '/dashboard/src/api/db.php';
-require_once __DIR__ . '/dashboard/src/api/geo.php';
+// GeoIP enrichment is optional: an incomplete deployment or an unavailable
+// extension must never make the public collection endpoint return a 500.
+try {
+    $geoHelper = __DIR__ . '/dashboard/src/api/geo.php';
+    if (is_file($geoHelper)) require_once $geoHelper;
+} catch (Throwable $error) {
+    error_log('[Minilytics] GeoIP module could not be loaded: ' . $error->getMessage());
+}
 require_once __DIR__ . '/session.php';
 
 function failTracking(string $message, int $status = 400): never
@@ -90,7 +97,15 @@ function trackingLocation(SQLite3 $db, string $ip): array
         }
     }
     if ($ip === '::1' || str_starts_with($ip, '127.') || filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) return ['country' => 'Local development', 'country_code' => 'UN', 'region' => '', 'city' => ''];
-    return GeoLocation::lookup($ip) ?? ['country' => 'Unknown', 'country_code' => 'UN', 'region' => '', 'city' => ''];
+    if (class_exists('GeoLocation')) {
+        try {
+            $location = GeoLocation::lookup($ip);
+            if (is_array($location)) return $location;
+        } catch (Throwable $error) {
+            error_log('[Minilytics] GeoIP lookup failed: ' . $error->getMessage());
+        }
+    }
+    return ['country' => 'Unknown', 'country_code' => 'UN', 'region' => '', 'city' => ''];
 }
 function activeSessionId(SQLite3 $db, string $visitorId): ?string
 {
@@ -175,7 +190,12 @@ if (isset($data['referrer'])) $data['referrer'] = trackingHost((string)$data['re
 $data['browser'] = browserFromUserAgent($ua);
 $data['os'] = osFromUserAgent($ua);
 $data['device'] = deviceFromUserAgent($ua);
-$data = array_merge($data, trackingLocation($db, $ip));
+try {
+    $data = array_merge($data, trackingLocation($db, $ip));
+} catch (Throwable $error) {
+    error_log('[Minilytics] GeoIP enrichment failed: ' . $error->getMessage());
+    $data = array_merge($data, ['country' => 'Unknown', 'country_code' => 'UN', 'region' => '', 'city' => '']);
+}
 if ($trackingMode === 'strict') {
     $visitor = generateVisitorId((string)$site['id'], $ip, $ua);
     $session = activeSessionId($db, $visitor) ?? generateSessionId();

@@ -31,6 +31,7 @@ test('tracker accepts country codes from supported server-side geo providers', (
     assert.match(tracker, new RegExp(`'${header}'`));
   }
   assert.match(tracker, /GeoLocation::lookup\(\$ip\)/);
+  assert.match(tracker, /GeoIP enrichment failed/);
 });
 
 test('local GeoIP database is refreshed without an API key or visitor lookup', () => {
