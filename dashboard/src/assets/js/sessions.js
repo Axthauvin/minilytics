@@ -96,6 +96,11 @@ const SessionsPage = {
         this.showListView();
       });
     }
+
+    const deleteBtn = document.getElementById("btnDeleteSession");
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", () => this.deleteActiveSession());
+    }
   },
 
   filterByDay(dayKey) {
@@ -364,6 +369,32 @@ const SessionsPage = {
       this.showDetailView();
     } catch (err) {
       console.error("Failed to inspect session:", err);
+    }
+  },
+
+  async deleteActiveSession() {
+    const sessionId = this.activeSession?.session_id;
+    const siteId = this.filters.siteId || window.App?.currentSiteId || "";
+    if (!sessionId) return;
+    if (!window.confirm(`Delete session ${sessionId} and all of its events? This cannot be undone.`)) return;
+
+    const button = document.getElementById("btnDeleteSession");
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Deleting…";
+    }
+    try {
+      await Api.deleteSession(sessionId, siteId);
+      this.showListView();
+      this.filters.page = 1;
+      await this.load();
+    } catch (err) {
+      window.alert(`Could not delete this session: ${err.message}`);
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent = "Delete session";
+      }
     }
   },
 

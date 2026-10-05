@@ -83,6 +83,7 @@
                 </svg>
                 <span>Back to sessions</span>
             </button>
+            <button type="button" class="btn-delete-session" id="btnDeleteSession">Delete session</button>
         </div>
 
         <!-- 2-Column Inspection Grid -->

@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
 require_once __DIR__ . '/auth.php';
 Auth::requireLogin();
 
@@ -32,7 +34,31 @@ $formatDurationLabel = static function (int $seconds): string {
 };
 
 try {
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
+        http_response_code(204);
+        exit;
+    }
     $siteId = $_GET['site_id'] ?? $_GET['site'] ?? null;
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'DELETE') {
+        Auth::requireAdmin();
+        $input = json_decode((string)file_get_contents('php://input'), true) ?: [];
+        $siteId = $input['site_id'] ?? $siteId;
+        $sessionId = trim((string)($input['session_id'] ?? $_GET['session_id'] ?? ''));
+        if ($sessionId === '' || strlen($sessionId) > 255) throw new InvalidArgumentException('A valid session ID is required.');
+        $cleanSite = Database::sanitizeSiteId($siteId);
+        $db = Database::getConnection($cleanSite);
+        $delete = $db->prepare('DELETE FROM user_activity WHERE session_id = :session_id');
+        $delete->bindValue(':session_id', $sessionId, SQLITE3_TEXT);
+        $delete->execute();
+        $deleted = $db->changes();
+        if ($deleted === 0) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Session not found']);
+            exit;
+        }
+        echo json_encode(['success' => true, 'deleted_events' => $deleted]);
+        exit;
+    }
     $cleanSite = Database::sanitizeSiteId($siteId);
     $db = Database::getConnection($cleanSite);
 

@@ -120,6 +120,17 @@ const Api = {
     return await res.json();
   },
 
+  async deleteSession(sessionId, siteId = "") {
+    const res = await fetch(`${this.base}/sessions.php`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: sessionId, site_id: siteId || window.App?.currentSiteId || "" }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  },
+
   async getFunnels({ range = "7d", siteId = "", customDates = null } = {}) {
     const targetSite = siteId || window.App?.currentSiteId || "";
     const params = new URLSearchParams({ range });

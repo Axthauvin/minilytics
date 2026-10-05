@@ -41,3 +41,14 @@ test('local GeoIP database is refreshed without an API key or visitor lookup', (
   assert.match(geo, /new \\MaxMind\\Db\\Reader/);
   assert.doesNotMatch(geo, /api[_-]?key|token=/i);
 });
+
+test('sessions API deletes only a selected session and UI requires confirmation', () => {
+  const api = read('dashboard/src/api/sessions.php');
+  const client = read('dashboard/src/assets/js/api.js');
+  const sessions = read('dashboard/src/assets/js/sessions.js');
+
+  assert.match(api, /Auth::requireAdmin\(\)/);
+  assert.match(api, /DELETE FROM user_activity WHERE session_id = :session_id/);
+  assert.match(client, /async deleteSession\(sessionId, siteId/);
+  assert.match(sessions, /Delete session \$\{sessionId\} and all of its events/);
+});

@@ -2812,6 +2812,20 @@ pre, .json-box, .code-box {
     align-items: start;
 }
 
+.btn-delete-session {
+    float: right;
+    border: 1px solid #fecaca;
+    border-radius: 7px;
+    background: #fff;
+    color: #b91c1c;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 11px;
+}
+.btn-delete-session:hover:not(:disabled) { background: #fef2f2; border-color: #fca5a5; }
+.btn-delete-session:disabled { cursor: wait; opacity: .65; }
+
 @media (max-width: 950px) {
     .session-detail-grid {
         grid-template-columns: 1fr;
