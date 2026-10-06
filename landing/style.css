@@ -110,12 +110,33 @@ body {
   font-size: 12px;
   font-weight: 800;
   text-decoration: none;
-  box-shadow: 0 2px 0 #00000018;
-  transition: 0.2s;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease;
 }
 .button:hover {
-  transform: translateY(-2px);
-  background: #27364e;
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow:
+    0 4px 14px -2px rgba(16, 24, 40, 0.25),
+    0 2px 4px -1px rgba(16, 24, 40, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.button:active {
+  background: #0f172a;
+  border-color: #0f172a;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.12),
+    inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.button:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
 }
 .button i,
 .text-link i {
@@ -611,6 +632,12 @@ body {
   color: var(--muted);
   font-size: 13px;
 }
+
+.principles-intro em {
+  color: var(--blue);
+  font-style: normal;
+}
+
 .principles-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
