@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="A simple, private, GDPR-friendly self-hosted web analytics dashboard."
+    />
+    <title>Minilytics: private, GDPR-friendly web analytics</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" type="image/x-icon" href="../favicon.svg" />
+  </head>
+  <body>
+    <header class="nav wrap">
+      <a class="brand" href="#top"
+        ><img src="../dashboard/src/assets/logo.svg" alt="" /><span
+          >Minilytics</span
+        ></a
+      >
+      <nav aria-label="Primary navigation">
+        <a href="#product">Product</a
+        ><a href="#why-minilytics">Why Minilytics</a
+        ><a href="install.html">Install</a>
+      </nav>
+      <a
+        class="nav-github"
+        href="https://github.com/axthauvin/minilytics"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="GitHub repository"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+          ></path>
+        </svg>
+        <span>Explore on GitHub</span>
+        <i data-lucide="arrow-up-right"></i>
+      </a>
+    </header>
+    <main id="top">
+      <section class="hero wrap">
+        <div class="hero-copy">
+          <h1>Analytics,<br /><em>lightweight by design</em></h1>
+          <p class="hero-lead">
+            Beautiful, <strong>GDPR-friendly</strong> self-hosted analytics
+            engine built for speed and privacy. Powered by
+            <strong>lightweight PHP</strong> with no cookies or heavy background
+            processes.
+          </p>
+          <div class="hero-actions">
+            <a class="button" href="install.html"
+              ><i data-lucide="download"></i>Download Minilytics</a
+            >
+          </div>
+        </div>
+        <div class="hero-visual-wrap">
+          <div class="hero-glow" aria-hidden="true"></div>
+          <div class="hero-product-shot">
+            <div class="browser-bar">
+              <div class="browser-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <div class="browser-address">
+                <i data-lucide="lock"></i>
+                <span>analytics.your-domain.com/dashboard/</span>
+              </div>
+              <div class="browser-actions"></div>
+            </div>
+            <img
+              src="images/dashboard.png"
+              alt="Minilytics dashboard overview"
+            />
+          </div>
+        </div>
+      </section>
+      <section class="product-intro wrap" id="product">
+        <h2>Visitors, events and <em>funnels.</em></h2>
+        <p>
+          Minilytics comes with all the essential features to understand how
+          your site is used, without being bloated.
+        </p>
+      </section>
+      <section class="showcase wrap" aria-label="Minilytics features">
+        <article class="product-card sessions-card">
+          <div class="card-copy">
+            <i data-lucide="users-round"></i>
+            <h3>Sessions</h3>
+            <p class="card-lead">
+              Track each visitor's journey in detail with device, location, and
+              chronological page views.
+            </p>
+            <p class="card-sub">
+              Identify top referrers, entry and exit pages, and session duration
+              without setting a single client-side cookie.
+            </p>
+          </div>
+          <div class="product-shot session-shot">
+            <img
+              src="images/sessions.png"
+              alt="Minilytics sessions interface showing visitor journeys and devices"
+            />
+          </div>
+        </article>
+        <article class="product-card events-card">
+          <div class="card-copy">
+            <i data-lucide="zap"></i>
+            <h3>Events</h3>
+            <p class="card-lead">
+              Monitor clicks, downloads, and custom interactions as they happen
+              with an interactive activity stream.
+            </p>
+            <p class="card-sub">
+              Follow event evolution over time to spot trends, measure feature
+              engagement, and analyze spikes with zero overhead.
+            </p>
+          </div>
+          <div class="product-shot event-shot">
+            <img
+              src="images/events.png"
+              alt="Minilytics events interface showing event activity"
+            />
+          </div>
+        </article>
+        <article class="product-card funnels-card">
+          <div class="card-copy">
+            <i data-lucide="funnel"></i>
+            <h3>Funnels</h3>
+            <p class="card-lead">
+              Define key conversion goals and track complete multi-step visitor
+              journeys from first touch to completion.
+            </p>
+            <p class="card-sub">
+              Visualize where users drop off at each step, compare conversion
+              rates across journeys, and optimize your flow to turn visits into
+              results.
+            </p>
+          </div>
+          <div class="product-shot funnel-shot">
+            <img
+              src="images/funnels.png"
+              alt="Minilytics funnel interface showing conversion steps"
+            />
+          </div>
+        </article>
+      </section>
+      <section class="principles wrap" id="why-minilytics">
+        <div class="principles-intro">
+          <h2>
+            Private <br />
+            <em>by default.</em>
+          </h2>
+          <p>
+            Useful analytics, without handing your visitor data to someone else.
+          </p>
+        </div>
+        <div class="principles-grid">
+          <article>
+            <i data-lucide="shield-check"></i>
+            <h3>Privacy-focused</h3>
+            <p>Strict mode works without client-side storage.</p>
+          </article>
+          <article>
+            <i data-lucide="feather"></i>
+            <h3>Lightweight</h3>
+            <p>No Node.js runtime or database server.</p>
+          </article>
+          <article>
+            <i data-lucide="server"></i>
+            <h3>Self-hosted</h3>
+            <p>Run it wherever standard PHP is available.</p>
+          </article>
+        </div>
+      </section>
+      <section class="install wrap" id="install">
+        <div class="install-content">
+          <h2>Ready to <em>install?</em></h2>
+          <p class="install-lead">
+            Download the archive and run Minilytics in minutes on your local
+            machine or server. No Node.js runtime or database server required.
+          </p>
+          <div class="install-actions">
+            <a class="button" href="install.html"
+              ><i data-lucide="download"></i>View installation guide</a
+            >
+            <a
+              class="button-secondary"
+              href="https://github.com/axthauvin/minilytics"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="GitHub repository"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+                ></path>
+              </svg>
+              <span>GitHub</span>
+            </a>
+          </div>
+        </div>
+        <div class="install-terminal">
+          <div class="terminal-bar">
+            <div class="terminal-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <button
+              class="terminal-copy"
+              type="button"
+              aria-label="Copy commands"
+              title="Copy commands"
+              data-copy="curl -LO https://github.com/axthauvin/minilytics/releases/latest/download/minilytics.tar.gz
+tar -xzf minilytics.tar.gz"
+            >
+              <svg class="copy-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+              </svg>
+              <svg class="check-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </button>
+          </div>
+          <pre class="terminal-body"><code><span class="t-comment"># Download &amp; unpack archive</span>
+<span class="t-cmd"><span class="t-prompt">$</span> curl -LO https://github.com/axthauvin/minilytics/releases/latest/download/minilytics.tar.gz</span>
+<span class="t-cmd"><span class="t-prompt">$</span> tar -xzf minilytics.tar.gz</span></code></pre>
+        </div>
+      </section>
+    </main>
+    <footer class="wrap">
+      <a class="brand" href="#top"
+        ><img src="../dashboard/src/assets/logo.svg" alt="" /><span
+          >Minilytics</span
+        ></a
+      ><span>Minimal, self-hosted web analytics.</span
+      ><a href="https://github.com/axthauvin/minilytics"
+        >GitHub <i data-lucide="arrow-up-right"></i
+      ></a>
+    </footer>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

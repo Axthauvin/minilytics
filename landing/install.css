@@ -1,0 +1,251 @@
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #536076;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.back-link i,
+.back-link svg {
+  width: 16px;
+  height: 16px;
+}
+.install-hero {
+  padding: 88px 0 72px;
+  text-align: center;
+}
+.install-hero h1 {
+  margin: 0 0 18px;
+  font-size: clamp(44px, 5vw, 64px);
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+.install-hero h1 em {
+  color: var(--blue);
+  font-style: normal;
+}
+.install-hero > p:not(.eyebrow) {
+  max-width: 540px;
+  margin: 0 auto 27px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.requirements {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fff;
+  margin: 80px auto;
+}
+.requirements article {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 24px 28px;
+  border-right: 1px solid var(--line);
+}
+.requirements article:last-child {
+  border: 0;
+}
+.requirements i,
+.requirements svg {
+  width: 24px;
+  height: 24px;
+  color: var(--blue);
+}
+.requirements strong,
+.requirements span {
+  display: block;
+}
+.requirements strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.requirements span {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.requirements span code {
+  font-size: 12px;
+  padding: 1px 4px;
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.guide-heading h2 {
+  margin: 0 0 35px;
+  font-size: 42px;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.guide-card {
+  position: relative;
+  padding: 30px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fff;
+}
+.guide-number {
+  position: absolute;
+  top: 25px;
+  right: 27px;
+  color: #c1c8d4;
+  font:
+    12px "JetBrains Mono",
+    monospace;
+}
+.guide-card > i,
+.guide-card > svg {
+  width: 24px;
+  height: 24px;
+  color: var(--blue);
+}
+.guide-card h3 {
+  margin: 18px 0 6px;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+.guide-card > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.guide-card ol {
+  display: grid;
+  gap: 12px;
+  margin: 22px 0;
+  padding-left: 20px;
+  color: #475569;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.guide-card li::marker {
+  color: var(--blue);
+  font-weight: 800;
+}
+.guide-card code {
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: #334155;
+  background: #f1f5f9;
+  font:
+    12px "JetBrains Mono",
+    monospace;
+}
+.guide-card pre code {
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+}
+.guide-card aside {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-radius: 8px;
+  background: #f5f9ff;
+  color: #475569;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.guide-card aside strong {
+  color: var(--ink);
+  font-size: 12.5px;
+}
+.guide-card pre {
+  margin: 20px 0 0;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: #182235;
+  color: #dce7fb;
+  font:
+    12.5px/1.55 "JetBrains Mono",
+    monospace;
+}
+.guide-card pre .prompt {
+  color: #99e6c6;
+}
+.after-install {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 25px;
+  margin-bottom: 68px;
+  padding: 39px 45px;
+  border: 1px solid #dbeafe;
+  border-radius: 17px;
+  background: #f5f9ff;
+}
+.after-install h2 {
+  margin: 0 0 6px;
+  font-size: 30px;
+  letter-spacing: -0.025em;
+}
+.after-install p:not(.eyebrow) {
+  max-width: 540px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+.after-install code {
+  font:
+    12.5px "JetBrains Mono",
+    monospace;
+  background: #e2e8f0;
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+@media (max-width: 800px) {
+  .install-hero {
+    padding: 62px 0 48px;
+  }
+  .requirements,
+  .guide-grid {
+    grid-template-columns: 1fr;
+  }
+  .requirements article {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .requirements article:last-child {
+    border-bottom: 0;
+  }
+  .guide {
+    padding: 80px 0;
+  }
+  .after-install {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 30px;
+  }
+}
+@media (max-width: 520px) {
+  .install-hero h1 {
+    font-size: 41px;
+  }
+  .guide-heading h2 {
+    font-size: 34px;
+  }
+  .guide-card {
+    padding: 24px;
+  }
+  .after-install h2 {
+    font-size: 26px;
+  }
+}
