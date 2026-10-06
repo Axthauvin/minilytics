@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="description" content="Install Minilytics on your local machine or PHP server." />
+    <title>Install Minilytics</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="install.css" />
+  </head>
+  <body>
+    <header class="nav wrap">
+      <a class="brand" href="index.html"><img src="../dashboard/src/assets/logo.svg" alt="" /><span>Minilytics</span></a>
+      <a class="back-link" href="index.html"><i data-lucide="arrow-left"></i>Back to site</a>
+    </header>
+    <main>
+      <section class="install-hero wrap">
+        <h1>Run Minilytics<br /><em>where you want.</em></h1>
+        <p>Minilytics needs PHP 8.0 or newer with SQLite enabled. No Node.js runtime or database server is required.</p>
+        <a class="button" href="https://github.com/axthauvin/minilytics/releases/latest/download/minilytics.tar.gz"><i data-lucide="download"></i>Download minilytics.tar.gz</a>
+      </section>
+
+      <section class="requirements wrap" aria-label="Requirements">
+        <article><i data-lucide="code-2"></i><div><strong>PHP 8.0+</strong><span>with the sqlite3 extension enabled</span></div></article>
+        <article><i data-lucide="folder-key"></i><div><strong>Write access</strong><span>for the <code>data/</code> directory</span></div></article>
+        <article><i data-lucide="wifi"></i><div><strong>HTTPS access</strong><span>for the local geolocation database</span></div></article>
+      </section>
+
+      <section class="guide wrap">
+        <div class="guide-heading"><h2>Install in a few steps.</h2></div>
+        <div class="guide-grid">
+          <article class="guide-card"><span class="guide-number">01</span><i data-lucide="server"></i><h3>Web server</h3><p>For shared hosting, Apache or Nginx.</p><ol><li>Download and extract the archive in your web root.</li><li>Give your web server write access to <code>data/</code>.</li><li>Open <code>https://your-domain.com/dashboard/</code>.</li><li>Create the administrator account, add your site and copy its tracking snippet.</li></ol><aside><strong>Apache</strong><span>Keep the included <code>.htaccess</code> files and enable <code>AllowOverride All</code>.</span></aside><aside><strong>Nginx</strong><span>Block direct HTTP access to <code>/data/</code>.</span></aside></article>
+          <article class="guide-card"><span class="guide-number">02</span><i data-lucide="laptop"></i><h3>Local PHP</h3><p>For a quick local installation.</p><ol><li>Extract the archive in a folder of your choice.</li><li>Open a terminal in that folder.</li><li>Run the command below.</li><li>Visit <code>http://localhost:8080/dashboard/</code>.</li></ol><pre><code><span class="prompt">$</span> php -S localhost:8080</code></pre></article>
+          <article class="guide-card"><span class="guide-number">03</span><i data-lucide="monitor-cog"></i><h3>WAMP</h3><p>For a local Windows setup.</p><ol><li>Confirm PHP 8.0+ and the SQLite extension are enabled in WAMP.</li><li>Extract Minilytics into <code>C:\wamp64\www\minilytics</code>.</li><li>Start Apache from the WAMP control panel.</li><li>Visit <code>http://localhost/minilytics/dashboard/</code>.</li></ol><aside><strong>Tip</strong><span>Ensure Apache can write to the <code>data/</code> folder.</span></aside></article>
+        </div>
+      </section>
+
+      <section class="after-install wrap"><div><h2>Add your first website.</h2><p>Once the dashboard is open, create your account, add a website, then paste its generated tracking snippet into your site’s <code>&lt;head&gt;</code>.</p></div><a class="button" href="https://github.com/axthauvin/minilytics"><i data-lucide="book-open"></i>Read the documentation</a></section>
+    </main>
+    <footer class="wrap"><a class="brand" href="index.html"><img src="../dashboard/src/assets/logo.svg" alt="" /><span>Minilytics</span></a><span>Minimal, self-hosted web analytics.</span><a href="https://github.com/axthauvin/minilytics">GitHub <i data-lucide="arrow-up-right"></i></a></footer>
+    <script src="https://unpkg.com/lucide@latest"></script><script src="app.js"></script>
+  </body>
+</html>
