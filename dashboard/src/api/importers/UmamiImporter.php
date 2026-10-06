@@ -222,11 +222,10 @@ class UmamiImporter extends BaseImporter {
             }
 
             $db = Database::getConnection($cleanSiteId);
-            $db->exec('PRAGMA synchronous = OFF;');
-            $db->exec('PRAGMA journal_mode = MEMORY;');
+            if (!$db->isMysql()) { $db->exec('PRAGMA synchronous = OFF;'); $db->exec('PRAGMA journal_mode = MEMORY;'); }
 
             // Ensure table and performance indexes
-            $db->exec("CREATE TABLE IF NOT EXISTS user_activity (
+            if (!$db->isMysql()) $db->exec("CREATE TABLE IF NOT EXISTS user_activity (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, 
                 session_id TEXT NOT NULL, 
                 visitor_id TEXT,
@@ -234,9 +233,11 @@ class UmamiImporter extends BaseImporter {
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
 
-            $db->exec("CREATE INDEX IF NOT EXISTS idx_ua_timestamp ON user_activity(timestamp)");
-            $db->exec("CREATE INDEX IF NOT EXISTS idx_ua_session ON user_activity(session_id)");
-            $db->exec("CREATE INDEX IF NOT EXISTS idx_ua_visitor ON user_activity(visitor_id)");
+            if (!$db->isMysql()) {
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_ua_timestamp ON user_activity(timestamp)");
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_ua_session ON user_activity(session_id)");
+                $db->exec("CREATE INDEX IF NOT EXISTS idx_ua_visitor ON user_activity(visitor_id)");
+            }
 
             // 3. Parse and Insert website_event.csv in a single atomic transaction
             $weHandle = fopen($csvFiles['website_event'], 'r');
@@ -264,7 +265,7 @@ class UmamiImporter extends BaseImporter {
             $minTimestamp = '9999-99-99 99:99:99';
             $maxTimestamp = '0000-00-00 00:00:00';
 
-            $db->exec('BEGIN TRANSACTION;');
+            $db->exec($db->isMysql() ? 'START TRANSACTION' : 'BEGIN TRANSACTION');
 
             $insertStmt = $db->prepare("INSERT INTO user_activity (session_id, visitor_id, action, timestamp) VALUES (:session_id, :visitor_id, :action, :timestamp)");
 
@@ -376,8 +377,7 @@ class UmamiImporter extends BaseImporter {
             fclose($weHandle);
 
             // Revert SQLite settings to standard WAL
-            $db->exec('PRAGMA synchronous = NORMAL;');
-            $db->exec('PRAGMA journal_mode = WAL;');
+            if (!$db->isMysql()) { $db->exec('PRAGMA synchronous = NORMAL;'); $db->exec('PRAGMA journal_mode = WAL;'); }
 
             // If domain was not set, update sites.json with primary hostname
             if (empty($siteDomain) && !empty($hostnamesMap)) {

@@ -71,7 +71,7 @@ final class AnalyticsFilters
      * fragment (starting with " AND ") restricting `session_id` to them.
      * Returns an empty string when no filter is active.
      */
-    public static function apply(SQLite3 $db, array $filters, string $startDate, string $endDate): string
+    public static function apply(DatabaseConnection $db, array $filters, string $startDate, string $endDate): string
     {
         if (!$filters) {
             return '';

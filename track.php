@@ -74,7 +74,7 @@ function deviceFromUserAgent(string $ua): string
     if (preg_match('/mobile|iphone|ipod|android/i', $ua)) return 'Mobile';
     return 'Desktop';
 }
-function trackingLocation(SQLite3 $db, string $ip): array
+function trackingLocation(DatabaseConnection $db, string $ip): array
 {
     // Keep geolocation server-side and privacy-preserving. Different managed
     // proxies expose the same ISO country code under different header names.
@@ -107,7 +107,7 @@ function trackingLocation(SQLite3 $db, string $ip): array
     }
     return ['country' => 'Unknown', 'country_code' => 'UN', 'region' => '', 'city' => ''];
 }
-function activeSessionId(SQLite3 $db, string $visitorId): ?string
+function activeSessionId(DatabaseConnection $db, string $visitorId): ?string
 {
     $cutoff = gmdate('Y-m-d H:i:s', time() - 1800);
     $stmt = $db->prepare('SELECT session_id FROM user_activity WHERE visitor_id = :visitor AND timestamp >= :cutoff ORDER BY timestamp DESC, id DESC LIMIT 1');
@@ -129,7 +129,7 @@ function cleanValue(mixed $value, int $depth = 0): mixed
     }
     return $safe;
 }
-function recordIgnored(SQLite3 $db, string $reason, string $ua, string $origin, string $ip): void
+function recordIgnored(DatabaseConnection $db, string $reason, string $ua, string $origin, string $ip): void
 {
     $stmt = $db->prepare('INSERT INTO bot_activity (reason, user_agent, origin, ip_hash) VALUES (:reason,:ua,:origin,:ip)');
     $stmt->bindValue(':reason', $reason, SQLITE3_TEXT);
@@ -138,7 +138,7 @@ function recordIgnored(SQLite3 $db, string $reason, string $ua, string $origin, 
     $stmt->bindValue(':ip', hash('sha256', $ip), SQLITE3_TEXT);
     $stmt->execute();
 }
-function withinRateLimit(SQLite3 $db, string $ip): bool
+function withinRateLimit(DatabaseConnection $db, string $ip): bool
 {
     $bucket = gmdate('YmdHi');
     $hash = hash('sha256', $ip);

@@ -1,64 +1,111 @@
 <div class="page-view" id="page-settings">
     <div class="settings-page-header">
         <div>
-            <p class="settings-eyebrow">Workspace</p>
             <h2>Settings</h2>
-            <p>Manage the people who are allowed to access Minilytics.</p>
+            <p>Manage the people who are allowed to access Minilytics, as well as the settings for each website and where to store the data.</p>
         </div><a class="btn-outline" href="#websites">Back to websites</a>
     </div>
-    <section class="settings-card" id="inviteUserCard">
-        <div class="settings-card-heading">
-            <div>
-                <h3>Invite someone</h3>
-                <p>Only email addresses added here can create an account.</p>
-            </div>
-        </div>
-        <form id="inviteUserForm" class="invite-form"><label for="inviteEmail">Email address</label>
-            <div class="invite-form-row"><input id="inviteEmail" required type="email" placeholder="colleague@example.com" autocomplete="email"><button class="btn-primary" type="submit">Create invitation link</button></div>
-        </form>
-        <div class="invite-result" id="inviteResult" hidden><strong>Invitation link ready</strong>
-            <p>Copy this link and send it to the invited person. It expires in 7 days.</p>
-            <div class="invite-link-row"><input id="inviteLink" readonly><button type="button" class="btn-outline" id="copyInviteLink">Copy</button></div>
-        </div>
-        <p class="settings-feedback" id="inviteFeedback" role="status"></p>
-    </section>
-    <section class="settings-card">
-        <div class="settings-card-heading">
-            <div>
-                <h3>Authorized users</h3>
-                <p>Accounts that already have access to this workspace.</p>
-            </div>
-        </div>
-        <p class="settings-feedback" id="usersListFeedback" role="status"></p>
-        <div id="usersList" class="users-list">
-            <p class="settings-muted">Loading users…</p>
-        </div>
-    </section>
-    <section class="settings-card" id="trackingSettingsCard">
-        <div class="settings-card-heading"><div><h3>Tracking & data protection</h3><p>Allowed domains, internal traffic, retention and the private script key.</p></div></div>
-        <form id="trackingSettingsForm" class="tracking-form">
-            <div class="tracking-field tracking-field--site"><label for="trackingSiteSelect">Website</label><select id="trackingSiteSelect"></select></div>
-            <div class="tracking-field">
-                <label for="trackingDomainsInput">Allowed domains</label>
-                <div class="tracking-tag-editor" id="trackingDomainsEditor">
-                    <div class="tracking-tag-list" id="trackingDomainsList" aria-live="polite"></div>
-                    <div class="tracking-tag-add"><input id="trackingDomainsInput" placeholder="example.com" autocomplete="off"><button class="btn-outline btn-sm" id="addTrackingDomain" type="button">Add</button></div>
+    <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+        <button class="settings-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="settingsAccessPanel" id="settingsAccessTab" data-settings-tab="access">Access</button>
+        <button class="settings-tab" type="button" role="tab" aria-selected="false" aria-controls="settingsTrackingPanel" id="settingsTrackingTab" data-settings-tab="tracking">Tracking</button>
+        <button class="settings-tab" type="button" role="tab" aria-selected="false" aria-controls="settingsDatabasePanel" id="settingsDatabaseTab" data-settings-tab="database">Database</button>
+    </div>
+    <div class="settings-panel" id="settingsAccessPanel" role="tabpanel" aria-labelledby="settingsAccessTab" data-settings-panel="access">
+        <section class="settings-card" id="inviteUserCard">
+            <div class="settings-card-heading">
+                <div>
+                    <h3>Invite someone</h3>
+                    <p>Only email addresses added here can create an account.</p>
                 </div>
-                <small>Add one domain at a time. Only these domains can send events for this website.</small>
             </div>
-            <div class="tracking-field">
-                <label for="trackingInternalIpsInput">Internal IP addresses to ignore</label>
-                <div class="tracking-tag-editor" id="trackingInternalIpsEditor">
-                    <div class="tracking-tag-list" id="trackingInternalIpsList" aria-live="polite"></div>
-                    <div class="tracking-tag-add"><input id="trackingInternalIpsInput" placeholder="203.0.113.10" autocomplete="off"><button class="btn-outline btn-sm" id="addTrackingInternalIp" type="button">Add</button></div>
+            <form id="inviteUserForm" class="invite-form"><label for="inviteEmail">Email address</label>
+                <div class="invite-form-row"><input id="inviteEmail" required type="email" placeholder="colleague@example.com" autocomplete="email"><button class="btn-primary" type="submit">Create invitation link</button></div>
+            </form>
+            <div class="invite-result" id="inviteResult" hidden><strong>Invitation link ready</strong>
+                <p>Copy this link and send it to the invited person. It expires in 7 days.</p>
+                <div class="invite-link-row"><input id="inviteLink" readonly><button type="button" class="btn-outline" id="copyInviteLink">Copy</button></div>
+            </div>
+            <p class="settings-feedback" id="inviteFeedback" role="status"></p>
+        </section>
+        <section class="settings-card">
+            <div class="settings-card-heading">
+                <div>
+                    <h3>Authorized users</h3>
+                    <p>Accounts that already have access to this workspace.</p>
                 </div>
-                <small>Add one address at a time. They are visible only in the ignored traffic log.</small>
             </div>
-            <div class="tracking-field tracking-field--retention"><label for="trackingRetention">Data retention</label><div class="tracking-number"><input id="trackingRetention" type="number" min="1" max="760" value="395"><span>days</span></div></div>
-            <label class="tracking-checkbox"><input id="trackingRotateKey" type="checkbox"><span><strong>Rotate the tracking key</strong><small>The current snippet will stop working until it is replaced.</small></span></label>
-            <div class="tracking-actions"><button class="btn-primary" type="submit">Save tracking settings</button></div>
-        </form>
-        <div class="invite-result" id="trackingSnippetResult" hidden><strong>Updated tracking snippet</strong><p>Replace the existing script tag if you rotated the key.</p><div class="invite-link-row"><input id="trackingSnippet" readonly><button type="button" class="btn-outline" id="copyTrackingSnippet">Copy</button></div></div>
-        <p class="settings-feedback" id="trackingFeedback" role="status"></p>
-    </section>
+            <p class="settings-feedback" id="usersListFeedback" role="status"></p>
+            <div id="usersList" class="users-list">
+                <p class="settings-muted">Loading users…</p>
+            </div>
+        </section>
+    </div>
+    <div class="settings-panel" id="settingsTrackingPanel" role="tabpanel" aria-labelledby="settingsTrackingTab" data-settings-panel="tracking" hidden>
+        <section class="settings-card" id="trackingSettingsCard">
+            <div class="settings-card-heading">
+                <div>
+                    <h3>Tracking & data protection</h3>
+                    <p>Allowed domains, internal traffic, retention and the private script key.</p>
+                </div>
+            </div>
+            <form id="trackingSettingsForm" class="tracking-form">
+                <div class="tracking-field tracking-field--site"><label for="trackingSiteSelect">Website</label><select id="trackingSiteSelect"></select></div>
+                <div class="tracking-field">
+                    <label for="trackingDomainsInput">Allowed domains</label>
+                    <div class="tracking-tag-editor" id="trackingDomainsEditor">
+                        <div class="tracking-tag-list" id="trackingDomainsList" aria-live="polite"></div>
+                        <div class="tracking-tag-add"><input id="trackingDomainsInput" placeholder="example.com" autocomplete="off"><button class="btn-outline btn-sm" id="addTrackingDomain" type="button">Add</button></div>
+                    </div>
+                    <small>Add one domain at a time. Only these domains can send events for this website.</small>
+                </div>
+                <div class="tracking-field">
+                    <label for="trackingInternalIpsInput">Internal IP addresses to ignore</label>
+                    <div class="tracking-tag-editor" id="trackingInternalIpsEditor">
+                        <div class="tracking-tag-list" id="trackingInternalIpsList" aria-live="polite"></div>
+                        <div class="tracking-tag-add"><input id="trackingInternalIpsInput" placeholder="203.0.113.10" autocomplete="off"><button class="btn-outline btn-sm" id="addTrackingInternalIp" type="button">Add</button></div>
+                    </div>
+                    <small>Add one address at a time. They are visible only in the ignored traffic log.</small>
+                </div>
+                <div class="tracking-field tracking-field--retention"><label for="trackingRetention">Data retention</label>
+                    <div class="tracking-number"><input id="trackingRetention" type="number" min="1" max="760" value="395"><span>days</span></div>
+                </div>
+                <label class="tracking-checkbox"><input id="trackingRotateKey" type="checkbox"><span><strong>Rotate the tracking key</strong><small>The current snippet will stop working until it is replaced.</small></span></label>
+                <div class="tracking-actions"><button class="btn-primary" type="submit">Save tracking settings</button></div>
+            </form>
+            <div class="invite-result" id="trackingSnippetResult" hidden><strong>Updated tracking snippet</strong>
+                <p>Replace the existing script tag if you rotated the key.</p>
+                <div class="invite-link-row"><input id="trackingSnippet" readonly><button type="button" class="btn-outline" id="copyTrackingSnippet">Copy</button></div>
+            </div>
+            <p class="settings-feedback" id="trackingFeedback" role="status"></p>
+        </section>
+    </div>
+    <div class="settings-panel" id="settingsDatabasePanel" role="tabpanel" aria-labelledby="settingsDatabaseTab" data-settings-panel="database" hidden>
+        <section class="settings-card" id="databaseSettingsCard">
+            <div class="settings-card-heading">
+                <div>
+                    <h3>Analytics database</h3>
+                    <p>Choose where Minilytics stores new analytics data. SQLite remains local; MySQL and MariaDB use one shared database with isolated websites.</p>
+                </div>
+            </div>
+            <div class="database-engine-field"><label for="databaseDriver">Database engine</label><select id="databaseDriver">
+                    <option value="sqlite">SQLite (local file)</option>
+                    <option value="mysql">MySQL</option>
+                    <option value="mariadb">MariaDB</option>
+                </select></div>
+            <form id="databaseSettingsForm" class="database-form" hidden>
+                <div class="database-remote-fields" id="databaseRemoteFields">
+                    <div class="tracking-field"><label for="databaseHost">Host</label><input id="databaseHost" autocomplete="off" placeholder="localhost"></div>
+                    <div class="tracking-field"><label for="databasePort">Port</label><input id="databasePort" type="number" min="1" max="65535" value="3306"></div>
+                    <div class="tracking-field"><label for="databaseName">Database name</label><input id="databaseName" autocomplete="off" placeholder="minilytics"></div>
+                    <div class="tracking-field"><label for="databaseUsername">Username</label><input id="databaseUsername" autocomplete="username" placeholder="db_user"></div>
+                    <div class="tracking-field database-password"><label for="databasePassword">Password</label><input id="databasePassword" type="password" autocomplete="new-password" placeholder="Leave blank to keep the saved password"><small>Your password is never returned to the browser after it is saved.</small></div>
+                </div>
+                <label class="database-checkbox"><input id="databaseCreateIfMissing" type="checkbox" checked><span><strong>Create the database if it is missing</strong><small>Requires the database user to have the <code>CREATE</code> permission.</small></span></label>
+                <div class="database-actions"><button class="btn-outline" id="testDatabaseConnection" type="button">Test connection</button></div>
+            </form>
+            <div class="database-actions database-save-action"><button class="btn-primary" id="saveDatabaseConnector" type="button">Save database connector</button></div>
+            <p class="settings-feedback" id="databaseFeedback" role="status"></p>
+            <p class="settings-muted database-note">Changing connector does not migrate existing SQLite data automatically. Keep a backup of <code>data/</code> before switching.</p>
+        </section>
+    </div>
 </div>

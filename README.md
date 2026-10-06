@@ -1,7 +1,7 @@
 <div align="center">
   <img src="favicon.svg" alt="Minilytics logo" width="160" />
   <h1>Minilytics</h1>
-  <p><strong>Minimal, self-hosted web analytics powered by PHP and SQLite.</strong></p>
+  <p><strong>Minimal, self-hosted web analytics powered by PHP with SQLite, MySQL, or MariaDB.</strong></p>
 
   <p>
     <a href="#quick-start">Quick Start</a> &bull;
@@ -24,10 +24,11 @@ It was built because today's most modern analytics tools require heavy Node.js r
 ### Requirements
 
 - PHP 8.0 or later with the `sqlite3` extension enabled
+- For MySQL or MariaDB: the `pdo_mysql` PHP extension and a database/user with `CREATE`, `ALTER`, `INDEX`, `SELECT`, `INSERT`, `UPDATE` and `DELETE` permissions
 - Web server write access to the `data/` directory
 - Outbound HTTPS access and `zlib` support (to download the local DB-IP City Lite geolocation database)
 
-*Note: The `zip` extension is only needed if you import historical data from external services.*
+_Note: The `zip` extension is only needed if you import historical data from external services._
 
 ### Production Installation
 
@@ -41,6 +42,11 @@ tar -xzf minilytics.tar.gz && rm minilytics.tar.gz
 1. Ensure your web server has write access to the `data/` directory.
 2. Navigate to `https://your-domain.com/dashboard/` to create the initial administrator account.
 3. Add your website in the dashboard and paste the tracking snippet into your website's `<head>`.
+
+### How do we store analytics data?
+
+SQLite is the default (because it's lightweight and doesn't require a separated server), but you can change it any time !
+To use a managed database, open **Settings → Database**, select MySQL or MariaDB, enter the host, port, database name, username and password, then use **Test connection** before saving. The test can create the named database when it is missing if the database user has the `CREATE` permission. **Existing SQLite analytics are not copied automatically**.
 
 > On Apache, the included `.htaccess` files protect stored SQLite databases automatically (ensure `AllowOverride All` is enabled). On Nginx, block direct HTTP access to `/data/`.
 
@@ -78,4 +84,3 @@ node --test tests/tracker-smoke.test.js
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-

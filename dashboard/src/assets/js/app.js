@@ -41,7 +41,11 @@ const App = {
 
     // Auto-refresh every 30 seconds for live visitors
     this.refreshInterval = setInterval(() => {
-      this.refreshCurrentPage(true);
+      // Settings contains editable forms. Reloading it here would replace values
+      // the user may still be entering, notably the database connector fields.
+      if (this.currentPage !== "settings") {
+        this.refreshCurrentPage(true);
+      }
     }, 30000);
   },
 

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
@@ -134,7 +135,7 @@ try {
         SELECT 
             COUNT(*) as total_sessions,
             AVG(duration) as avg_duration,
-            100.0 * SUM(CASE WHEN action_count = 1 THEN 1 ELSE 0 END) / MAX(1, COUNT(*)) as bounce_rate
+            100.0 * SUM(CASE WHEN action_count = 1 THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0) as bounce_rate
         FROM visits
     ";
     $sessStmt = $db->prepare($sessionMetricsSql);
@@ -220,7 +221,7 @@ try {
             SELECT 
                 COUNT(*) as total_sessions,
                 AVG(duration) as avg_duration,
-                100.0 * SUM(CASE WHEN action_count = 1 THEN 1 ELSE 0 END) / MAX(1, COUNT(*)) as bounce_rate
+                100.0 * SUM(CASE WHEN action_count = 1 THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0) as bounce_rate
             FROM visits
         ";
         $pSessStmt = $db->prepare($prevSessSql);
@@ -240,7 +241,7 @@ try {
         $diffBounce = round($bounceRate - $prevBounceRate, 1);
         $diffDuration = round($avgDuration - $prevDuration);
 
-        $formatDiff = function($diff, $suffix = '') {
+        $formatDiff = function ($diff, $suffix = '') {
             if ($diff > 0) return "+{$diff}{$suffix}";
             if ($diff < 0) return "{$diff}{$suffix}";
             return "0{$suffix}";
@@ -451,7 +452,7 @@ try {
     }
 
     // Helper to normalize domains for exact match comparison
-    $normalizeDomain = static function(?string $raw): string {
+    $normalizeDomain = static function (?string $raw): string {
         if (!$raw) return '';
         $raw = trim(strtolower($raw));
         if (!str_contains($raw, '://')) {
@@ -488,7 +489,8 @@ try {
                 }
             }
         }
-    } catch (Throwable $e) {}
+    } catch (Throwable $e) {
+    }
 
     // 4. Real Top Pages from SQLite
     $pagesSql = "
@@ -549,7 +551,10 @@ try {
         $cleanRef = 'Direct / None';
         $domain = 'direct';
 
-        if (!empty($rawRef)) {
+        // MySQL/MariaDB's JSON_UNQUOTE(JSON_EXTRACT(...)) turns a JSON null
+        // into the literal string "null", unlike SQLite which returns SQL
+        // NULL. Treat both representations as a direct visit.
+        if ($rawRef !== '' && strtolower($rawRef) !== 'null') {
             $parsed = parse_url($rawRef, PHP_URL_HOST);
             $cleanRef = $parsed ?: $rawRef;
             $domain = str_replace('www.', '', $cleanRef);
@@ -616,7 +621,7 @@ try {
     // 7. Environment Breakdowns (Browsers, OS, Devices)
     // These are audience dimensions, not pageview dimensions: a visitor is
     // counted once for each value they used during the selected period.
-    $envQuery = function(string $field) use ($db, $startDateStr, $endDateStr, $totalVisitors, $siteCondition, $siteParams): array {
+    $envQuery = function (string $field) use ($db, $startDateStr, $endDateStr, $totalVisitors, $siteCondition, $siteParams): array {
         $sql = "
             SELECT 
                 COALESCE(json_extract(action, '$.data.{$field}'), 'Unknown') as label,
@@ -710,7 +715,6 @@ try {
         ],
         'countries' => $topCountries
     ], JSON_UNESCAPED_SLASHES);
-
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['error' => $e->getMessage()]);

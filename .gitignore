@@ -6,6 +6,7 @@ data/*.db
 data/*.db-wal
 data/*.db-shm
 data/sites.json
+data/database.json
 data/.tracking-secret
 demo.html
 *.zip

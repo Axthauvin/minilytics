@@ -29,6 +29,10 @@
   margin-bottom: 18px;
   box-shadow: var(--shadow-sm);
 }
+.settings-tabs { display: flex; gap: 4px; max-width: 720px; margin: 0 0 18px; padding: 4px; border: 1px solid var(--border); border-radius: 9px; background: #f8fafc; }
+.settings-tab { flex: 1; border: 0; border-radius: 6px; padding: 9px 12px; background: transparent; color: var(--text-muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.settings-tab:hover { color: var(--text-primary); }
+.settings-tab.is-active { color: #1d4ed8; background: var(--bg-surface); box-shadow: var(--shadow-sm); }
 .settings-card h3 {
   font-size: 16px;
   margin: 0 0 5px;
@@ -157,6 +161,31 @@
 .tracking-checkbox strong { display: block; color: var(--text-primary); font-size: 13px; }
 .tracking-checkbox small { margin-top: 2px; }
 .tracking-actions { display: flex; justify-content: flex-end; padding-top: 2px; }
+.database-form { margin-top: 20px; display: grid; gap: 16px; }
+.database-form[hidden],
+.database-remote-fields[hidden] { display: none !important; }
+.database-engine-field { margin-top: 20px; max-width: 340px; }
+.database-engine-field label { display: block; color: var(--text-primary); font-size: 13px; font-weight: 600; margin-bottom: 7px; }
+.database-engine-field select { box-sizing: border-box; width: 100%; height: 42px; padding: 10px 11px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg-surface); color: var(--text-primary); font: inherit; outline: none; cursor: pointer; }
+.database-engine-field select:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(59,130,246,.13); }
+.database-form label { display: block; color: var(--text-primary); font-size: 13px; font-weight: 600; margin-bottom: 7px; }
+.database-form input,
+.database-form select { box-sizing: border-box; width: 100%; height: 42px; padding: 10px 11px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg-surface); color: var(--text-primary); font: inherit; outline: none; }
+.database-form select { cursor: pointer; max-width: 340px; }
+.database-form input:focus,
+.database-form select:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(59,130,246,.13); }
+.database-form input:disabled { cursor: not-allowed; background: #f8fafc; }
+.database-remote-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.database-password { grid-column: 1 / -1; }
+.database-actions { display: flex; justify-content: flex-end; gap: 9px; }
+.database-save-action { margin-top: 18px; }
+.database-actions .btn-primary:disabled { cursor: not-allowed; opacity: .5; }
+.database-checkbox { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: #f8fafc; cursor: pointer; }
+.database-checkbox input { width: 16px; height: 16px; margin: 2px 0 0; accent-color: #2563eb; flex: 0 0 auto; }
+.database-checkbox strong { display: block; color: var(--text-primary); font-size: 13px; }
+.database-checkbox small { display: block; margin-top: 2px; color: var(--text-muted); font-size: 12px; line-height: 1.45; }
+.database-note { margin: 15px 0 0; line-height: 1.5; }
+.database-note code { font-size: 12px; }
 .invite-result {
   margin-top: 18px;
   padding: 15px;
@@ -312,6 +341,9 @@
     padding: 17px;
   }
   .tracking-form { grid-template-columns: 1fr; }
+  .database-remote-fields { grid-template-columns: 1fr; }
+  .database-actions { flex-direction: column-reverse; }
+  .database-actions button { width: 100%; }
   .tracking-field,
   .tracking-field--site,
   .tracking-field--retention,

@@ -25,6 +25,21 @@ test('visitor-facing secondary analytics use visitor ids instead of sessions', (
   assert.match(funnels, /COUNT\(DISTINCT COALESCE\(visitor_id, session_id\)\)/);
 });
 
+test('overview bounce-rate query does not nest aggregate functions', () => {
+  const stats = read('dashboard/src/api/stats.php');
+
+  assert.doesNotMatch(stats, /MAX\(1, COUNT\(\*\)\)/);
+  assert.match(stats, /NULLIF\(COUNT\(\*\), 0\) as bounce_rate/);
+});
+
+test('overview treats MySQL JSON null referrers as direct traffic', () => {
+  const stats = read('dashboard/src/api/stats.php');
+  const db = read('dashboard/src/api/db.php');
+
+  assert.match(stats, /strtolower\(\$rawRef\) !== 'null'/);
+  assert.match(db, /NULLIF\(NULLIF\(REPLACE\(SUBSTRING_INDEX/);
+});
+
 test('tracker accepts country codes from supported server-side geo providers', () => {
   const tracker = read('track.php');
   for (const header of ['HTTP_CF_IPCOUNTRY', 'HTTP_CF_REGION_CODE', 'HTTP_CF_IPCITY', 'HTTP_X_VERCEL_IP_COUNTRY', 'HTTP_CLOUDFRONT_VIEWER_COUNTRY', 'HTTP_FASTLY_CLIENT_COUNTRY_CODE', 'GEOIP_COUNTRY_CODE']) {

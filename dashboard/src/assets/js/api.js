@@ -5,6 +5,16 @@
 const Api = {
   base: "/dashboard/src/api",
 
+  async getDatabaseConfig() {
+    const res = await fetch(`${this.base}/database.php`); const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
+  },
+
+  async databaseConnector(action, config) {
+    const res = await fetch(`${this.base}/database.php`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, ...config }) });
+    const data = await res.json(); if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
+  },
+
   async getStats(range = "7d", siteId = "", customDates = null) {
     const targetSite =
       siteId && siteId !== "all"

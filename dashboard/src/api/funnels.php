@@ -16,7 +16,11 @@ function funnelRange(): array {
     }
     return [gmdate('Y-m-d H:i:s', $start), gmdate('Y-m-d H:i:s', $end)];
 }
-function setupFunnels(SQLite3 $db): void {
+function setupFunnels(DatabaseConnection $db): void {
+    if ($db->isMysql()) {
+        $db->exec("CREATE TABLE IF NOT EXISTS funnels (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, name VARCHAR(80) NOT NULL, kind VARCHAR(20) NOT NULL DEFAULT 'funnel', steps JSON NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        return;
+    }
     $db->exec("CREATE TABLE IF NOT EXISTS funnels (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'funnel', steps TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
     $columns = $db->query('PRAGMA table_info(funnels)'); $hasKind = false;
     while ($column = $columns->fetchArray(SQLITE3_ASSOC)) if ($column['name'] === 'kind') $hasKind = true;
@@ -34,7 +38,7 @@ function cleanSteps(mixed $steps): array {
     }
     return $out;
 }
-function analyzeFunnel(SQLite3 $db, array $steps, string $start, string $end): array {
+function analyzeFunnel(DatabaseConnection $db, array $steps, string $start, string $end): array {
     $stmt = $db->prepare("SELECT session_id, action FROM user_activity WHERE timestamp >= :start AND timestamp <= :end ORDER BY session_id, timestamp, id");
     $stmt->bindValue(':start', $start, SQLITE3_TEXT); $stmt->bindValue(':end', $end, SQLITE3_TEXT); $res = $stmt->execute();
     $progress = array_fill(0, count($steps), 0); $session = null; $at = 0;
@@ -49,7 +53,7 @@ function analyzeFunnel(SQLite3 $db, array $steps, string $start, string $end): a
     $finish();
     return $progress;
 }
-function analyzeJourneySources(SQLite3 $db, array $steps, string $start, string $end): array {
+function analyzeJourneySources(DatabaseConnection $db, array $steps, string $start, string $end): array {
     if (count($steps) < 2) return ['entered' => 0, 'completed' => 0, 'tree' => ['count' => 0, 'children' => []]];
     $stmt = $db->prepare("SELECT session_id, action FROM user_activity WHERE timestamp >= :start AND timestamp <= :end ORDER BY session_id, timestamp, id");
     $stmt->bindValue(':start', $start, SQLITE3_TEXT); $stmt->bindValue(':end', $end, SQLITE3_TEXT); $res = $stmt->execute();

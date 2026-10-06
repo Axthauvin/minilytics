@@ -2,6 +2,7 @@ const SettingsPage = {
   initialized: false,
   currentUser: null,
   trackingTags: { domains: [], internalIps: [] },
+  databaseTested: false,
 
   init() {
     if (this.initialized) return;
@@ -34,6 +35,16 @@ const SettingsPage = {
     this.setupTrackingTagEditor('internalIps', 'trackingInternalIpsInput', 'addTrackingInternalIp');
     const copySnippet = document.getElementById('copyTrackingSnippet');
     if (copySnippet) copySnippet.addEventListener('click', () => ClipboardHelper.copy(document.getElementById('trackingSnippet').value, copySnippet));
+    document.querySelectorAll('[data-settings-tab]').forEach((tab) => tab.addEventListener('click', () => this.selectTab(tab.dataset.settingsTab)));
+    const databaseDriver = document.getElementById('databaseDriver');
+    if (databaseDriver) databaseDriver.addEventListener('change', () => this.toggleDatabaseFields());
+    const databaseForm = document.getElementById('databaseSettingsForm');
+    if (databaseForm) databaseForm.addEventListener('submit', (event) => this.saveDatabase(event));
+    const testDatabase = document.getElementById('testDatabaseConnection');
+    if (testDatabase) testDatabase.addEventListener('click', () => this.testDatabase());
+    const saveDatabase = document.getElementById('saveDatabaseConnector');
+    if (saveDatabase) saveDatabase.addEventListener('click', () => this.saveDatabase());
+    document.querySelectorAll('#databaseSettingsForm input').forEach((input) => input.addEventListener('input', () => this.invalidateDatabaseTest()));
   },
 
   async load() {
@@ -48,6 +59,7 @@ const SettingsPage = {
       this.currentUser = data.current_user || null;
       const isAdmin = Boolean(this.currentUser && this.currentUser.role === 'admin');
       await this.loadTrackingSites(isAdmin);
+      await this.loadDatabaseConfig(isAdmin);
 
       // Only administrators can invite new users
       const inviteCard = document.getElementById('inviteUserCard');
@@ -164,6 +176,67 @@ const SettingsPage = {
     select.innerHTML = (data.sites || []).map(s => `<option value="${this.escapeHtml(s.id)}">${this.escapeHtml(s.name || s.id)}</option>`).join('');
     await this.loadTrackingConfig();
   },
+
+  selectTab(name) {
+    document.querySelectorAll('[data-settings-tab]').forEach((tab) => { const selected = tab.dataset.settingsTab === name; tab.classList.toggle('is-active', selected); tab.setAttribute('aria-selected', String(selected)); });
+    document.querySelectorAll('[data-settings-panel]').forEach((panel) => { panel.hidden = panel.dataset.settingsPanel !== name; });
+  },
+
+  async loadDatabaseConfig(isAdmin) {
+    const card = document.getElementById('databaseSettingsCard'); if (!card) return;
+    card.hidden = !isAdmin; if (!isAdmin) return;
+    try {
+      const { config } = await Api.getDatabaseConfig();
+      document.getElementById('databaseDriver').value = config.driver || 'sqlite';
+      document.getElementById('databaseHost').value = config.host || '';
+      document.getElementById('databasePort').value = config.port || 3306;
+      document.getElementById('databaseName').value = config.database || '';
+      document.getElementById('databaseUsername').value = config.username || '';
+      document.getElementById('databasePassword').value = '';
+      this.toggleDatabaseFields();
+    } catch (error) { this.setDatabaseFeedback(error.message, 'error'); }
+  },
+
+  databasePayload() {
+    return { driver: document.getElementById('databaseDriver').value, host: document.getElementById('databaseHost').value.trim(), port: document.getElementById('databasePort').value, database: document.getElementById('databaseName').value.trim(), username: document.getElementById('databaseUsername').value.trim(), password: document.getElementById('databasePassword').value, create_database: document.getElementById('databaseCreateIfMissing').checked };
+  },
+
+  toggleDatabaseFields() {
+    const form = document.getElementById('databaseSettingsForm'); const isRemote = document.getElementById('databaseDriver').value !== 'sqlite';
+    form.hidden = !isRemote;
+    form.querySelectorAll('input').forEach((input) => { input.disabled = !isRemote; });
+    if (isRemote) {
+      this.invalidateDatabaseTest();
+    } else {
+      this.databaseTested = true;
+      document.getElementById('saveDatabaseConnector').disabled = false;
+      this.setDatabaseFeedback('');
+    }
+  },
+
+  invalidateDatabaseTest(showMessage = true) {
+    const save = document.getElementById('saveDatabaseConnector');
+    this.databaseTested = false;
+    if (save) save.disabled = true;
+    if (showMessage) this.setDatabaseFeedback('Test the current connection before saving.');
+  },
+
+  async testDatabase() {
+    this.setDatabaseFeedback('Testing connection…');
+    try { const result = await Api.databaseConnector('test', this.databasePayload()); this.databaseTested = true; document.getElementById('saveDatabaseConnector').disabled = false; const created = result.connection.database_created ? ' Database created.' : ''; this.setDatabaseFeedback(`${result.message}${created} Server version: ${result.connection.version}. You can now save this connector.`, 'success'); }
+    catch (error) { this.setDatabaseFeedback(error.message, 'error'); }
+  },
+
+  async saveDatabase(event) {
+    event?.preventDefault();
+    const isRemote = document.getElementById('databaseDriver').value !== 'sqlite';
+    if (isRemote && !this.databaseTested) { this.setDatabaseFeedback('Test the current connection before saving.', 'error'); return; }
+    this.setDatabaseFeedback(isRemote ? 'Rechecking and saving connector…' : 'Saving SQLite connector…');
+    try { const result = await Api.databaseConnector('save', this.databasePayload()); document.getElementById('databasePassword').value = ''; this.setDatabaseFeedback(result.message, 'success'); }
+    catch (error) { this.setDatabaseFeedback(error.message, 'error'); }
+  },
+
+  setDatabaseFeedback(message, type = '') { const el = document.getElementById('databaseFeedback'); if (!el) return; el.textContent = message; el.className = 'settings-feedback'; if (type) el.classList.add(type === 'error' ? 'settings-error' : 'settings-success'); },
 
   async loadTrackingConfig() {
     const select = document.getElementById('trackingSiteSelect'); if (!select || !select.value) return;

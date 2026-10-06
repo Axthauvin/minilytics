@@ -38,7 +38,7 @@
             <div class="kpi-value-row">
                 <span class="kpi-number" id="globalTotalSites">0</span>
             </div>
-            <span class="kpi-hint">Isolated SQLite instances</span>
+            <span class="kpi-hint">Isolated analytics storage</span>
         </div>
         <div class="kpi-card">
             <span class="kpi-label">Total Recorded Views</span>
