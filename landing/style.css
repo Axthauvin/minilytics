@@ -54,7 +54,6 @@ body {
 .nav nav {
   display: flex;
   gap: 32px;
-  margin-left: 92px;
 }
 .nav nav a,
 .text-link {
@@ -66,6 +65,37 @@ body {
 .nav nav a:hover,
 .text-link:hover {
   color: var(--blue);
+}
+.nav-github {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.nav-github:hover {
+  color: var(--blue);
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+.nav-github svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+}
+.nav-github i,
+.nav-github .lucide {
+  width: 13px;
+  height: 13px;
+  color: #94a3b8;
 }
 .button {
   display: inline-flex;
@@ -103,16 +133,19 @@ body {
 }
 .hero {
   position: relative;
-  display: grid;
-  grid-template-columns: 0.9fr 1.1fr;
-  gap: 40px;
-  min-height: 625px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 76px 0 68px;
+  text-align: center;
+  padding: 60px 0 20px;
 }
 .hero-copy {
   position: relative;
   z-index: 2;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .hero .eyebrow {
   display: flex;
@@ -146,14 +179,15 @@ body {
   display: inline-block;
 }
 .hero-lead {
-  max-width: 500px;
-  margin: 0;
+  max-width: 600px;
+  margin: 0 auto;
   color: var(--muted);
   font-size: 15px;
 }
 .hero-actions {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 22px;
   margin-top: 29px;
 }
@@ -437,7 +471,9 @@ body {
   border-radius: 16px;
   background: #fff;
   box-shadow: 0 4px 20px rgba(16, 24, 40, 0.04);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 .product-card:hover {
   border-color: #d0d5dd;
@@ -493,9 +529,16 @@ body {
 
 /* Funnels is the key / star feature */
 .funnels-card {
-  background: linear-gradient(135deg, #eef2ff 0%, #ffffff 42%, #e0e7ff 100%) !important;
+  background: linear-gradient(
+    135deg,
+    #eef2ff 0%,
+    #ffffff 42%,
+    #e0e7ff 100%
+  ) !important;
   border-color: #a5b4fc !important;
-  box-shadow: 0 10px 32px -4px rgba(99, 102, 241, 0.12), 0 4px 12px rgba(16, 24, 40, 0.04) !important;
+  box-shadow:
+    0 10px 32px -4px rgba(99, 102, 241, 0.12),
+    0 4px 12px rgba(16, 24, 40, 0.04) !important;
 }
 .funnels-card .card-copy > i,
 .funnels-card .card-copy > svg {
@@ -861,14 +904,96 @@ footer > a:last-child i {
   display: block;
   color: #6679a0;
 }
+/* Hero Visual: Browser frame & ambient atmosphere */
+.hero-visual-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 1100px;
+  margin-top: 52px;
+  display: flex;
+  justify-content: center;
+}
+.hero-glow {
+  position: absolute;
+  top: -15%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  height: 95%;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(99, 102, 241, 0.22) 0%,
+    rgba(56, 189, 248, 0.15) 45%,
+    transparent 72%
+  );
+  filter: blur(55px);
+  pointer-events: none;
+  z-index: 0;
+}
 .hero-product-shot {
   position: relative;
-  align-self: center;
+  z-index: 1;
+  width: 100%;
   overflow: hidden;
   border: 1px solid #dce3ee;
   border-radius: 14px;
   background: #fff;
-  box-shadow: 0 24px 46px #27315218;
+  box-shadow:
+    0 25px 60px -15px rgba(39, 49, 82, 0.18),
+    0 10px 24px -10px rgba(39, 49, 82, 0.08);
+}
+.browser-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  padding: 0 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+.browser-dots {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 60px;
+}
+.browser-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.browser-dots span:nth-child(1) {
+  background: #ff5f56;
+}
+.browser-dots span:nth-child(2) {
+  background: #ffbd2e;
+}
+.browser-dots span:nth-child(3) {
+  background: #27c93f;
+}
+.browser-address {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 14px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 11.5px;
+  font-family: inherit;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.browser-address i,
+.browser-address svg {
+  width: 11px;
+  height: 11px;
+  color: #94a3b8;
+}
+.browser-actions {
+  width: 60px;
 }
 .hero-product-shot img {
   display: block;
@@ -899,6 +1024,25 @@ footer > a:last-child i {
   .hero-product-shot {
     width: 100%;
     margin-left: 0;
+  }
+  .browser-address {
+    font-size: 10px;
+    padding: 0 8px;
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .browser-dots {
+    width: 38px;
+    gap: 4px;
+  }
+  .browser-dots span {
+    width: 7px;
+    height: 7px;
+  }
+  .browser-actions {
+    width: 38px;
   }
   .product-intro {
     padding-top: 68px;
@@ -953,13 +1097,17 @@ footer > a:last-child i {
     margin: 0;
     border-radius: 12px;
     transform: perspective(1200px) rotateY(-7deg) rotateX(2.5deg) scale(0.98);
-    box-shadow: -14px 22px 40px -6px rgba(16, 24, 40, 0.12), 0 4px 14px rgba(16, 24, 40, 0.04);
+    box-shadow:
+      -14px 22px 40px -6px rgba(16, 24, 40, 0.12),
+      0 4px 14px rgba(16, 24, 40, 0.04);
   }
 
   /* Effet 3D sur les écrans quand l'image est à gauche (cards paires : 2) */
   .product-card:nth-child(even) .product-shot {
     transform: perspective(1200px) rotateY(7deg) rotateX(2.5deg) scale(0.98);
-    box-shadow: 14px 22px 40px -6px rgba(16, 24, 40, 0.12), 0 4px 14px rgba(16, 24, 40, 0.04);
+    box-shadow:
+      14px 22px 40px -6px rgba(16, 24, 40, 0.12),
+      0 4px 14px rgba(16, 24, 40, 0.04);
   }
 
   .product-shot img {
@@ -1041,10 +1189,6 @@ h3 {
   image-rendering: auto;
 }
 @media (min-width: 801px) {
-  .hero {
-    grid-template-columns: 0.8fr 1.2fr;
-    gap: 34px;
-  }
   .hero-product-shot {
     width: 100%;
     margin-right: 0;
