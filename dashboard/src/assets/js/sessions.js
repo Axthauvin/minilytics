@@ -15,6 +15,8 @@ const SessionsPage = {
   rawSessions: [],
   searchDebounce: null,
   activeSession: null,
+  eventSearch: "",
+  eventOrder: "desc",
 
   init() {
     this.datePicker = new MinilyticsCalendarPicker(document.getElementById("sessionDateFilter"));
@@ -100,6 +102,22 @@ const SessionsPage = {
     const deleteBtn = document.getElementById("btnDeleteSession");
     if (deleteBtn) {
       deleteBtn.addEventListener("click", () => this.deleteActiveSession());
+    }
+
+    const eventSearch = document.getElementById("sessionEventSearch");
+    if (eventSearch) {
+      eventSearch.addEventListener("input", (e) => {
+        this.eventSearch = e.target.value;
+        this.renderDetailView(this.activeSession);
+      });
+    }
+
+    const eventOrder = document.getElementById("sessionEventOrder");
+    if (eventOrder) {
+      eventOrder.addEventListener("click", () => {
+        this.eventOrder = this.eventOrder === "asc" ? "desc" : "asc";
+        this.renderDetailView(this.activeSession);
+      });
     }
   },
 
@@ -364,6 +382,8 @@ const SessionsPage = {
     try {
       const data = await Api.getSessionDetails(sessionId, siteId);
       this.activeSession = data.session;
+      this.eventSearch = "";
+      this.eventOrder = "desc";
       if (syncUrl) this.syncSelectedSession(data.session.session_id);
       this.renderDetailView(data.session);
       this.showDetailView();
@@ -494,7 +514,13 @@ const SessionsPage = {
     const journeyContainer = document.getElementById("journeyStepsList");
     if (!journeyContainer) return;
 
-    const events = session.events || [];
+    const chronologicalEvents = session.events || [];
+    const query = this.eventSearch.trim().toLocaleLowerCase();
+    const matchingEvents = chronologicalEvents.filter((evt) =>
+      this.eventMatchesSearch(evt, query),
+    );
+    const events = this.eventOrder === "desc" ? [...matchingEvents].reverse() : matchingEvents;
+    this.renderJourneyControls(matchingEvents.length, chronologicalEvents.length);
     let html = "";
 
     const EXCLUDE_KEYS = new Set([
@@ -539,7 +565,8 @@ const SessionsPage = {
             : "";
       const stepNum = idx + 1;
       const timeFormatted = this.formatEventTime(evt.timestamp);
-      const durText = this.formatStepDuration(events, idx, session);
+      const chronologicalIndex = chronologicalEvents.indexOf(evt);
+      const durText = this.formatStepDuration(chronologicalEvents, chronologicalIndex, session);
 
       // Extract custom event data payload only (no system or page context boilerplate)
       const customPayload = {};
@@ -623,21 +650,62 @@ const SessionsPage = {
             `;
     });
 
-    // End step
-    html += `
-            <div class="journey-step-item journey-step-end">
-                <div class="journey-step-left">
-                    <div class="journey-step-circle journey-circle-dot">
-                        <span class="journey-inner-dot"></span>
-                    </div>
-                </div>
-                <div class="journey-step-content" style="padding-bottom: 0; display: flex; align-items: center; min-height: 28px;">
-                    <span class="journey-end-text">Session ended</span>
-                </div>
+    if (events.length === 0) {
+      html = `
+        <div class="journey-no-results">
+          No events match “${this.escapeHtml(this.eventSearch.trim())}”.
+        </div>
+      `;
+    } else {
+      const newestFirst = this.eventOrder === "desc";
+      const journeyStartLabel = newestFirst ? "Session ended" : "Session started";
+      const journeyEndLabel = newestFirst ? "Session started" : "Session ended";
+      const journeyMarker = (label) => `
+        <div class="journey-step-item journey-step-end">
+          <div class="journey-step-left">
+            <div class="journey-step-circle journey-circle-dot">
+              <span class="journey-inner-dot"></span>
             </div>
+          </div>
+          <div class="journey-step-content journey-marker-content">
+            <span class="journey-end-text">${label}</span>
+          </div>
+        </div>
+      `;
+      html = journeyMarker(journeyStartLabel) + html;
+      html += `
+        ${journeyMarker(journeyEndLabel)}
         `;
+    }
 
     journeyContainer.innerHTML = html;
+  },
+
+  eventMatchesSearch(evt, query) {
+    if (!query) return true;
+    const data = evt?.data || {};
+    const searchable = [evt?.name, data.path, data.title, data.url]
+      .filter(Boolean)
+      .join(" ")
+      .toLocaleLowerCase();
+    return searchable.includes(query);
+  },
+
+  renderJourneyControls(matchingCount, totalCount) {
+    const input = document.getElementById("sessionEventSearch");
+    if (input && input.value !== this.eventSearch) input.value = this.eventSearch;
+
+    const button = document.getElementById("sessionEventOrder");
+    const label = document.getElementById("sessionEventOrderLabel");
+    if (!button || !label) return;
+    const newestFirst = this.eventOrder === "desc";
+    label.textContent = newestFirst ? "Newest first" : "Oldest first";
+    button.setAttribute("aria-pressed", String(newestFirst));
+    button.title = newestFirst ? "Show oldest events first" : "Show newest events first";
+    button.setAttribute(
+      "aria-label",
+      `${label.textContent}; ${matchingCount} of ${totalCount} events shown. Toggle event order`,
+    );
   },
 
   formatEventTime(ts) {

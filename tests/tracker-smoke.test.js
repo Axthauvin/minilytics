@@ -108,6 +108,13 @@ test('tracker auto-records a pageview and custom events on the script origin', a
   assert.equal((await payload(beacons[1].body)).data.plan, 'pro');
 });
 
+test('tracking endpoint preserves spaces in event names', () => {
+  const endpoint = fs.readFileSync(path.join(root, 'track.php'), 'utf8');
+
+  assert.ok(endpoint.includes("preg_replace('/[\\x00-\\x1F\\x7F]/u', '', substr"));
+  assert.ok(!endpoint.includes("preg_replace('/[^a-zA-Z0-9_\\-:.]/', '_', substr"));
+});
+
 test('the demo loads the tracker script', () => {
   const demo = fs.readFileSync(path.join(root, 'demo.html'), 'utf8');
   const match = demo.match(/<script\s+[^>]*src="([^"]*minilytics\.js)"[\s\S]*?data-site-id="demo"/);

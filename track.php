@@ -178,7 +178,7 @@ if (in_array($ip, (array)($site['internal_ips'] ?? []), true)) {
     exit;
 }
 
-$name = preg_replace('/[^a-zA-Z0-9_\-:.]/', '_', substr((string)$payload['name'], 0, 100));
+$name = trim(preg_replace('/[\x00-\x1F\x7F]/u', '', substr((string)$payload['name'], 0, 100)) ?? '');
 if ($name === '') failTracking('Invalid event name.');
 $data = cleanValue($payload['data']);
 unset($data['url'], $data['search'], $data['hash']);

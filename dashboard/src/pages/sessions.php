@@ -92,6 +92,24 @@
             <div class="session-journey-card">
                 <div class="journey-header">
                     <h3 class="journey-title">Page journey</h3>
+                    <div class="journey-controls">
+                        <label class="journey-search" for="sessionEventSearch">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="search" id="sessionEventSearch" placeholder="Search events" autocomplete="off">
+                        </label>
+                        <button type="button" class="btn-journey-order" id="sessionEventOrder" aria-pressed="true" title="Show oldest events first">
+                            <span id="sessionEventOrderLabel">Newest first</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="m3 16 4 4 4-4"></path>
+                                <path d="M7 20V4"></path>
+                                <path d="m21 8-4-4-4 4"></path>
+                                <path d="M17 4v16"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="journey-steps-container" id="journeyStepsList">
                     <!-- Populated dynamically by SessionsPage.renderDetailView -->

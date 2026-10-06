@@ -2844,6 +2844,10 @@ pre, .json-box, .code-box {
 }
 
 .journey-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     margin-bottom: 24px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border);
@@ -2855,6 +2859,74 @@ pre, .json-box, .code-box {
     color: var(--text-secondary);
     letter-spacing: 0;
     margin: 0;
+}
+
+.journey-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.journey-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: min(220px, 30vw);
+    height: 32px;
+    padding: 0 9px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: #fff;
+    color: var(--text-muted);
+}
+
+.journey-search:focus-within {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, .12);
+}
+
+.journey-search input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    color: var(--text-primary);
+    background: transparent;
+    font: inherit;
+    font-size: 12px;
+}
+
+.journey-search input::placeholder { color: var(--text-muted); }
+
+.btn-journey-order {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 9px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: #fff;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.btn-journey-order:hover,
+.btn-journey-order[aria-pressed="true"] {
+    border-color: #93c5fd;
+    color: var(--primary);
+    background: #f8fbff;
+}
+
+.journey-no-results {
+    padding: 24px 0;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
 }
 
 .journey-steps-container {
@@ -2916,6 +2988,14 @@ pre, .json-box, .code-box {
     padding-bottom: 24px;
     min-width: 0;
 }
+
+.journey-marker-content {
+    display: flex;
+    align-items: center;
+    min-height: 28px;
+}
+
+.journey-step-end .journey-marker-content { padding-bottom: 0; }
 
 .journey-step-top {
     display: flex;
@@ -3540,6 +3620,9 @@ pre, .json-box, .code-box {
     .event-meta-line { flex-wrap: wrap; }
     .events-card-header { padding: 15px; }
     .session-journey-card, .session-meta-sidebar-card { padding: 16px; }
+    .journey-header { align-items: flex-start; flex-direction: column; }
+    .journey-controls { width: 100%; }
+    .journey-search { width: auto; flex: 1; }
     .journey-step-top, .timeline-header { align-items: flex-start; flex-direction: column; gap: 3px; }
     .props-row { align-items: flex-start; flex-direction: column; gap: 4px; padding: 10px 12px; }
     .props-key { width: auto; }
