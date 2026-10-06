@@ -3,37 +3,160 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="description" content="A simple, private, self-hosted web analytics dashboard." />
-    <title>Minilytics — private web analytics</title>
+    <meta
+      name="description"
+      content="A simple, private, GDPR-friendly self-hosted web analytics dashboard."
+    />
+    <title>Minilytics — private, GDPR-friendly web analytics</title>
     <link rel="stylesheet" href="style.css" />
+    <link rel="icon" type="image/x-icon" href="../favicon.svg" />
   </head>
   <body>
     <header class="nav wrap">
-      <a class="brand" href="#top"><img src="../dashboard/src/assets/logo.svg" alt="" /><span>Minilytics</span></a>
-      <nav aria-label="Primary navigation"><a href="#product">Product</a><a href="#why-minilytics">Why Minilytics</a><a href="install.html">Install</a></nav>
-      <a class="button button-small" href="install.html"><i data-lucide="download"></i>Download</a>
+      <a class="brand" href="#top"
+        ><img src="../dashboard/src/assets/logo.svg" alt="" /><span
+          >Minilytics</span
+        ></a
+      >
+      <nav aria-label="Primary navigation">
+        <a href="#product">Product</a
+        ><a href="#why-minilytics">Why Minilytics</a
+        ><a href="install.html">Install</a>
+      </nav>
+      <a class="button button-small" href="install.html"
+        ><i data-lucide="download"></i>Download</a
+      >
     </header>
     <main id="top">
       <section class="hero wrap">
         <div class="hero-copy">
-          <h1>Lightweight analytics.<br /><em>Self-hosted.</em></h1>
-          <p class="hero-lead">See visitors, events and funnels from a dashboard you host yourself.</p>
-          <div class="hero-actions"><a class="button" href="install.html"><i data-lucide="download"></i>Download Minilytics</a><a class="text-link" href="https://github.com/axthauvin/minilytics">Explore on GitHub <i data-lucide="arrow-up-right"></i></a></div>
+          <h1>Analytics,<br /><em>lightweight by design</em></h1>
+          <p class="hero-lead">
+            Beautiful, <strong>GDPR-friendly</strong> self-hosted analytics
+            engine built for speed and privacy. Powered by
+            <strong>lightweight PHP</strong> with no cookies or heavy background
+            processes.
+          </p>
+          <div class="hero-actions">
+            <a class="button" href="install.html"
+              ><i data-lucide="download"></i>Download Minilytics</a
+            ><a class="text-link" href="https://github.com/axthauvin/minilytics"
+              >Explore on GitHub <i data-lucide="arrow-up-right"></i
+            ></a>
+          </div>
         </div>
-        <div class="hero-product-shot"><img src="images/dashboard.png" alt="Minilytics dashboard overview" /></div>
+        <div class="hero-product-shot">
+          <img src="images/dashboard.png" alt="Minilytics dashboard overview" />
+        </div>
       </section>
-      <section class="product-intro wrap" id="product"><h2>Visitors, events<br />and <em>funnels.</em></h2><p>The essentials to understand how your site is used.</p></section>
+      <section class="product-intro wrap" id="product">
+        <h2>Visitors, events and <em>funnels.</em></h2>
+        <p>
+          Minilytics comes with all the essential features to understand how
+          your site is used, without being bloated.
+        </p>
+      </section>
       <section class="showcase wrap" aria-label="Minilytics features">
-        <article class="product-card sessions-card"><div class="card-copy"><div class="feature-number">01</div><i data-lucide="users-round"></i><h3>Sessions</h3><p>Each visit, with device, location and actions.</p></div><div class="product-shot session-shot"><img src="images/sessions.png" alt="Minilytics sessions interface showing visitor journeys and devices" /></div></article>
-        <article class="product-card events-card"><div class="card-copy"><div class="feature-number">02</div><i data-lucide="zap"></i><h3>Events</h3><p>Clicks, signups and custom actions.</p></div><div class="product-shot event-shot"><img src="images/events.png" alt="Minilytics events interface showing event activity" /></div></article>
-        <article class="product-card funnels-card"><div class="card-copy"><div class="feature-number">03</div><i data-lucide="funnel"></i><h3>Funnels</h3><p>See where visitors drop off before conversion.</p></div><div class="product-shot funnel-shot"><img src="images/funnels.png" alt="Minilytics funnel interface showing conversion steps" /></div></article>
+        <article class="product-card sessions-card">
+          <div class="card-copy">
+            <!-- <div class="feature-number">01</div> -->
+            <i data-lucide="users-round"></i>
+            <h3>Sessions</h3>
+            <p>
+              Track each visitor's session with device, location and actions.
+            </p>
+          </div>
+          <div class="product-shot session-shot">
+            <img
+              src="images/sessions.png"
+              alt="Minilytics sessions interface showing visitor journeys and devices"
+            />
+          </div>
+        </article>
+        <article class="product-card events-card">
+          <div class="card-copy">
+            <!-- <div class="feature-number">02</div> -->
+            <i data-lucide="zap"></i>
+            <h3>Events</h3>
+            <p>
+              View each events evolution to track how users interact with your
+              site.
+            </p>
+          </div>
+          <div class="product-shot event-shot">
+            <img
+              src="images/events.png"
+              alt="Minilytics events interface showing event activity"
+            />
+          </div>
+        </article>
+        <article class="product-card funnels-card">
+          <div class="card-copy">
+            <!-- <div class="feature-number">03</div> -->
+            <i data-lucide="funnel"></i>
+            <h3>Funnels</h3>
+            <p>See where visitors drop off before conversion.</p>
+          </div>
+          <div class="product-shot funnel-shot">
+            <img
+              src="images/funnels.png"
+              alt="Minilytics funnel interface showing conversion steps"
+            />
+          </div>
+        </article>
       </section>
-      <section class="principles wrap" id="why-minilytics"><div class="principles-intro"><h2>Private by<br />default.</h2><p>Useful analytics, without handing your visitor data to someone else.</p></div><div class="principles-grid"><article><i data-lucide="shield-check"></i><h3>Privacy-focused</h3><p>Strict mode works without client-side storage.</p></article><article><i data-lucide="feather"></i><h3>Lightweight</h3><p>No Node.js runtime or database server.</p></article><article><i data-lucide="server"></i><h3>Self-hosted</h3><p>Run it wherever standard PHP is available.</p></article></div></section>
-      <section class="install wrap" id="install"><div><h2>Ready to install?</h2><p>Download the archive and follow the installation guide for your local machine or server.</p><a class="button" href="install.html"><i data-lucide="download"></i>View installation guide</a></div><div class="terminal" aria-label="Installation commands"><div><span></span><span></span><span></span><b>terminal</b></div><pre><code><i>$</i> curl -LO https://github.com/axthauvin/minilytics/releases/latest/download/minilytics.tar.gz
-<i>$</i> tar -xzf minilytics.tar.gz
-<i>$</i> open /dashboard/</code></pre></div></section>
+      <section class="principles wrap" id="why-minilytics">
+        <div class="principles-intro">
+          <h2>Private by<br />default.</h2>
+          <p>
+            Useful analytics, without handing your visitor data to someone else.
+          </p>
+        </div>
+        <div class="principles-grid">
+          <article>
+            <i data-lucide="shield-check"></i>
+            <h3>Privacy-focused</h3>
+            <p>Strict mode works without client-side storage.</p>
+          </article>
+          <article>
+            <i data-lucide="feather"></i>
+            <h3>Lightweight</h3>
+            <p>No Node.js runtime or database server.</p>
+          </article>
+          <article>
+            <i data-lucide="server"></i>
+            <h3>Self-hosted</h3>
+            <p>Run it wherever standard PHP is available.</p>
+          </article>
+        </div>
+      </section>
+      <section class="install wrap" id="install">
+        <div>
+          <h2>Ready to install?</h2>
+          <p>
+            Download the archive and follow the installation guide for your
+            local machine or server.
+          </p>
+          <a class="button" href="install.html"
+            ><i data-lucide="download"></i>View installation guide</a
+          >
+        </div>
+        <div class="install-logo">
+          <img src="../dashboard/src/assets/logo.svg" alt="" />
+        </div>
+      </section>
     </main>
-    <footer class="wrap"><a class="brand" href="#top"><img src="../dashboard/src/assets/logo.svg" alt="" /><span>Minilytics</span></a><span>Minimal, self-hosted web analytics.</span><a href="https://github.com/axthauvin/minilytics">GitHub <i data-lucide="arrow-up-right"></i></a></footer>
-    <script src="https://unpkg.com/lucide@latest"></script><script src="app.js"></script>
+    <footer class="wrap">
+      <a class="brand" href="#top"
+        ><img src="../dashboard/src/assets/logo.svg" alt="" /><span
+          >Minilytics</span
+        ></a
+      ><span>Minimal, self-hosted web analytics.</span
+      ><a href="https://github.com/axthauvin/minilytics"
+        >GitHub <i data-lucide="arrow-up-right"></i
+      ></a>
+    </footer>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="app.js"></script>
   </body>
 </html>
