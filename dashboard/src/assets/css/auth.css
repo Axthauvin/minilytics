@@ -22,7 +22,7 @@ body {
   padding: 34px;
 }
 
-.auth-card img {
+.auth-card > img {
   margin-bottom: 20px;
 }
 
@@ -35,6 +35,11 @@ body {
   color: #64748b;
   line-height: 1.5;
   margin: 0 0 24px;
+}
+
+.auth-card .account-reassurance {
+  margin-top: -12px;
+  font-size: 12px;
 }
 
 .auth-card label {
@@ -52,13 +57,28 @@ body {
   border-radius: 8px;
   padding: 11px 12px;
   font: inherit;
+  font-size: 14px;
+  color: #0f172a;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.auth-card input:hover:not(:focus) {
+  border-color: #94a3b8;
+}
+
+.auth-card input:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .auth-card button {
   width: 100%;
   border: 0;
   border-radius: 8px;
-  background: #2563eb;
+  background: #0f172a;
   color: #fff;
   font: 600 14px inherit;
   padding: 12px;
@@ -161,4 +181,259 @@ body {
 .password-strength[data-strength="5"] span {
   width: 100%;
   background: #16a34a;
+}
+
+.auth-card:has(.database-onboarding-form) {
+  width: min(100%, 580px);
+}
+
+.storage-options {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0 16px;
+}
+
+.storage-option {
+  display: flex !important;
+  align-items: center;
+  gap: 14px;
+  margin: 0 !important;
+  padding: 14px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.storage-option:hover:not(.is-selected) {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.storage-option.is-selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.storage-option input[type="radio"] {
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
+  flex: 0 0 18px;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+.storage-logo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 68px;
+  width: 68px;
+  height: 42px;
+}
+
+.storage-logo img {
+  display: block;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  object-fit: contain;
+  margin: 0 !important;
+}
+
+.storage-logo--sqlite img {
+  width: 38px;
+  height: 38px;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.storage-logo--servers {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.storage-logo--servers img {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  padding: 3.5px;
+  border-radius: 7px;
+  transition: transform 0.2s ease;
+}
+
+.storage-logo--servers img:first-child {
+  transform: rotate(-6deg) translateY(1px);
+  z-index: 1;
+}
+
+.storage-logo--servers img:last-child {
+  transform: rotate(6deg) translateY(-1px);
+  margin-left: -9px;
+  z-index: 2;
+  box-shadow: -1px 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+.storage-option:hover .storage-logo--servers img:first-child {
+  transform: rotate(-8deg) translateY(1px);
+}
+
+.storage-option:hover .storage-logo--servers img:last-child {
+  transform: rotate(8deg) translateY(-1px);
+}
+
+.storage-option > span:last-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.storage-option strong,
+.storage-checkbox strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.storage-option small,
+.storage-checkbox small,
+.storage-footer {
+  display: block;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.storage-guidance {
+  margin: 0 0 18px !important;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569 !important;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+#storageGuidance {
+  padding: 0;
+  background: transparent;
+  color: #64748b !important;
+  margin: 14px 0 20px !important;
+  font-size: 12.5px;
+}
+
+.remote-storage-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 14px;
+}
+
+.remote-storage-fields label {
+  margin: 8px 0;
+}
+
+.remote-storage-fields label:first-child,
+.storage-checkbox,
+.remote-storage-fields .storage-guidance {
+  grid-column: 1 / -1;
+}
+
+.auth-card select,
+.remote-storage-fields select {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 11px 38px 11px 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  color: #0f172a;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px 20px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.auth-card select:hover,
+.remote-storage-fields select:hover {
+  border-color: #94a3b8;
+}
+
+.auth-card select:focus,
+.remote-storage-fields select:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.storage-checkbox {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  margin: 10px 0 !important;
+}
+
+.storage-checkbox input {
+  width: 16px !important;
+  height: 16px !important;
+  margin: 3px 0 0 !important;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+.storage-footer {
+  margin: 14px 0 0 !important;
+  text-align: center;
+}
+
+.auth-card .back-button {
+  width: 100% !important;
+  margin: 10px 0 0 !important;
+  padding: 11px 12px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  color: #334155 !important;
+  background: #f8fafc !important;
+  box-shadow: 0 1px 2px #0f172a0a;
+  text-align: center;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.auth-card .back-button:hover {
+  border-color: #94a3b8 !important;
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+@media (max-width: 520px) {
+  .remote-storage-fields {
+    grid-template-columns: 1fr;
+  }
 }
