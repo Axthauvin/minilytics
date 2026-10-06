@@ -9,5 +9,9 @@ data/sites.json
 data/.tracking-secret
 demo.html
 *.zip
+*.tar.gz
+*.tar.gz.sha256
+dist/
 umami-import/
 !data/.htaccess
+

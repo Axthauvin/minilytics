@@ -18,6 +18,43 @@ TODO: add screenshot
 
 The Zip extension is required only to import a ZIP export from another tracking service (like Umami, Google Analytics, or Matomo).
 
+### Install from release (Production)
+
+Download the production archive directly from the [latest GitHub release](https://github.com/axthauvin/minilytics/releases/latest).
+
+```bash
+# 1. Create target directory and download the latest archive
+mkdir -p /var/www/minilytics
+cd /var/www/minilytics
+curl -LO https://github.com/axthauvin/minilytics/releases/latest/download/minilytics.tar.gz
+
+# 2. Extract files
+tar -xzf minilytics.tar.gz
+rm minilytics.tar.gz
+
+# 3. Grant write permissions on data/ to your web server user (e.g. www-data, apache, nginx)
+sudo chown -R www-data:www-data data
+sudo chmod -R 775 data
+```
+
+#### Web server configuration
+
+- **Apache** :
+  - Ensure `mod_rewrite` is enabled (`sudo a2enmod rewrite`).
+  - Ensure `AllowOverride All` is set in your VirtualHost configuration so the provided `.htaccess` files (especially `data/.htaccess` protecting your SQLite databases) are respected.
+- **Nginx** :
+  - Restrict direct HTTP access to the `data/` folder:
+    ```nginx
+    location ^~ /data/ {
+        deny all;
+        return 404;
+    }
+    ```
+
+Set the `MINILYTICS_TRACKING_SECRET` environment variable when running more than one application node.
+
+Finally, navigate to `https://your-domain.com/dashboard/` to create the initial administrator account.
+
 ### Run locally
 
 Clone the repository or download its source, then start PHP's built-in server from the project directory:
@@ -28,9 +65,6 @@ php -S localhost:8080
 
 Open [http://localhost:8080/dashboard/](http://localhost:8080/dashboard/) and create the first administrator account. Create a website in the dashboard, copy its generated tracking snippet into your website's `<head>`, and then visit your website to see pageviews appear in the dashboard.
 
-### Deploy
-
-Serve this directory with PHP and grant the web-server user write access to `data/`. On Apache, keep the included `.htaccess` files enabled to prevent direct access to stored data. Set `MINILYTICS_TRACKING_SECRET` when running more than one application node.
 
 ## Documentation
 

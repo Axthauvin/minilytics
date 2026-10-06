@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag or version name (e.g. v1.0.0)'
+        required: false
+        default: 'manual-release'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release version tag
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.tag_name }}" ]; then
+            TAG="${{ inputs.tag_name }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Release tag is: ${TAG}"
+
+      - name: Package deployable application
+        run: |
+          chmod +x scripts/build-archive.sh
+          ./scripts/build-archive.sh dist minilytics.tar.gz
+          cp dist/minilytics.tar.gz "dist/minilytics-${{ steps.vars.outputs.tag }}.tar.gz"
+          cd dist
+          sha256sum "minilytics-${{ steps.vars.outputs.tag }}.tar.gz" > "minilytics-${{ steps.vars.outputs.tag }}.tar.gz.sha256"
+
+      - name: Generate Changelog and Release Notes
+        id: notes
+        run: |
+          TAG="${{ steps.vars.outputs.tag }}"
+          REPO="${{ github.repository }}"
+          
+          # Detect previous tag for changelog diff
+          PREV_TAG=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)
+          CHECKSUM_DEFAULT=$(cat dist/minilytics.tar.gz.sha256 | awk '{print $1}')
+
+          cat << EOF > release_notes.md
+          ### Quick Install
+
+          \`\`\`bash
+          # Download and extract into your webroot
+          curl -LO "https://github.com/${REPO}/releases/download/${TAG}/minilytics.tar.gz"
+          tar -xzf minilytics.tar.gz -C /var/www/html/ && rm minilytics.tar.gz
+
+          # Ensure data/ directory permissions
+          chown -R www-data:www-data /var/www/html/data
+          chmod -R 775 /var/www/html/data
+          \`\`\`
+
+          Open \`/dashboard/\` to set up the admin account.
+
+          ### Changelog
+
+          EOF
+
+          # Append commits directly to release notes
+          if [ -n "$PREV_TAG" ]; then
+            COMMITS=$(git log "${PREV_TAG}..${TAG}" --pretty=format:"* %s ([%h](https://github.com/${REPO}/commit/%H)) - @%an" --reverse 2>/dev/null || true)
+          else
+            COMMITS=$(git log "${TAG}" --pretty=format:"* %s ([%h](https://github.com/${REPO}/commit/%H)) - @%an" --reverse 2>/dev/null || true)
+          fi
+
+          if [ -z "${COMMITS}" ]; then
+            echo "* No changes detected." >> release_notes.md
+          else
+            echo "${COMMITS}" >> release_notes.md
+          fi
+
+          cat << EOF >> release_notes.md
+
+          ### Checksum
+
+          \`\`\`text
+          ${CHECKSUM_DEFAULT}  minilytics.tar.gz
+          \`\`\`
+          EOF
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: minilytics-${{ steps.vars.outputs.tag }}
+          path: |
+            dist/minilytics.tar.gz
+            dist/minilytics.tar.gz.sha256
+            dist/minilytics-${{ steps.vars.outputs.tag }}.tar.gz
+            dist/minilytics-${{ steps.vars.outputs.tag }}.tar.gz.sha256
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          name: ${{ steps.vars.outputs.tag }}
+          tag_name: ${{ steps.vars.outputs.tag }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          files: |
+            dist/minilytics.tar.gz
+            dist/minilytics.tar.gz.sha256
+            dist/minilytics-${{ steps.vars.outputs.tag }}.tar.gz
+            dist/minilytics-${{ steps.vars.outputs.tag }}.tar.gz.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
