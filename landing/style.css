@@ -465,24 +465,62 @@ body {
     11px "DM Mono",
     monospace;
 }
-.card-copy > i {
-  width: 22px;
-  height: 22px;
-  color: var(--blue);
+.card-copy > i,
+.card-copy > svg {
+  width: 24px;
+  height: 24px;
+  display: block;
 }
+
+/* Distinct card personalities */
+.sessions-card {
+  background: linear-gradient(145deg, #f8faff 0%, #ffffff 50%, #f1f5f9 100%);
+  border-color: #e2e8f0;
+}
+.sessions-card .card-copy > i,
+.sessions-card .card-copy > svg {
+  color: #2563eb;
+}
+
+.events-card {
+  background: linear-gradient(145deg, #fbfaff 0%, #ffffff 50%, #f5f3ff 100%);
+  border-color: #e0e7ff;
+}
+.events-card .card-copy > i,
+.events-card .card-copy > svg {
+  color: #6366f1;
+}
+
+/* Funnels is the key / star feature */
+.funnels-card {
+  background: linear-gradient(135deg, #eef2ff 0%, #ffffff 42%, #e0e7ff 100%) !important;
+  border-color: #a5b4fc !important;
+  box-shadow: 0 10px 32px -4px rgba(99, 102, 241, 0.12), 0 4px 12px rgba(16, 24, 40, 0.04) !important;
+}
+.funnels-card .card-copy > i,
+.funnels-card .card-copy > svg {
+  color: #4338ca;
+}
+
 .card-copy h3 {
   max-width: 100%;
   margin: 14px 0 8px;
-  font-size: 22px;
+  font-size: 24px;
   letter-spacing: -0.04em;
   line-height: 1.2;
 }
-.card-copy p {
-  max-width: 100%;
-  margin: 0;
+.card-copy .card-lead {
+  color: var(--ink);
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.55;
+  margin: 0 0 10px;
+}
+.card-copy .card-sub {
   color: var(--muted);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
 }
 .card-copy a {
   display: inline-flex;
@@ -514,9 +552,6 @@ body {
   display: block;
   width: 100%;
   height: auto;
-}
-.funnels-card {
-  background: linear-gradient(135deg, #f8faff 0%, #fff 60%);
 }
 .principles {
   display: grid;
@@ -552,14 +587,15 @@ body {
   color: var(--blue);
 }
 .principles-grid h3 {
-  margin: 22px 0 8px;
-  font-size: 14px;
-  letter-spacing: -0.03em;
+  margin: 18px 0 6px;
+  font-size: 15px;
+  letter-spacing: -0.02em;
 }
 .principles-grid p {
   margin: 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13.5px;
+  line-height: 1.55;
 }
 .install {
   display: flex;
@@ -898,10 +934,15 @@ footer > a:last-child i {
   }
   .product-card .card-copy h3 {
     font-size: 28px;
-    margin: 16px 0 10px;
+    margin: 8px 0 10px;
   }
-  .product-card .card-copy p {
+  .card-copy .card-lead {
     font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+  .card-copy .card-sub {
+    font-size: 13.5px;
     line-height: 1.6;
   }
 
@@ -975,8 +1016,8 @@ h3 {
 .hero-lead,
 .product-intro > p:last-child,
 .principles-intro > p:last-child {
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 14.5px;
+  line-height: 1.6;
 }
 .terminal b,
 .terminal pre,
