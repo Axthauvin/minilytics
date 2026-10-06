@@ -3,12 +3,14 @@
   align-items: center;
   gap: 7px;
   color: #536076;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 700;
   text-decoration: none;
 }
-.back-link i {
-  width: 15px;
+.back-link i,
+.back-link svg {
+  width: 16px;
+  height: 16px;
 }
 .install-hero {
   padding: 88px 0 72px;
@@ -25,10 +27,11 @@
   font-style: normal;
 }
 .install-hero > p:not(.eyebrow) {
-  max-width: 490px;
+  max-width: 540px;
   margin: 0 auto 27px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 15px;
+  line-height: 1.6;
 }
 .requirements {
   display: grid;
@@ -36,19 +39,22 @@
   border: 1px solid var(--line);
   border-radius: 13px;
   background: #fff;
+  margin: 80px auto;
 }
 .requirements article {
   display: flex;
   align-items: center;
-  gap: 13px;
-  padding: 23px 28px;
+  gap: 15px;
+  padding: 24px 28px;
   border-right: 1px solid var(--line);
 }
 .requirements article:last-child {
   border: 0;
 }
-.requirements i {
-  width: 21px;
+.requirements i,
+.requirements svg {
+  width: 24px;
+  height: 24px;
   color: var(--blue);
 }
 .requirements strong,
@@ -56,31 +62,37 @@
   display: block;
 }
 .requirements strong {
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
 }
 .requirements span {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin-top: 2px;
 }
-
-.requirements {
-  margin: 80px auto;
+.requirements span code {
+  font-size: 12px;
+  padding: 1px 4px;
+  background: #f1f5f9;
+  border-radius: 3px;
 }
 
 .guide-heading h2 {
   margin: 0 0 35px;
-  font-size: 44px;
+  font-size: 42px;
   letter-spacing: -0.03em;
   line-height: 1.1;
 }
 .guide-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
+  gap: 20px;
 }
 .guide-card {
   position: relative;
-  padding: 29px;
+  padding: 30px;
   border: 1px solid var(--line);
   border-radius: 13px;
   background: #fff;
@@ -91,65 +103,78 @@
   right: 27px;
   color: #c1c8d4;
   font:
-    11px "JetBrains Mono",
+    12px "JetBrains Mono",
     monospace;
 }
-.guide-card > i {
-  width: 22px;
+.guide-card > i,
+.guide-card > svg {
+  width: 24px;
+  height: 24px;
   color: var(--blue);
 }
 .guide-card h3 {
-  margin: 19px 0 3px;
-  font-size: 20px;
+  margin: 18px 0 6px;
+  font-size: 22px;
   letter-spacing: -0.02em;
 }
 .guide-card > p {
   margin: 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13.5px;
+  line-height: 1.5;
 }
 .guide-card ol {
   display: grid;
-  gap: 11px;
-  margin: 24px 0;
-  padding-left: 18px;
-  color: #536076;
-  font-size: 11px;
+  gap: 12px;
+  margin: 22px 0;
+  padding-left: 20px;
+  color: #475569;
+  font-size: 13.5px;
+  line-height: 1.55;
 }
 .guide-card li::marker {
   color: var(--blue);
   font-weight: 800;
 }
 .guide-card code {
-  padding: 1px 3px;
-  border-radius: 3px;
-  color: #cdcdcd;
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: #334155;
+  background: #f1f5f9;
   font:
-    10px "JetBrains Mono",
+    12px "JetBrains Mono",
     monospace;
+}
+.guide-card pre code {
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
 }
 .guide-card aside {
   display: grid;
-  gap: 2px;
-  margin-top: 9px;
-  padding: 10px 11px;
-  border-radius: 7px;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-radius: 8px;
   background: #f5f9ff;
-  color: #566177;
-  font-size: 10px;
+  color: #475569;
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 .guide-card aside strong {
   color: var(--ink);
-  font-size: 10px;
+  font-size: 12.5px;
 }
 .guide-card pre {
   margin: 20px 0 0;
-  padding: 13px;
-  border-radius: 7px;
+  padding: 14px 16px;
+  border-radius: 8px;
   background: #182235;
   color: #dce7fb;
   font:
-    10px/1.5 "JetBrains Mono",
+    12.5px/1.55 "JetBrains Mono",
     monospace;
 }
 .guide-card pre .prompt {
@@ -172,15 +197,19 @@
   letter-spacing: -0.025em;
 }
 .after-install p:not(.eyebrow) {
-  max-width: 530px;
+  max-width: 540px;
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14.5px;
+  line-height: 1.6;
 }
 .after-install code {
   font:
-    11px "JetBrains Mono",
+    12.5px "JetBrains Mono",
     monospace;
+  background: #e2e8f0;
+  padding: 2px 5px;
+  border-radius: 4px;
 }
 @media (max-width: 800px) {
   .install-hero {
@@ -211,12 +240,12 @@
     font-size: 41px;
   }
   .guide-heading h2 {
-    font-size: 37px;
+    font-size: 34px;
   }
   .guide-card {
     padding: 24px;
   }
   .after-install h2 {
-    font-size: 27px;
+    font-size: 26px;
   }
 }
