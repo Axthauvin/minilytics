@@ -2,6 +2,15 @@
   <img src="favicon.svg" alt="Minilytics logo" width="160" />
   <h1>Minilytics</h1>
   <p><strong>Minimal, self-hosted web analytics powered by PHP and SQLite.</strong></p>
+
+  <p>
+    <a href="#quick-start">Quick Start</a> &bull;
+    <a href="#production-installation">Installation</a> &bull;
+    <a href="#local-development">Development</a> &bull;
+    <a href="#documentation">Documentation</a> &bull;
+    <a href="#testing">Testing</a> &bull;
+    <a href="#license">License</a>
+  </p>
 </div>
 
 Minilytics is a lightweight web analytics platform built for simplicity, performance, and privacy.
@@ -63,3 +72,10 @@ Node.js is used only to run unit and smoke tests during development. **Node.js i
 ```bash
 node --test tests/tracker-smoke.test.js
 ```
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
