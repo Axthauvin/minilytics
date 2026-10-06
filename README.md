@@ -20,40 +20,17 @@ The Zip extension is required only to import a ZIP export from another tracking 
 
 ### Install from release (Production)
 
-Download the production archive directly from the [latest GitHub release](https://github.com/axthauvin/minilytics/releases/latest).
+Download the production archive from [GitHub Releases](https://github.com/axthauvin/minilytics/releases/latest) and extract it into your website directory:
 
 ```bash
-# 1. Create target directory and download the latest archive
-mkdir -p /var/www/minilytics
-cd /var/www/minilytics
 curl -LO https://github.com/axthauvin/minilytics/releases/latest/download/minilytics.tar.gz
-
-# 2. Extract files
-tar -xzf minilytics.tar.gz
-rm minilytics.tar.gz
-
-# 3. Grant write permissions on data/ to your web server user (e.g. www-data, apache, nginx)
-sudo chown -R www-data:www-data data
-sudo chmod -R 775 data
+tar -xzf minilytics.tar.gz && rm minilytics.tar.gz
 ```
 
-#### Web server configuration
+Ensure your web server has write access to `data/`, then visit `https://your-domain.com/dashboard/` to create the initial administrator account.
 
-- **Apache** :
-  - Ensure `mod_rewrite` is enabled (`sudo a2enmod rewrite`).
-  - Ensure `AllowOverride All` is set in your VirtualHost configuration so the provided `.htaccess` files (especially `data/.htaccess` protecting your SQLite databases) are respected.
-- **Nginx** :
-  - Restrict direct HTTP access to the `data/` folder:
-    ```nginx
-    location ^~ /data/ {
-        deny all;
-        return 404;
-    }
-    ```
-
-Set the `MINILYTICS_TRACKING_SECRET` environment variable when running more than one application node.
-
-Finally, navigate to `https://your-domain.com/dashboard/` to create the initial administrator account.
+> [!NOTE]
+> On Apache, the included `.htaccess` files protect stored data automatically (ensure `AllowOverride All` is enabled). On Nginx, ensure direct access to `/data/` is blocked. Set `MINILYTICS_TRACKING_SECRET` when running more than one application node.
 
 ### Run locally
 

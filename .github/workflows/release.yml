@@ -53,17 +53,14 @@ jobs:
           cat << EOF > release_notes.md
           ### Quick Install
 
-          \`\`\`bash
-          # Download and extract into your webroot
-          curl -LO "https://github.com/${REPO}/releases/download/${TAG}/minilytics.tar.gz"
-          tar -xzf minilytics.tar.gz -C /var/www/html/ && rm minilytics.tar.gz
+          Extract into your website directory:
 
-          # Ensure data/ directory permissions
-          chown -R www-data:www-data /var/www/html/data
-          chmod -R 775 /var/www/html/data
+          \`\`\`bash
+          curl -LO "https://github.com/${REPO}/releases/download/${TAG}/minilytics.tar.gz"
+          tar -xzf minilytics.tar.gz && rm minilytics.tar.gz
           \`\`\`
 
-          Open \`/dashboard/\` to set up the admin account.
+          Ensure your web server has write access to \`data/\`, then open \`/dashboard/\` to create the administrator account.
 
           ### Checksum
 
