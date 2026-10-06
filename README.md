@@ -1,63 +1,65 @@
 <div align="center">
-  <img src="favicon.svg" alt="Minilytics logo" width="200" />
+  <img src="favicon.svg" alt="Minilytics logo" width="160" />
   <h1>Minilytics</h1>
-  <p>Private, PHP based, self-hosted and beautiful web analytics</p>
+  <p><strong>Minimal, self-hosted web analytics powered by PHP and SQLite.</strong></p>
 </div>
 
-Minilytics is a self-hosted web analytics application. Add its lightweight tracker to a website, then use the private dashboard to understand pageviews, events, sessions, and traffic sources without relying on a third-party analytics service.
+Minilytics is a lightweight web analytics platform built for simplicity, performance, and privacy.
 
-TODO: add screenshot
+It was built because today's most modern analytics tools require heavy Node.js runtimes, complex Docker setups, or dedicated database servers. Minilytics is **minimal by design**. It's designed to run anywhere standard PHP is available, consumes negligible server resources, while trying to provide a clean and modern user experience.
 
-## Quick start
+---
+
+## Quick Start
 
 ### Requirements
 
-- PHP 8.0 or later with the SQLite3 extension enabled
-- A web server that can write to `data/`
-- Outbound HTTPS access from PHP, zlib support and roughly 250 MB of free disk space to automatically download the local DB-IP City Lite geolocation database (country, region and approximate city)
+- PHP 8.0 or later with the `sqlite3` extension enabled
+- Web server write access to the `data/` directory
+- Outbound HTTPS access and `zlib` support (to download the local DB-IP City Lite geolocation database)
 
-The Zip extension is required only to import a ZIP export from another tracking service (like Umami, Google Analytics, or Matomo).
+*Note: The `zip` extension is only needed if you import historical data from external services.*
 
-### Install from release (Production)
+### Production Installation
 
-Download the production archive from [GitHub Releases](https://github.com/axthauvin/minilytics/releases/latest) and extract it into your website directory:
+Download the latest production archive from [GitHub Releases](https://github.com/axthauvin/minilytics/releases/latest) and extract it into your website root directory:
 
 ```bash
 curl -LO https://github.com/axthauvin/minilytics/releases/latest/download/minilytics.tar.gz
 tar -xzf minilytics.tar.gz && rm minilytics.tar.gz
 ```
 
-Ensure your web server has write access to `data/`, then visit `https://your-domain.com/dashboard/` to create the initial administrator account.
+1. Ensure your web server has write access to the `data/` directory.
+2. Navigate to `https://your-domain.com/dashboard/` to create the initial administrator account.
+3. Add your website in the dashboard and paste the tracking snippet into your website's `<head>`.
 
-> [!NOTE]
-> On Apache, the included `.htaccess` files protect stored data automatically (ensure `AllowOverride All` is enabled). On Nginx, ensure direct access to `/data/` is blocked. Set `MINILYTICS_TRACKING_SECRET` when running more than one application node.
+> On Apache, the included `.htaccess` files protect stored SQLite databases automatically (ensure `AllowOverride All` is enabled). On Nginx, block direct HTTP access to `/data/`.
 
-### Run locally
+### Local Development
 
-Clone the repository or download its source, then start PHP's built-in server from the project directory:
+To run Minilytics locally without installing a full web server, clone the repository and start PHP's built-in development server:
 
 ```bash
 php -S localhost:8080
 ```
 
-Open [http://localhost:8080/dashboard/](http://localhost:8080/dashboard/) and create the first administrator account. Create a website in the dashboard, copy its generated tracking snippet into your website's `<head>`, and then visit your website to see pageviews appear in the dashboard.
+Open [http://localhost:8080/dashboard/](http://localhost:8080/dashboard/) to access the dashboard.
 
+---
 
 ## Documentation
 
-- [Tracking and how to track custom events](docs/tracking/README.md)
+- [Tracking and custom events](docs/tracking/README.md)
 - [Privacy and data protection](docs/privacy/README.md)
-- [Operations and storage](docs/operations/README.md)
-- [Importing Umami data](docs/importing/README.md)
+- [Operations, backups and storage](docs/operations/README.md)
+- [Importing data from other services](docs/importing/README.md)
 
-## Run tests
+---
 
-The test suite uses [Node.js](https://nodejs.org/) to run smoke tests against the tracker and demo snippet, but **node is not required to run Minilytics, only for testing**. Install Node.js and its dependencies, then run the tests:
+## Testing
 
-````bash
-
-Run the tracker smoke test after changing the tracker or demo snippet:
+Node.js is used only to run unit and smoke tests during development. **Node.js is not required to run Minilytics in production.**
 
 ```bash
 node --test tests/tracker-smoke.test.js
-````
+```
