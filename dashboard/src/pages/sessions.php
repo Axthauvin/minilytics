@@ -140,11 +140,34 @@
                     </div>
                 </div>
 
+                <div class="session-summary-grid">
+                    <div class="session-summary-card">
+                        <span class="session-summary-label">Page views</span>
+                        <strong class="session-summary-value" id="detailPageviews">0</strong>
+                    </div>
+                    <div class="session-summary-card">
+                        <span class="session-summary-label">Events</span>
+                        <strong class="session-summary-value" id="detailEventCount">0</strong>
+                    </div>
+                    <div class="session-summary-card">
+                        <span class="session-summary-label">Duration</span>
+                        <strong class="session-summary-value" id="detailDuration">0s</strong>
+                    </div>
+                    <div class="session-summary-card">
+                        <span class="session-summary-label">Last activity</span>
+                        <strong class="session-summary-value session-summary-date" id="detailLastActivity">–</strong>
+                    </div>
+                </div>
+
                 <div class="session-meta-section">
                     <h4 class="meta-section-title">Session information</h4>
                     <div class="meta-field-row">
-                        <span class="meta-field-label">Session duration</span>
-                        <span class="meta-field-val" id="detailDuration">0s</span>
+                        <span class="meta-field-label">Started</span>
+                        <span class="meta-field-val" id="detailStartedAt">–</span>
+                    </div>
+                    <div class="meta-field-row">
+                        <span class="meta-field-label">Last activity</span>
+                        <span class="meta-field-val" id="detailLastActivityFull">–</span>
                     </div>
                     <div class="meta-field-row">
                         <span class="meta-field-label">Referrer</span>

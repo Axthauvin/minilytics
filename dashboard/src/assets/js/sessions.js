@@ -307,7 +307,8 @@ const SessionsPage = {
         const browser = s.browser || "Unknown Browser";
         const timeAgo = s.time_ago || s.started_at;
         const duration = s.duration_label || "0s";
-        const eventCount = s.event_count || 1;
+        const pageviewCount = Number(s.pageview_count) || 0;
+        const eventCount = Number(s.event_count) || 0;
         const siteId = window.App?.currentSiteId || "";
         const flowChips = null;
 
@@ -331,7 +332,9 @@ const SessionsPage = {
                           <span class="session-meta-divider">·</span>
                           <span class="session-meta-item">${Icons.getOsIcon(os, 14)} ${this.escapeHtml(os)}</span>
                           <span class="session-meta-divider">·</span>
-                          <span class="session-meta-item">${Icons.get("activity", { size: 12 })} ${eventCount} action${eventCount === 1 ? "" : "s"}</span>
+                          <span class="session-meta-item" title="${pageviewCount} page view${pageviewCount === 1 ? "" : "s"}">${Icons.get("file-text", { size: 12 })} ${pageviewCount} page view${pageviewCount === 1 ? "" : "s"}</span>
+                          <span class="session-meta-divider">·</span>
+                          <span class="session-meta-item" title="${eventCount} event${eventCount === 1 ? "" : "s"}">${Icons.get("zap", { size: 12 })} ${eventCount} event${eventCount === 1 ? "" : "s"}</span>
                           ${flowChips ? `<span class="session-meta-divider">|</span><div class="session-flow-bar">${flowChips}</div>` : ""}
                       </div>
                   </div>
@@ -483,6 +486,13 @@ const SessionsPage = {
     }
 
     setTxt("detailDuration", session.duration_label || "0s");
+    setTxt("detailPageviews", String(session.pageview_count || 0));
+    setTxt("detailEventCount", String(session.custom_event_count || 0));
+    const startedAt = this.formatEventTime(session.started_at);
+    const lastActivity = this.formatEventTime(session.ended_at);
+    setTxt("detailStartedAt", startedAt);
+    setTxt("detailLastActivity", lastActivity);
+    setTxt("detailLastActivityFull", lastActivity);
     setTxt("detailReferrer", session.referrer || "Direct");
 
     // Extract first event details for screen / locale
@@ -660,19 +670,20 @@ const SessionsPage = {
       const newestFirst = this.eventOrder === "desc";
       const journeyStartLabel = newestFirst ? "Session ended" : "Session started";
       const journeyEndLabel = newestFirst ? "Session started" : "Session ended";
-      const journeyMarker = (label) => `
+      const journeyMarker = (label, connectsToNext = false) => `
         <div class="journey-step-item journey-step-end">
           <div class="journey-step-left">
             <div class="journey-step-circle journey-circle-dot">
               <span class="journey-inner-dot"></span>
             </div>
+            ${connectsToNext ? '<div class="journey-step-line"></div>' : ''}
           </div>
           <div class="journey-step-content journey-marker-content">
             <span class="journey-end-text">${label}</span>
           </div>
         </div>
       `;
-      html = journeyMarker(journeyStartLabel) + html;
+      html = journeyMarker(journeyStartLabel, true) + html;
       html += `
         ${journeyMarker(journeyEndLabel)}
         `;

@@ -87,6 +87,8 @@ try {
         $countryCode = 'UN';
         $city = '';
         $trackingMode = 'unknown';
+        $pageviewCount = 0;
+        $customEventCount = 0;
 
         while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
             $foundEvents = true;
@@ -122,6 +124,11 @@ try {
 
             // Engagement is an internal timing signal, not a visitor-facing event.
             if (($act['name'] ?? '') === '_ml_engaged') continue;
+            if (($act['name'] ?? '') === 'pageview') {
+                $pageviewCount++;
+            } else {
+                $customEventCount++;
+            }
             $events[] = [
                 'id' => (int) $row['id'],
                 'name' => $act['name'] ?? 'unknown',
@@ -151,6 +158,8 @@ try {
                 'duration_seconds' => $durationSec,
                 'duration_label' => $durationLabel,
                 'event_count' => count($events),
+                'pageview_count' => $pageviewCount,
+                'custom_event_count' => $customEventCount,
                 'entry_page' => $entryPage ?: '/',
                 'referrer' => $referrer ?: 'Direct',
                 'browser' => $browser,
@@ -251,7 +260,8 @@ try {
             COALESCE(MAX(visitor_id), session_id) as visitor_id,
             MIN(timestamp) as started_at,
             MAX(timestamp) as last_active_at,
-            SUM(CASE WHEN json_extract(action, '$.name') <> '_ml_engaged' THEN 1 ELSE 0 END) as event_count,
+            SUM(CASE WHEN json_extract(action, '$.name') = 'pageview' THEN 1 ELSE 0 END) as pageview_count,
+            SUM(CASE WHEN json_extract(action, '$.name') NOT IN ('pageview', '_ml_engaged') THEN 1 ELSE 0 END) as event_count,
             (strftime('%s', MAX(timestamp)) - strftime('%s', MIN(timestamp))) as duration_seconds
         FROM user_activity
         WHERE {$whereClause}
@@ -340,6 +350,7 @@ try {
             'time_ago' => $timeAgo,
             'duration_seconds' => $durSec,
             'duration_label' => $durLabel,
+            'pageview_count' => (int) $sr['pageview_count'],
             'event_count' => (int) $sr['event_count'],
             'entry_page' => $entryPage ?: '/',
             'referrer' => $referrer ?: 'Direct',

@@ -2100,16 +2100,19 @@ html.sidebar-preload-collapsed .sidebar .user-avatar {
 }
 
 .session-card-title-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(260px, 330px) minmax(0, 1fr);
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
 }
 
 .session-visitor-name {
     font-size: 13.5px;
     font-weight: 700;
     color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .session-id-full,
@@ -2130,6 +2133,12 @@ html.sidebar-preload-collapsed .sidebar .user-avatar {
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    justify-self: start;
+    min-width: 0;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .session-card-sub-row {
@@ -2995,7 +3004,10 @@ pre, .json-box, .code-box {
     min-height: 28px;
 }
 
-.journey-step-end .journey-marker-content { padding-bottom: 0; }
+.journey-step-end .journey-marker-content {
+    align-self: flex-start;
+    padding-bottom: 0;
+}
 
 .journey-step-top {
     display: flex;
@@ -3180,6 +3192,43 @@ pre, .json-box, .code-box {
     flex-direction: column;
     gap: 8px;
 }
+
+.session-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.session-summary-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.session-summary-label {
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+
+.session-summary-value {
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.session-summary-date { font-size: 12px; line-height: 1.6; }
 
 .session-meta-id-row {
     display: flex;
@@ -3615,6 +3664,8 @@ pre, .json-box, .code-box {
     .session-card-item, .event-stream-row { align-items: flex-start; padding: 13px 14px; gap: 10px; }
     .session-card-item { flex-direction: column; }
     .session-card-right { width: 100%; justify-content: space-between; padding-left: 54px; }
+    .session-card-title-row { display: flex; flex-wrap: wrap; }
+    .session-visitor-name { overflow: visible; text-overflow: clip; white-space: normal; }
     .event-stream-row { flex-wrap: wrap; }
     .event-stream-right { width: 100%; justify-content: space-between; padding-left: 0; }
     .event-meta-line { flex-wrap: wrap; }

@@ -164,3 +164,16 @@ test('dashboard.css includes responsive breakpoints for events', () => {
   assert.ok(css.includes('flex-wrap: wrap'), 'must include flex-wrap');
 });
 
+test('session country badges use a consistent desktop column', () => {
+  const css = fs.readFileSync(path.join(root, 'dashboard/src/assets/css/dashboard.css'), 'utf8');
+
+  assert.match(css, /\.session-card-title-row\s*\{\s*display: grid;\s*grid-template-columns: minmax\(260px, 330px\)/);
+  assert.match(css, /\.session-badge-country\s*\{[\s\S]*?justify-self: start;/);
+});
+
+test('session timeline endpoint labels align with their marker', () => {
+  const css = fs.readFileSync(path.join(root, 'dashboard/src/assets/css/dashboard.css'), 'utf8');
+
+  assert.match(css, /\.journey-step-end \.journey-marker-content\s*\{\s*align-self: flex-start;/);
+});
+

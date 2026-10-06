@@ -70,3 +70,23 @@ test('sessions API deletes only a selected session and UI requires confirmation'
   assert.match(client, /async deleteSession\(sessionId, siteId/);
   assert.match(sessions, /Delete session \$\{sessionId\} and all of its events/);
 });
+
+test('session previews separate page views from custom events', () => {
+  const api = read('dashboard/src/api/sessions.php');
+  const sessions = read('dashboard/src/assets/js/sessions.js');
+
+  assert.match(api, /json_extract\(action, '\$\.name'\) = 'pageview' THEN 1 ELSE 0 END\) as pageview_count/);
+  assert.match(api, /NOT IN \('pageview', '_ml_engaged'\) THEN 1 ELSE 0 END\) as event_count/);
+  assert.match(sessions, /pageviewCount.*page view/);
+  assert.match(sessions, /eventCount.*event/);
+});
+
+test('session details expose page views and custom events separately', () => {
+  const api = read('dashboard/src/api/sessions.php');
+  const page = read('dashboard/src/pages/sessions.php');
+
+  assert.match(api, /'pageview_count' => \$pageviewCount/);
+  assert.match(api, /'custom_event_count' => \$customEventCount/);
+  assert.match(page, /id="detailPageviews"/);
+  assert.match(page, /id="detailLastActivity"/);
+});
