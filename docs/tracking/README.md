@@ -16,7 +16,7 @@ Add it to the `<head>` of every page to measure. Minilytics records a pageview a
 
 ## Custom events
 
-Minylitics allows you to send custom events with a name and optional properties. Use the `minilytics.track` function:
+Minilytics allows you to send custom events with a name and optional properties. Use the `minilytics.track` function:
 
 Send a named event with useful properties:
 
