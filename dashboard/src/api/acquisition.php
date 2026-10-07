@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
-require_once __DIR__ . '/auth.php'; Auth::requireLogin();
+require_once __DIR__ . '/auth.php'; Auth::requireSiteAccess((string)($_GET['site_id'] ?? ''));
 require_once __DIR__ . '/db.php';
 try {
     $site = Database::sanitizeSiteId($_GET['site_id'] ?? null); $db = Database::getConnection($site);

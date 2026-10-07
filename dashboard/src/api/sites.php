@@ -5,9 +5,10 @@ header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 require_once __DIR__ . '/auth.php';
-Auth::requireLogin();
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+// Guests may list public demo sites; every other action requires an account.
+if (!($method === 'GET' && empty($_GET['action']) && Auth::hasDatabase() && Auth::isGuest())) Auth::requireLogin();
 
 if ($method === 'OPTIONS') {
     http_response_code(204);
@@ -92,6 +93,10 @@ try {
 
     // 3. GET: List all websites with live statistics
     $sites = Database::getSitesWithStats();
+    if (Auth::isGuest()) {
+        // Guests only see public demo sites, without tracking secrets.
+        $sites = array_values(array_map([Database::class, 'guestSiteView'], array_filter($sites, static fn(array $s): bool => !empty($s['is_public']))));
+    }
     echo json_encode([
         'success' => true,
         'sites' => $sites

@@ -367,6 +367,29 @@ class Database
         return null;
     }
 
+    /** Public sites can be browsed read-only by anonymous visitors (live demo). */
+    public static function isPublicSite(?string $siteId): bool
+    {
+        return self::getPublicSite($siteId) !== null;
+    }
+
+    /** Returns the requested public site, or the first public site when no ID is given. */
+    public static function getPublicSite(?string $siteId = null): ?array
+    {
+        $cleanId = $siteId === null ? null : preg_replace('/[^a-zA-Z0-9_\-]/', '', strtolower($siteId));
+        foreach (self::getAvailableSites() as $site) {
+            if (empty($site['is_public'])) continue;
+            if ($cleanId === null || ($site['id'] ?? '') === $cleanId) return $site;
+        }
+        return null;
+    }
+
+    /** Strips tracking secrets and private configuration before exposing a site to guests. */
+    public static function guestSiteView(array $site): array
+    {
+        return array_diff_key($site, array_flip(['write_key', 'allowed_domains', 'internal_ips', 'retention_days']));
+    }
+
     public static function trackingSnippet(array $site, string $scriptUrl): string
     {
         return '<script defer src="' . htmlspecialchars($scriptUrl, ENT_QUOTES) . '" data-site-id="' . htmlspecialchars($site['id'], ENT_QUOTES) . '" data-site-key="' . htmlspecialchars($site['write_key'], ENT_QUOTES) . '" data-privacy-mode="strict"></script>';
@@ -388,6 +411,7 @@ class Database
                 $site['internal_ips'] = array_values(array_unique(array_filter(array_map('trim', $raw))));
             }
             if (array_key_exists('retention_days', $input)) $site['retention_days'] = max(1, min(760, (int)$input['retention_days']));
+            if (array_key_exists('is_public', $input)) $site['is_public'] = filter_var($input['is_public'], FILTER_VALIDATE_BOOLEAN);
             if (!empty($input['rotate_key'])) $site['write_key'] = bin2hex(random_bytes(24));
             self::saveSites($sites);
             return $site;

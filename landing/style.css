@@ -1374,3 +1374,126 @@ h3 {
     margin-right: 0;
   }
 }
+
+/* Live demo entry points */
+.live-dot {
+  position: relative;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55);
+  animation: live-pulse 2s infinite;
+  flex: 0 0 7px;
+}
+@keyframes live-pulse {
+  70% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+.nav nav a.nav-demo {
+  color: var(--ink);
+}
+.nav nav a.nav-demo:hover {
+  color: var(--blue);
+}
+/* Same box for both hero buttons: icon no taller than the text line. */
+.hero-actions .button,
+.hero-actions .button-secondary {
+  padding: 12px 18px;
+  line-height: 18px;
+}
+.hero-actions .button svg,
+.hero-actions .button i {
+  width: 16px;
+  height: 16px;
+}
+
+/* Interactive preview inside the hero browser frame */
+.hero-demo {
+  position: relative;
+}
+.hero-demo-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 20px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 30px -10px rgba(39, 49, 82, 0.35);
+  backdrop-filter: blur(6px);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.hero-demo-play:hover {
+  transform: translate(-50%, -50%) scale(1.03);
+  box-shadow: 0 16px 36px -10px rgba(39, 49, 82, 0.45);
+}
+.hero-demo-play:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+.hero-demo iframe {
+  display: block;
+  width: 100%;
+  height: min(640px, 75vh);
+  border: 0;
+  background: #fafafa;
+}
+.hero-demo.is-live img,
+.hero-demo.is-live .hero-demo-play {
+  display: none;
+}
+.browser-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.browser-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: #64748b;
+}
+.browser-open:hover {
+  background: #e2e8f0;
+  color: var(--ink);
+}
+.browser-open[hidden] {
+  display: none;
+}
+.browser-open svg,
+.browser-open i {
+  width: 13px;
+  height: 13px;
+}
+@media (max-width: 520px) {
+  .hero-demo-play {
+    padding: 9px 14px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .hero-demo iframe {
+    height: 70vh;
+  }
+  .hero-actions .button-secondary {
+    width: 100%;
+  }
+}

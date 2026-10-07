@@ -10,6 +10,9 @@ const App = {
   customDates: null,
   currentSiteId: null,
   refreshInterval: null,
+  // Live demo: anonymous, read-only access pinned to one public website.
+  isGuest: window.MINILYTICS_GUEST === true,
+  guestSiteId: window.MINILYTICS_PUBLIC_SITE || null,
 
   init() {
     // Read URL search parameter (?site=... or ?site_id=...)
@@ -18,6 +21,7 @@ const App = {
     if (siteParam && siteParam !== "all") {
       this.currentSiteId = siteParam;
     }
+    if (this.isGuest) this.currentSiteId = this.guestSiteId;
 
     this.bindNavigation();
     this.bindHeaderActions();
@@ -596,7 +600,19 @@ const App = {
   async handleRoute() {
     const urlParams = new URLSearchParams(window.location.search);
     let siteParam = urlParams.get("site") || urlParams.get("site_id");
-    const hash = window.location.hash.replace("#", "").trim();
+    let hash = window.location.hash.replace("#", "").trim();
+
+    // Guests never leave the public site: no websites portal, no settings.
+    if (this.isGuest) {
+      siteParam = this.guestSiteId;
+      if (!hash || hash === "websites" || hash === "settings") {
+        hash = "overview";
+        const url = new URL(window.location);
+        url.searchParams.set("site", siteParam);
+        url.hash = "#overview";
+        window.history.replaceState({}, "", url);
+      }
+    }
 
     // If explicit back to websites
     if (hash === "websites") {
@@ -771,6 +787,10 @@ const App = {
   },
 
   returnToWebsites() {
+    if (this.isGuest) {
+      this.navigateTo("overview");
+      return;
+    }
     this.currentSiteId = null;
     sessionStorage.removeItem("minilytics_current_site");
     const url = new URL(window.location);
