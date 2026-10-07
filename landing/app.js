@@ -41,3 +41,22 @@ if (copyBtn) {
   });
 }
 
+
+// Swap the hero screenshot for the live, read-only demo dashboard on demand,
+// so the dashboard only loads for visitors who actually want to explore it.
+const demoPlay = document.getElementById('heroDemoPlay');
+if (demoPlay) {
+  demoPlay.addEventListener('click', () => {
+    const container = document.getElementById('heroDemo');
+    const frame = document.createElement('iframe');
+    frame.src = '/dashboard/?demo=1&embed=1';
+    frame.title = 'Minilytics live demo dashboard';
+    frame.loading = 'eager';
+    container.appendChild(frame);
+    container.classList.add('is-live');
+    const address = document.getElementById('heroAddress');
+    if (address) address.textContent = `${location.host}/dashboard/?demo=1`;
+    const open = document.getElementById('heroDemoOpen');
+    if (open) open.hidden = false;
+  });
+}

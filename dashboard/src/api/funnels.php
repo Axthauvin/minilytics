@@ -2,7 +2,9 @@
 declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/auth.php';
-Auth::requireLogin();
+// Funnels of public demo sites are readable; creating or deleting them needs an account.
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') Auth::requireSiteAccess((string)($_GET['site_id'] ?? ''));
+else Auth::requireLogin();
 require_once __DIR__ . '/db.php';
 
 function funnelRange(): array {

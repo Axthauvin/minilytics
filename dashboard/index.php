@@ -2,7 +2,27 @@
 require_once __DIR__ . '/src/api/auth.php';
 Auth::startSession();
 if (!Auth::hasDatabase()) { header('Location: /dashboard/onboarding.php'); exit; }
-if (!Auth::user()) { header('Location: /dashboard/login.php'); exit; }
+$authUser = Auth::user();
+$isGuest = false;
+$publicSite = null;
+if (!$authUser) {
+    // Live demo: anonymous visitors may browse a public website read-only
+    // (?demo=1 picks the first public site, ?site=<id> a specific one).
+    require_once __DIR__ . '/src/api/db.php';
+    $requestedSite = $_GET['site'] ?? $_GET['site_id'] ?? null;
+    if ($requestedSite !== null || !empty($_GET['demo'])) {
+        $publicSite = Database::getPublicSite($requestedSite !== null ? (string)$requestedSite : null);
+    }
+    if (!$publicSite) { header('Location: /dashboard/login.php'); exit; }
+    $isGuest = true;
+    if ($requestedSite === null) {
+        // Pin the URL to the demo site so the front-end opens it directly.
+        $query = $_GET; unset($query['demo']); $query['site'] = $publicSite['id'];
+        header('Location: /dashboard/?' . http_build_query($query) . '#overview');
+        exit;
+    }
+}
+$isEmbed = !empty($_GET['embed']);
 // Ensure trailing slash when accessed as /dashboard to prevent relative path resolution issues
 $reqUri = $_SERVER['REQUEST_URI'] ?? '';
 $path = parse_url($reqUri, PHP_URL_PATH);
@@ -33,6 +53,11 @@ if ($path === '/dashboard') {
     <link rel="icon" type="image/svg+xml" href="/dashboard/src/assets/logo.svg">
     <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg">
     <script>
+        window.MINILYTICS_GUEST = <?php echo $isGuest ? 'true' : 'false'; ?>;
+        window.MINILYTICS_EMBED = <?php echo $isEmbed ? 'true' : 'false'; ?>;
+        window.MINILYTICS_PUBLIC_SITE = <?php echo $isGuest ? json_encode($publicSite['id']) : 'null'; ?>;
+    </script>
+    <script>
         (function() {
             try {
                 if (localStorage.getItem('minilytics_sidebar_collapsed') === 'true') {
@@ -42,7 +67,7 @@ if ($path === '/dashboard') {
         })();
     </script>
 </head>
-<body>
+<body class="<?php echo trim(($isGuest ? 'guest-mode ' : '') . ($isEmbed ? 'embed-mode' : '')); ?>">
     <!-- Top global loading bar -->
     <div id="appLoadingBar" class="app-loading-bar" aria-hidden="true"></div>
 
@@ -53,6 +78,22 @@ if ($path === '/dashboard') {
 
         <!-- Main Content Area -->
         <div class="main-wrapper">
+            <?php if ($isGuest): ?>
+            <!-- Live demo banner (read-only guest access) -->
+            <div class="demo-banner" role="note">
+                <?php if ($isEmbed): ?>
+                <nav class="demo-embed-tabs" aria-label="Demo sections">
+                    <?php foreach (['overview' => 'Overview', 'acquisition' => 'Acquisition', 'sessions' => 'Sessions', 'events' => 'Events', 'funnels' => 'Funnels'] as $page => $label): ?>
+                    <a href="#<?php echo $page; ?>" class="nav-item" data-page="<?php echo $page; ?>"><?php echo $label; ?></a>
+                    <?php endforeach; ?>
+                </nav>
+                <a href="/dashboard/?site=<?php echo urlencode($publicSite['id']); ?>#overview" target="_blank" rel="noopener">Open full demo ↗</a>
+                <?php else: ?>
+                <span><strong>Live demo</strong> · read-only mock data.</span>
+                <a href="/landing/install.html">Get Minilytics</a>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
             <!-- Top Header with Live Visitors & Controls -->
             <?php include __DIR__ . '/src/components/header.php'; ?>
 

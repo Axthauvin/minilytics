@@ -179,6 +179,8 @@ const Api = {
   },
 
   async getTrackingConfig(id) {
+    // Tracking secrets are admin-only; skip the request entirely in the live demo.
+    if (window.MINILYTICS_GUEST) throw new Error("Not available in demo mode.");
     const res = await fetch(`${this.base}/sites.php?action=tracking-config&id=${encodeURIComponent(id)}`); const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
   },

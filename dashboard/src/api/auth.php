@@ -42,6 +42,18 @@ final class Auth {
         if (!self::hasDatabase()) { http_response_code(409); self::jsonError('Onboarding is required.'); }
         if (!self::user()) { http_response_code(401); self::jsonError('Authentication required.'); }
     }
+    /**
+     * Read access to a website's analytics: members see every site, anonymous
+     * visitors only the sites flagged "is_public" (live demo).
+     */
+    public static function requireSiteAccess(?string $siteId): void {
+        if (!self::hasDatabase()) { http_response_code(409); self::jsonError('Onboarding is required.'); }
+        if (self::user()) return;
+        require_once __DIR__ . '/db.php';
+        if (Database::isPublicSite((string)$siteId)) return;
+        http_response_code(401); self::jsonError('Authentication required.');
+    }
+    public static function isGuest(): bool { return self::user() === null; }
     public static function requireAdmin(): array {
         self::requireLogin(); $user = self::user();
         if (($user['role'] ?? '') !== 'admin') { http_response_code(403); self::jsonError('Administrator access required.'); }

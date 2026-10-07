@@ -3818,3 +3818,177 @@ pre, .json-box, .code-box {
 .btn-refresh-spinning svg {
     animation: spinSlow 0.8s linear infinite !important;
 }
+
+/* ==========================================================================
+   Live Demo (guest-mode) & Embedded Preview (embed-mode)
+   ========================================================================== */
+.demo-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 16px;
+    background: var(--primary-subtle);
+    border-bottom: 1px solid #e0e7ff;
+    color: var(--primary-hover);
+    font-size: 12.5px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.demo-banner strong {
+    font-weight: 700;
+}
+
+.demo-banner a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    background: var(--primary);
+    color: #ffffff;
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.demo-banner a:hover {
+    background: var(--primary-hover);
+}
+
+.demo-mode-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+}
+
+.demo-mode-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-start;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    background: var(--primary-subtle);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.demo-mode-badge .pulse-dot {
+    background: var(--primary);
+}
+
+.demo-mode-text {
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+
+.demo-mode-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border-radius: var(--radius-sm);
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.demo-mode-cta:hover {
+    background: var(--primary-hover);
+}
+
+.sidebar.collapsed .demo-mode-card {
+    padding: 8px 4px;
+    border: 0;
+    background: transparent;
+    align-items: center;
+}
+
+.sidebar.collapsed .demo-mode-text,
+.sidebar.collapsed .demo-mode-badge span:not(.pulse-dot),
+.sidebar.collapsed .demo-mode-cta span {
+    display: none;
+}
+
+/* Guests are read-only: hide every write / administration control. */
+.guest-mode #btnBackToWebsites,
+.guest-mode #btnOpenAddSiteModal,
+.guest-mode #btnWebsitesAddSite,
+.guest-mode #btnWebsitesImport,
+.guest-mode #btnSidebarImport,
+.guest-mode #btnDeleteSession,
+.guest-mode #btnCreateFunnel,
+.guest-mode #btnCreateFirstFunnel,
+.guest-mode .funnel-actions,
+.guest-mode #trackingModeNotice {
+    display: none !important;
+}
+
+/* Embedded preview (iframe on the landing page): content only. */
+.embed-mode .sidebar,
+.embed-mode .mobile-nav-backdrop,
+.embed-mode .btn-sidebar-toggle-header {
+    display: none !important;
+}
+
+.embed-mode .top-header {
+    padding: 0 20px;
+}
+
+.embed-mode .content-container {
+    padding: 20px 20px 32px;
+}
+
+.embed-mode .demo-banner {
+    justify-content: space-between;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.demo-embed-tabs {
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+    list-style: none;
+}
+
+.demo-embed-tabs .nav-item {
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.demo-embed-tabs .nav-item:hover {
+    background: rgba(79, 70, 229, 0.08);
+    color: var(--primary);
+}
+
+.demo-embed-tabs .nav-item.active {
+    background: var(--bg-surface);
+    color: var(--primary);
+    box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 767px) {
+    .demo-banner { font-size: 12px; padding: 7px 14px; }
+    .embed-mode .top-header { padding: 10px 14px; }
+    .embed-mode .content-container { padding: 14px 14px 28px; }
+}

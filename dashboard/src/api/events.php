@@ -4,7 +4,8 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 require_once __DIR__ . '/auth.php';
-Auth::requireLogin();
+// Public demo sites are readable without an account.
+Auth::requireSiteAccess((string)($_GET['site_id'] ?? $_GET['site'] ?? ''));
 
 require_once __DIR__ . '/db.php';
 
