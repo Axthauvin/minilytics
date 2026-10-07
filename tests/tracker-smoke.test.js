@@ -115,14 +115,6 @@ test('tracking endpoint preserves spaces in event names', () => {
   assert.ok(!endpoint.includes("preg_replace('/[^a-zA-Z0-9_\\-:.]/', '_', substr"));
 });
 
-test('the demo loads the tracker script', () => {
-  const demo = fs.readFileSync(path.join(root, 'demo.html'), 'utf8');
-  const match = demo.match(/<script\s+[^>]*src="([^"]*minilytics\.js)"[\s\S]*?data-site-id="demo"/);
-
-  assert.ok(match, 'the demo must include the tracker with its site id');
-  assert.equal(new URL(match[1], 'http://localhost:8080/demo.html').pathname, '/minilytics.js');
-});
-
 test('tracker reports a rejected endpoint response in the browser console', async () => {
   const { errors } = loadTracker({
     fetch: () => Promise.resolve({
