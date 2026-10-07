@@ -566,6 +566,20 @@ body {
   color: #4338ca;
 }
 
+.import-card {
+  background: linear-gradient(145deg, #f0fdf9 0%, #ffffff 50%, #f1fbf7 100%);
+  border-color: #a7f3d0;
+}
+.import-card .card-copy > i,
+.import-card .card-copy > svg {
+  color: #059669;
+}
+
+.import-shot {
+  max-width: 420px;
+  margin: 0 auto 16px;
+}
+
 .card-copy h3 {
   max-width: 100%;
   margin: 14px 0 8px;
@@ -1277,6 +1291,23 @@ footer > a:last-child i {
   .feature-number {
     top: 38px;
     right: 40px;
+  }
+
+  /* Import card layout: keep the modal dialog screenshot elegantly sized and vertically balanced */
+  .product-card.import-card {
+    align-items: center;
+    justify-content: center;
+    gap: 64px;
+  }
+  .product-card.import-card .import-shot {
+    flex: 0 1 420px;
+    max-width: 420px;
+    margin: 0;
+  }
+  .product-card.import-card .card-copy {
+    flex: 0 1 360px;
+    max-width: 400px;
+    padding: 0;
   }
 }
 
