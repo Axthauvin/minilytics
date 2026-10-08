@@ -1,0 +1,4 @@
+# Ignore the mechanical PER-CS reformat of the whole codebase.
+# GitHub honours this file automatically; locally run:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+7743645ac2c46953d42c8c3653c3864728091edc
