@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Minilytics\Importers\UmamiImporter;
+
 /**
  * Minilytics Pure-PHP CLI Import Tool
  * Runs in terminal via `php import.php --zip export.zip`
@@ -13,8 +15,7 @@ if (php_sapi_name() !== 'cli') {
     exit;
 }
 
-require_once __DIR__ . '/dashboard/src/api/db.php';
-require_once __DIR__ . '/dashboard/src/api/importers/UmamiImporter.php';
+require_once __DIR__ . '/vendor/autoload.php';
 
 echo "\n" . str_repeat('=', 60) . "\n";
 echo "   Minilytics CLI Data Importer (100% Pure PHP)\n";
@@ -78,7 +79,7 @@ echo "[2/3] Processing events and inserting into data/{$siteId}.db...\n";
 $start = microtime(true);
 $result = $importer->import($source, $siteId, [
     'name' => $siteName,
-    'domain' => $domain
+    'domain' => $domain,
 ]);
 $elapsed = round(microtime(true) - $start, 2);
 

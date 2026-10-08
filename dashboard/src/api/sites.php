@@ -1,38 +1,47 @@
 <?php
+
 declare(strict_types=1);
+
+use Minilytics\Auth\Auth;
+use Minilytics\Database\Database;
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../../../vendor/autoload.php';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 // Guests may list public demo sites; every other action requires an account.
-if (!($method === 'GET' && empty($_GET['action']) && Auth::hasDatabase() && Auth::isGuest())) Auth::requireLogin();
+if (!($method === 'GET' && empty($_GET['action']) && Auth::hasDatabase() && Auth::isGuest())) {
+    Auth::requireLogin();
+}
 
 if ($method === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
-require_once __DIR__ . '/db.php';
 
 try {
     $action = $_GET['action'] ?? '';
     // Tracking secrets and configuration are administrator-only.
     if ($action === 'tracking-config') {
         Auth::requireAdmin();
-        $site = Database::trackingSite((string)($_GET['id'] ?? ''));
-        if (!$site) throw new InvalidArgumentException('Website not found.');
-        echo json_encode(['success' => true, 'site' => $site]); exit;
+        $site = Database::trackingSite((string) ($_GET['id'] ?? ''));
+        if (!$site) {
+            throw new InvalidArgumentException('Website not found.');
+        }
+        echo json_encode(['success' => true, 'site' => $site]);
+        exit;
     }
     if ($method === 'PATCH' || $action === 'update-config') {
         Auth::requireAdmin();
         $body = json_decode(file_get_contents('php://input'), true) ?: $_POST;
-        $site = Database::updateSiteConfig((string)($body['id'] ?? $_GET['id'] ?? ''), $body);
+        $site = Database::updateSiteConfig((string) ($body['id'] ?? $_GET['id'] ?? ''), $body);
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        echo json_encode(['success' => true, 'site' => $site, 'snippet' => Database::trackingSnippet($site, "$scheme://$host/minilytics.js")], JSON_UNESCAPED_SLASHES); exit;
+        echo json_encode(['success' => true, 'site' => $site, 'snippet' => Database::trackingSnippet($site, "$scheme://$host/minilytics.js")], JSON_UNESCAPED_SLASHES);
+        exit;
     }
     // 1. DELETE site
     if ($method === 'DELETE' || (isset($_GET['action']) && $_GET['action'] === 'delete')) {
@@ -50,7 +59,7 @@ try {
         Database::deleteSite($siteId);
         echo json_encode([
             'success' => true,
-            'message' => "Website '{$siteId}' and its database were deleted successfully."
+            'message' => "Website '{$siteId}' and its database were deleted successfully.",
         ]);
         exit;
     }
@@ -86,7 +95,7 @@ try {
         echo json_encode([
             'success' => true,
             'site' => $site,
-            'snippet' => $trackingSnippet
+            'snippet' => $trackingSnippet,
         ], JSON_UNESCAPED_SLASHES);
         exit;
     }
@@ -99,12 +108,12 @@ try {
     }
     echo json_encode([
         'success' => true,
-        'sites' => $sites
+        'sites' => $sites,
     ], JSON_UNESCAPED_SLASHES);
 
 } catch (Throwable $e) {
     http_response_code(400);
     echo json_encode([
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

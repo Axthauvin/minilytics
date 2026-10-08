@@ -17,13 +17,15 @@ Minilytics is a lightweight web analytics platform built for simplicity, perform
 
 It was built because today's most modern analytics tools require heavy Node.js runtimes, complex Docker setups, or dedicated database servers. Minilytics is **minimal by design**. It's designed to run anywhere standard PHP is available, consumes negligible server resources, while trying to provide a clean and modern user experience.
 
+![Screenshot of the Minilytics dashboard](docs/assets/dashboard.png)
+
 ---
 
 ## Quick Start
 
 ### Requirements
 
-- PHP 8.0 or later with the `sqlite3` extension enabled
+- PHP 8.1 or later with the `sqlite3` extension enabled
 - For MySQL or MariaDB: the `pdo_mysql` PHP extension and a database/user with `CREATE`, `ALTER`, `INDEX`, `SELECT`, `INSERT`, `UPDATE` and `DELETE` permissions
 - Web server write access to the `data/` directory
 - Outbound HTTPS access and `zlib` support (to download the local DB-IP City Lite geolocation database)
@@ -52,11 +54,14 @@ To use a managed database, open **Settings → Database**, select MySQL or Maria
 
 ### Local Development
 
-To run Minilytics locally without installing a full web server, clone the repository and start PHP's built-in development server:
+To run Minilytics locally without installing a full web server, clone the repository, install the PHP dependencies with [Composer](https://getcomposer.org/) and start PHP's built-in development server:
 
 ```bash
+composer install
 php -S localhost:8080
 ```
+
+Release archives already bundle `vendor/`, so Composer is only needed when running from a clone of the repository.
 
 Open [http://localhost:8080/dashboard/](http://localhost:8080/dashboard/) to access the dashboard.
 

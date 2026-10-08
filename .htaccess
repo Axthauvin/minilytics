@@ -13,6 +13,10 @@ Options -Indexes
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule ^$ dashboard/ [R=302,L]
+
+    # Application code and Composer files are never meant to be requested directly.
+    RewriteRule ^(vendor|src)(/|$) - [F,L]
+    RewriteRule ^composer\.(json|lock)$ - [F,L]
 </IfModule>
 
 # Protect sensitive files

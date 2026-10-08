@@ -22,6 +22,17 @@ echo "==> Target archive: ${OUTPUT_ARCHIVE}"
 
 mkdir -p "${DIST_DIR}"
 
+# The archive must ship production dependencies so installs without shell
+# access (or Composer) work out of the box: `composer install --no-dev`.
+if [ ! -f "${PROJECT_ROOT}/vendor/autoload.php" ]; then
+    echo "ERROR: vendor/autoload.php is missing. Run 'composer install --no-dev --optimize-autoloader' first." >&2
+    exit 1
+fi
+if [ -d "${PROJECT_ROOT}/vendor/friendsofphp" ]; then
+    echo "ERROR: vendor/ contains dev dependencies. Run 'composer install --no-dev --optimize-autoloader' first." >&2
+    exit 1
+fi
+
 # Create a clean temporary staging area
 STAGING_DIR="$(mktemp -d)"
 trap 'rm -rf "${STAGING_DIR}"' EXIT
@@ -32,6 +43,10 @@ EXCLUDES=(
     ".github"
     ".gitignore"
     ".gitattributes"
+    ".git-blame-ignore-revs"
+    ".editorconfig"
+    ".php-cs-fixer.dist.php"
+    ".php-cs-fixer.cache"
     "README.md"
     "docs"
     "tests"

@@ -1,15 +1,20 @@
 <?php
+
 declare(strict_types=1);
 
 /** Server-side, cookie-free visitor identity helpers. */
 function minilyticsTrackingSecret(): string
 {
     $configured = getenv('MINILYTICS_TRACKING_SECRET');
-    if (is_string($configured) && strlen($configured) >= 32) return $configured;
+    if (is_string($configured) && strlen($configured) >= 32) {
+        return $configured;
+    }
 
     $file = __DIR__ . '/data/.tracking-secret';
     $stored = @file_get_contents($file);
-    if (is_string($stored) && strlen(trim($stored)) >= 32) return trim($stored);
+    if (is_string($stored) && strlen(trim($stored)) >= 32) {
+        return trim($stored);
+    }
 
     $secret = bin2hex(random_bytes(32));
     if (@file_put_contents($file, $secret . PHP_EOL, LOCK_EX) === false) {

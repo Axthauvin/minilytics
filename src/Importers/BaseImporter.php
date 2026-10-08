@@ -1,12 +1,18 @@
 <?php
+
 declare(strict_types=1);
 
-require_once __DIR__ . '/ImporterInterface.php';
+namespace Minilytics\Importers;
+
+use InvalidArgumentException;
+use RuntimeException;
+use ZipArchive;
 
 /**
  * Base Importer Class with shared normalization utilities.
  */
-abstract class BaseImporter implements ImporterInterface {
+abstract class BaseImporter implements ImporterInterface
+{
     protected static array $countryMap = [
         'AF' => 'Afghanistan', 'AL' => 'Albania', 'DZ' => 'Algeria', 'AD' => 'Andorra',
         'AO' => 'Angola', 'AG' => 'Antigua and Barbuda', 'AR' => 'Argentina', 'AM' => 'Armenia',
@@ -46,62 +52,117 @@ abstract class BaseImporter implements ImporterInterface {
         'UA' => 'Ukraine', 'AE' => 'United Arab Emirates', 'GB' => 'United Kingdom',
         'US' => 'United States', 'UY' => 'Uruguay', 'UZ' => 'Uzbekistan', 'VE' => 'Venezuela',
         'VN' => 'Vietnam', 'YE' => 'Yemen', 'ZM' => 'Zambia', 'ZW' => 'Zimbabwe',
-        'MQ' => 'Martinique', 'GP' => 'Guadeloupe', 'RE' => 'Reunion', 'GF' => 'French Guiana'
+        'MQ' => 'Martinique', 'GP' => 'Guadeloupe', 'RE' => 'Reunion', 'GF' => 'French Guiana',
     ];
 
-    public function getCountryName(string $code): string {
+    public function getCountryName(string $code): string
+    {
         $clean = strtoupper(trim($code));
         return self::$countryMap[$clean] ?? $clean;
     }
 
-    public function normalizeBrowser(?string $browser): string {
-        if (empty($browser) || $browser === '\N') return 'Unknown';
+    public function normalizeBrowser(?string $browser): string
+    {
+        if (empty($browser) || $browser === '\N') {
+            return 'Unknown';
+        }
         $b = strtolower(trim($browser));
 
-        if ($b === 'ios' || $b === 'safari') return 'Safari';
-        if ($b === 'crios') return 'Chrome (iOS)';
-        if ($b === 'fxios') return 'Firefox (iOS)';
-        if ($b === 'edge-ios') return 'Edge (iOS)';
-        if (str_contains($b, 'edge')) return 'Edge';
-        if (str_contains($b, 'chrome')) return 'Chrome';
-        if (str_contains($b, 'firefox')) return 'Firefox';
-        if (str_contains($b, 'opera') || str_contains($b, 'opr')) return 'Opera';
-        if (str_contains($b, 'samsung')) return 'Samsung Internet';
-        if (str_contains($b, 'webview')) return 'WebView';
-        if ($b === 'facebook') return 'Facebook In-App';
-        if ($b === 'instagram') return 'Instagram In-App';
-        if ($b === 'android') return 'Android Browser';
+        if ($b === 'ios' || $b === 'safari') {
+            return 'Safari';
+        }
+        if ($b === 'crios') {
+            return 'Chrome (iOS)';
+        }
+        if ($b === 'fxios') {
+            return 'Firefox (iOS)';
+        }
+        if ($b === 'edge-ios') {
+            return 'Edge (iOS)';
+        }
+        if (str_contains($b, 'edge')) {
+            return 'Edge';
+        }
+        if (str_contains($b, 'chrome')) {
+            return 'Chrome';
+        }
+        if (str_contains($b, 'firefox')) {
+            return 'Firefox';
+        }
+        if (str_contains($b, 'opera') || str_contains($b, 'opr')) {
+            return 'Opera';
+        }
+        if (str_contains($b, 'samsung')) {
+            return 'Samsung Internet';
+        }
+        if (str_contains($b, 'webview')) {
+            return 'WebView';
+        }
+        if ($b === 'facebook') {
+            return 'Facebook In-App';
+        }
+        if ($b === 'instagram') {
+            return 'Instagram In-App';
+        }
+        if ($b === 'android') {
+            return 'Android Browser';
+        }
 
         return ucfirst($b);
     }
 
-    public function normalizeOs(?string $os): string {
-        if (empty($os) || $os === '\N') return 'Unknown';
+    public function normalizeOs(?string $os): string
+    {
+        if (empty($os) || $os === '\N') {
+            return 'Unknown';
+        }
         $o = trim($os);
         $low = strtolower($o);
 
-        if ($low === 'mac os' || $low === 'macos' || $low === 'os x') return 'macOS';
-        if (str_starts_with($low, 'windows')) return $o;
-        if ($low === 'android os' || $low === 'android') return 'Android';
-        if ($low === 'ios') return 'iOS';
-        if ($low === 'linux') return 'Linux';
-        if (str_contains($low, 'chrome os')) return 'Chrome OS';
+        if ($low === 'mac os' || $low === 'macos' || $low === 'os x') {
+            return 'macOS';
+        }
+        if (str_starts_with($low, 'windows')) {
+            return $o;
+        }
+        if ($low === 'android os' || $low === 'android') {
+            return 'Android';
+        }
+        if ($low === 'ios') {
+            return 'iOS';
+        }
+        if ($low === 'linux') {
+            return 'Linux';
+        }
+        if (str_contains($low, 'chrome os')) {
+            return 'Chrome OS';
+        }
 
         return $o;
     }
 
-    public function normalizeDevice(?string $device): string {
-        if (empty($device) || $device === '\N') return 'Desktop';
+    public function normalizeDevice(?string $device): string
+    {
+        if (empty($device) || $device === '\N') {
+            return 'Desktop';
+        }
         $d = strtolower(trim($device));
 
-        if ($d === 'mobile') return 'Mobile';
-        if ($d === 'tablet') return 'Tablet';
-        if ($d === 'laptop' || $d === 'desktop') return 'Desktop';
+        if ($d === 'mobile') {
+            return 'Mobile';
+        }
+        if ($d === 'tablet') {
+            return 'Tablet';
+        }
+        if ($d === 'laptop' || $d === 'desktop') {
+            return 'Desktop';
+        }
 
         return ucfirst($d);
     }
 
-    public function cleanVal($val, $default = null) {
+    public function cleanVal($val, $default = null)
+    {
         if ($val === null || $val === '' || $val === '\N') {
             return $default;
         }
@@ -112,7 +173,8 @@ abstract class BaseImporter implements ImporterInterface {
      * Extracts a zip archive to a target directory.
      * Uses ZipArchive if available, or PowerShell Expand-Archive fallback on Windows.
      */
-    public function extractZip(string $zipPath, string $targetDir): bool {
+    public function extractZip(string $zipPath, string $targetDir): bool
+    {
         if (!file_exists($zipPath)) {
             throw new InvalidArgumentException("Zip file does not exist: {$zipPath}");
         }
@@ -134,9 +196,10 @@ abstract class BaseImporter implements ImporterInterface {
 
         // Fallback for Windows if ZipArchive extension is disabled in php.ini
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $cmd = sprintf('powershell -NoProfile -NonInteractive -Command "Expand-Archive -LiteralPath %s -DestinationPath %s -Force"',
+            $cmd = sprintf(
+                'powershell -NoProfile -NonInteractive -Command "Expand-Archive -LiteralPath %s -DestinationPath %s -Force"',
                 escapeshellarg($zipPath),
-                escapeshellarg($targetDir)
+                escapeshellarg($targetDir),
             );
             $out = [];
             $ret = 0;
@@ -152,8 +215,11 @@ abstract class BaseImporter implements ImporterInterface {
     /**
      * Recursively delete a directory
      */
-    public function removeDirectory(string $dir): void {
-        if (!is_dir($dir)) return;
+    public function removeDirectory(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
         $files = array_diff(scandir($dir) ?: [], ['.', '..']);
         foreach ($files as $file) {
             $path = $dir . DIRECTORY_SEPARATOR . $file;

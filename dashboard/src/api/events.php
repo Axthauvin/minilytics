@@ -1,13 +1,16 @@
 <?php
+
 declare(strict_types=1);
+
+use Minilytics\Auth\Auth;
+use Minilytics\Database\Database;
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../../../vendor/autoload.php';
 // Public demo sites are readable without an account.
-Auth::requireSiteAccess((string)($_GET['site_id'] ?? $_GET['site'] ?? ''));
+Auth::requireSiteAccess((string) ($_GET['site_id'] ?? $_GET['site'] ?? ''));
 
-require_once __DIR__ . '/db.php';
 
 try {
     $siteId = $_GET['site_id'] ?? $_GET['site'] ?? null;
@@ -18,8 +21,8 @@ try {
     $eventName = trim($_GET['event_name'] ?? '');
     $sessionId = trim($_GET['session_id'] ?? '');
     $range = $_GET['range'] ?? '7d';
-    $limit = max(1, min(100, (int)($_GET['limit'] ?? 50)));
-    $page = max(1, (int)($_GET['page'] ?? 1));
+    $limit = max(1, min(100, (int) ($_GET['limit'] ?? 50)));
+    $page = max(1, (int) ($_GET['page'] ?? 1));
     $offset = ($page - 1) * $limit;
 
     $now = time();
@@ -43,7 +46,7 @@ try {
             '90d' => $now - (90 * 86400),
             '6m', '180d' => $now - (180 * 86400),
             'all' => 0,
-            default => $now - (7 * 86400)
+            default => $now - (7 * 86400),
         };
     }
     $startDateStr = gmdate('Y-m-d H:i:s', $startUnix);
@@ -84,7 +87,7 @@ try {
     foreach ($params as $k => $v) {
         $cStmt->bindValue($k, $v, SQLITE3_TEXT);
     }
-    $totalCount = (int)$cStmt->execute()->fetchArray(SQLITE3_NUM)[0];
+    $totalCount = (int) $cStmt->execute()->fetchArray(SQLITE3_NUM)[0];
 
     // 2. Fetch events paginated
     $eventsSql = "SELECT id, session_id, visitor_id, action, timestamp 
@@ -117,14 +120,14 @@ try {
         }
 
         $events[] = [
-            'id' => (int)$row['id'],
+            'id' => (int) $row['id'],
             'session_id' => $row['session_id'],
             'visitor_id' => $row['visitor_id'] ?? $row['session_id'],
             'name' => $actionData['name'] ?? 'unknown',
             'site_id' => $actionData['site_id'] ?? 'default_site',
             'data' => $actionData['data'] ?? [],
             'timestamp' => $row['timestamp'],
-            'time_ago' => $timeAgo
+            'time_ago' => $timeAgo,
         ];
     }
 
@@ -145,7 +148,7 @@ try {
         if (!empty($tr['name'])) {
             $types[] = [
                 'name' => $tr['name'],
-                'count' => (int)$tr['count']
+                'count' => (int) $tr['count'],
             ];
         }
     }
@@ -187,7 +190,9 @@ try {
     $slotMap = [];
     while ($cr = $chRes->fetchArray(SQLITE3_ASSOC)) {
         $key = $seriesByName[$cr['name'] ?? ''] ?? null;
-        if ($key !== null) $slotMap[$cr['bucket']][$key] = (int)$cr['count'];
+        if ($key !== null) {
+            $slotMap[$cr['bucket']][$key] = (int) $cr['count'];
+        }
     }
 
     if ($range === 'today' || $range === '24h') {
@@ -210,7 +215,7 @@ try {
         $endStep = strtotime(gmdate('Y-m-d', $endUnix) . ' 00:00:00 UTC');
     } elseif ($range === 'all') {
         $minDbTime = $db->querySingle("SELECT MIN(timestamp) FROM user_activity WHERE timestamp IS NOT NULL");
-        $effectiveStart = $minDbTime ? strtotime(substr((string)$minDbTime, 0, 10) . ' 00:00:00 UTC') : strtotime('6 days ago midnight');
+        $effectiveStart = $minDbTime ? strtotime(substr((string) $minDbTime, 0, 10) . ' 00:00:00 UTC') : strtotime('6 days ago midnight');
         $endStep = strtotime('today midnight');
     } else {
         $effectiveStart = strtotime('6 days ago midnight');
@@ -222,27 +227,31 @@ try {
     $currStep = $effectiveStart;
     while ($currStep <= $endStep) {
         $point = ['timestamp' => $currStep];
-        foreach ($series as $item) $point[$item['key']] = 0;
+        foreach ($series as $item) {
+            $point[$item['key']] = 0;
+        }
 
         // The SQL query already returns a bucket per hour or per day.  A daily
         // bucket must be added once — repeating it for all 24 hours inflated
         // every daily count by 24 (for example 80 incorrectly became 1920).
-        $bucketKey = gmdate($useHourly ? 'Y-m-d H:00' : 'Y-m-d', (int)$currStep);
+        $bucketKey = gmdate($useHourly ? 'Y-m-d H:00' : 'Y-m-d', (int) $currStep);
         if (isset($slotMap[$bucketKey])) {
-            foreach ($slotMap[$bucketKey] as $key => $count) $point[$key] += $count;
+            foreach ($slotMap[$bucketKey] as $key => $count) {
+                $point[$key] += $count;
+            }
         }
 
         if ($range === 'today' || $range === '24h') {
-            $timeLabel = gmdate('h A', (int)$currStep);
+            $timeLabel = gmdate('h A', (int) $currStep);
         } elseif ($range === '7d') {
-            $timeLabel = gmdate('D, j M', (int)$currStep);
+            $timeLabel = gmdate('D, j M', (int) $currStep);
         } else {
-            $timeLabel = gmdate('M d', (int)$currStep);
+            $timeLabel = gmdate('M d', (int) $currStep);
         }
 
-        $fullLabel = ($intervalHours === 1) 
-            ? gmdate('l, F j, Y \a\t h:i A', (int)$currStep) 
-            : gmdate('l, F j, Y', (int)$currStep);
+        $fullLabel = ($intervalHours === 1)
+            ? gmdate('l, F j, Y \a\t h:i A', (int) $currStep)
+            : gmdate('l, F j, Y', (int) $currStep);
 
         $point['label'] = $timeLabel;
         $point['full_label'] = $fullLabel;
@@ -260,7 +269,7 @@ try {
         'total'       => $totalCount,
         'page'        => $page,
         'limit'       => $limit,
-        'total_pages' => max(1, (int)ceil($totalCount / $limit))
+        'total_pages' => max(1, (int) ceil($totalCount / $limit)),
     ], JSON_UNESCAPED_SLASHES);
 
 } catch (Throwable $e) {

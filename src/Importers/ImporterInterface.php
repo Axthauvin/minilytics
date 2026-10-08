@@ -1,11 +1,15 @@
 <?php
+
 declare(strict_types=1);
+
+namespace Minilytics\Importers;
 
 /**
  * Minilytics Importer Interface
  * Contract for all analytics platform data importers.
  */
-interface ImporterInterface {
+interface ImporterInterface
+{
     public function getId(): string;
     public function getName(): string;
     public function getDescription(): string;

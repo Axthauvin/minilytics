@@ -1,0 +1,32 @@
+{
+    "name": "axthauvin/minilytics",
+    "description": "Minimal, GDPR-friendly, self-hosted web analytics powered by PHP with SQLite, MySQL, or MariaDB",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Axel Thauvin"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "ext-sqlite3": "*",
+        "maxmind-db/reader": "^1.14"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.64"
+    },
+    "autoload": {
+        "psr-4": {
+            "Minilytics\\": "src/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true
+    },
+    "scripts": {
+        "cs:check": "php-cs-fixer fix --dry-run --diff --ansi",
+        "cs:fix": "php-cs-fixer fix"
+    }
+}

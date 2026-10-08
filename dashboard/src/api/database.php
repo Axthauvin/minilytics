@@ -1,8 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
-require_once __DIR__ . '/auth.php';
-require_once __DIR__ . '/db.php';
+use Minilytics\Auth\Auth;
+use Minilytics\Database\Database;
+
+require_once __DIR__ . '/../../../vendor/autoload.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -21,8 +24,10 @@ try {
         exit;
     }
 
-    $input = json_decode((string)file_get_contents('php://input'), true);
-    if (!is_array($input)) throw new InvalidArgumentException('Invalid database settings.');
+    $input = json_decode((string) file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        throw new InvalidArgumentException('Invalid database settings.');
+    }
     $action = $input['action'] ?? 'test';
 
     if ($action === 'test') {

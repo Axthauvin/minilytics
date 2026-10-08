@@ -3,7 +3,7 @@
  *
  * One filter state shared by the Overview and Sessions pages, persisted per
  * website in sessionStorage. Values of the same dimension are OR-ed, different
- * dimensions are AND-ed (this mirrors dashboard/src/api/filters.php).
+ * dimensions are AND-ed (this mirrors src/Analytics/AnalyticsFilters.php).
  */
 
 const Filters = {

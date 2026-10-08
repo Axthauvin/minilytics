@@ -1,23 +1,34 @@
 <?php
-require_once __DIR__ . '/src/api/auth.php';
+
+use Minilytics\Auth\Auth;
+use Minilytics\Database\Database;
+
+require_once __DIR__ . '/../vendor/autoload.php';
 Auth::startSession();
-if (!Auth::hasDatabase()) { header('Location: /dashboard/onboarding.php'); exit; }
+if (!Auth::hasDatabase()) {
+    header('Location: /dashboard/onboarding.php');
+    exit;
+}
 $authUser = Auth::user();
 $isGuest = false;
 $publicSite = null;
 if (!$authUser) {
     // Live demo: anonymous visitors may browse a public website read-only
     // (?demo=1 picks the first public site, ?site=<id> a specific one).
-    require_once __DIR__ . '/src/api/db.php';
     $requestedSite = $_GET['site'] ?? $_GET['site_id'] ?? null;
     if ($requestedSite !== null || !empty($_GET['demo'])) {
-        $publicSite = Database::getPublicSite($requestedSite !== null ? (string)$requestedSite : null);
+        $publicSite = Database::getPublicSite($requestedSite !== null ? (string) $requestedSite : null);
     }
-    if (!$publicSite) { header('Location: /dashboard/login.php'); exit; }
+    if (!$publicSite) {
+        header('Location: /dashboard/login.php');
+        exit;
+    }
     $isGuest = true;
     if ($requestedSite === null) {
         // Pin the URL to the demo site so the front-end opens it directly.
-        $query = $_GET; unset($query['demo']); $query['site'] = $publicSite['id'];
+        $query = $_GET;
+        unset($query['demo']);
+        $query['site'] = $publicSite['id'];
         header('Location: /dashboard/?' . http_build_query($query) . '#overview');
         exit;
     }
