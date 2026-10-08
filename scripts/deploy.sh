@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+# -----------------------------------------------------------------------------
+# Minilytics Deploy Script
+# -----------------------------------------------------------------------------
+# Meant to be copied into the web root (e.g. public_html) and run from there.
+# It extracts the dashboard and landing archives found in a dist/ folder into
+# the directory the script lives in, after verifying their SHA256 checksums.
+#
+# Runtime data (data/*.db, data/sites.json, ...) is never part of the archives,
+# so it is left untouched. A backup of data/ is made before extracting anyway.
+#
+# Usage: ./deploy.sh [DIST_DIR]
+#   DIST_DIR  folder holding the archives
+#             (default: ../minilytics-source-code/dist)
+# -----------------------------------------------------------------------------
+
+WEB_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DIST_DIR="${1:-${WEB_ROOT}/../minilytics-source-code/dist}"
+ARCHIVES=("minilytics.tar.gz" "minilytics-landing.tar.gz")
+
+if [ ! -d "${DIST_DIR}" ]; then
+    echo "ERROR: dist folder not found: ${DIST_DIR}" >&2
+    exit 1
+fi
+DIST_DIR="$(cd "${DIST_DIR}" && pwd)"
+
+echo "==> Web root: ${WEB_ROOT}"
+echo "==> Archives: ${DIST_DIR}"
+
+# 1. Verify everything before touching the web root
+for archive in "${ARCHIVES[@]}"; do
+    if [ ! -f "${DIST_DIR}/${archive}" ]; then
+        echo "ERROR: missing ${DIST_DIR}/${archive}" >&2
+        exit 1
+    fi
+    if [ -f "${DIST_DIR}/${archive}.sha256" ]; then
+        (cd "${DIST_DIR}" && sha256sum -c "${archive}.sha256")
+    else
+        echo "WARNING: no checksum for ${archive}, skipping verification" >&2
+    fi
+done
+
+# 2. Back up runtime data
+if [ -d "${WEB_ROOT}/data" ]; then
+    BACKUP="${WEB_ROOT}/../data-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
+    tar -czf "${BACKUP}" -C "${WEB_ROOT}" data
+    echo "==> data/ backed up to: ${BACKUP}"
+fi
+
+# 3. Extract dashboard, then landing, into the web root
+for archive in "${ARCHIVES[@]}"; do
+    echo "==> Extracting ${archive}"
+    tar -xzf "${DIST_DIR}/${archive}" -C "${WEB_ROOT}"
+done
+
+# 4. data/ must be writable by the web server
+mkdir -p "${WEB_ROOT}/data"
+chmod u+rwX,g+rwX "${WEB_ROOT}/data" 2>/dev/null || true
+
+echo "==> Done. Landing: /  Dashboard: /dashboard/"
