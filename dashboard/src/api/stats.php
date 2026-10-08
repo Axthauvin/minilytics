@@ -10,7 +10,7 @@ header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 require_once __DIR__ . '/../../../vendor/autoload.php';
 // Public demo sites are readable without an account.
-Auth::requireSiteAccess((string)($_GET['site_id'] ?? $_GET['site'] ?? ''));
+Auth::requireSiteAccess((string) ($_GET['site_id'] ?? $_GET['site'] ?? ''));
 
 
 try {
@@ -45,7 +45,7 @@ try {
             '90d' => $now - (90 * 86400),
             '6m', '180d' => $now - (180 * 86400),
             'all' => 0,
-            default => $now - (7 * 86400)
+            default => $now - (7 * 86400),
         };
     }
 
@@ -66,7 +66,7 @@ try {
             $db,
             $activeFilters,
             gmdate('Y-m-d H:i:s', $filterStartUnix),
-            $endDateStr
+            $endDateStr,
         );
     }
 
@@ -74,9 +74,11 @@ try {
     $liveThreshold = gmdate('Y-m-d H:i:s', $now - 300);
     $liveStmt = $db->prepare("SELECT COUNT(DISTINCT COALESCE(visitor_id, session_id)) FROM user_activity WHERE timestamp >= :live_time" . $siteCondition);
     $liveStmt->bindValue(':live_time', $liveThreshold, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) $liveStmt->bindValue($k, $v, SQLITE3_TEXT);
+    foreach ($siteParams as $k => $v) {
+        $liveStmt->bindValue($k, $v, SQLITE3_TEXT);
+    }
     $liveResult = $liveStmt->execute();
-    $liveVisitors = (int)$liveResult->fetchArray(SQLITE3_NUM)[0];
+    $liveVisitors = (int) $liveResult->fetchArray(SQLITE3_NUM)[0];
 
     // 2. Summary stats for the selected period
     $summarySql = "
@@ -91,13 +93,15 @@ try {
     $sumStmt = $db->prepare($summarySql);
     $sumStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
     $sumStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) $sumStmt->bindValue($k, $v, SQLITE3_TEXT);
+    foreach ($siteParams as $k => $v) {
+        $sumStmt->bindValue($k, $v, SQLITE3_TEXT);
+    }
     $sumRow = $sumStmt->execute()->fetchArray(SQLITE3_ASSOC) ?: [];
 
-    $totalPageviews = (int)($sumRow['pageviews'] ?? 0);
-    $totalVisitors = (int)($sumRow['visitors'] ?? 0);
-    $totalSessions = (int)($sumRow['sessions'] ?? 0);
-    $totalEvents = (int)($sumRow['total_events'] ?? 0);
+    $totalPageviews = (int) ($sumRow['pageviews'] ?? 0);
+    $totalVisitors = (int) ($sumRow['visitors'] ?? 0);
+    $totalSessions = (int) ($sumRow['sessions'] ?? 0);
+    $totalEvents = (int) ($sumRow['total_events'] ?? 0);
 
     // A visit expires after 30 minutes without an event. This keeps a browser
     // tab left open for hours from inflating the average visit duration.
@@ -147,12 +151,14 @@ try {
     $sessStmt = $db->prepare($sessionMetricsSql);
     $sessStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
     $sessStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) $sessStmt->bindValue($k, $v, SQLITE3_TEXT);
+    foreach ($siteParams as $k => $v) {
+        $sessStmt->bindValue($k, $v, SQLITE3_TEXT);
+    }
     $sessMetrics = $sessStmt->execute()->fetchArray(SQLITE3_ASSOC) ?: [];
 
-    $totalSessions = (int)($sessMetrics['total_sessions'] ?? $totalSessions);
-    $avgDuration = round((float)($sessMetrics['avg_duration'] ?? 0), 1);
-    $bounceRate = $totalSessions > 0 ? round((float)($sessMetrics['bounce_rate'] ?? 0), 1) : 0.0;
+    $totalSessions = (int) ($sessMetrics['total_sessions'] ?? $totalSessions);
+    $avgDuration = round((float) ($sessMetrics['avg_duration'] ?? 0), 1);
+    $bounceRate = $totalSessions > 0 ? round((float) ($sessMetrics['bounce_rate'] ?? 0), 1) : 0.0;
 
     // Real comparison metrics against the previous period of identical length
     if ($range === 'all') {
@@ -161,7 +167,7 @@ try {
             'sessions' => null,
             'pageviews' => null,
             'bounce_rate' => null,
-            'duration' => null
+            'duration' => null,
         ];
     } else {
         $periodLength = max(3600, $endUnix - $startUnix);
@@ -180,12 +186,14 @@ try {
         $pSumStmt = $db->prepare($prevSumSql);
         $pSumStmt->bindValue(':prev_start', $prevStartDateStr, SQLITE3_TEXT);
         $pSumStmt->bindValue(':prev_end', $prevEndDateStr, SQLITE3_TEXT);
-        foreach ($siteParams as $k => $v) $pSumStmt->bindValue($k, $v, SQLITE3_TEXT);
+        foreach ($siteParams as $k => $v) {
+            $pSumStmt->bindValue($k, $v, SQLITE3_TEXT);
+        }
         $prevSumRow = $pSumStmt->execute()->fetchArray(SQLITE3_ASSOC) ?: [];
 
-        $prevPageviews = (int)($prevSumRow['pageviews'] ?? 0);
-        $prevVisitors = (int)($prevSumRow['visitors'] ?? 0);
-        $prevSessions = (int)($prevSumRow['sessions'] ?? 0);
+        $prevPageviews = (int) ($prevSumRow['pageviews'] ?? 0);
+        $prevVisitors = (int) ($prevSumRow['visitors'] ?? 0);
+        $prevSessions = (int) ($prevSumRow['sessions'] ?? 0);
 
         $prevSessSql = "
             WITH event_gaps AS (
@@ -233,12 +241,14 @@ try {
         $pSessStmt = $db->prepare($prevSessSql);
         $pSessStmt->bindValue(':prev_start', $prevStartDateStr, SQLITE3_TEXT);
         $pSessStmt->bindValue(':prev_end', $prevEndDateStr, SQLITE3_TEXT);
-        foreach ($siteParams as $k => $v) $pSessStmt->bindValue($k, $v, SQLITE3_TEXT);
+        foreach ($siteParams as $k => $v) {
+            $pSessStmt->bindValue($k, $v, SQLITE3_TEXT);
+        }
         $pSessMetrics = $pSessStmt->execute()->fetchArray(SQLITE3_ASSOC) ?: [];
 
-        $prevSessions = (int)($pSessMetrics['total_sessions'] ?? 0);
-        $prevBounceRate = $prevSessions > 0 ? round((float)($pSessMetrics['bounce_rate'] ?? 0), 1) : 0.0;
-        $prevDuration = round((float)($pSessMetrics['avg_duration'] ?? 0), 1);
+        $prevSessions = (int) ($pSessMetrics['total_sessions'] ?? 0);
+        $prevBounceRate = $prevSessions > 0 ? round((float) ($pSessMetrics['bounce_rate'] ?? 0), 1) : 0.0;
+        $prevDuration = round((float) ($pSessMetrics['avg_duration'] ?? 0), 1);
 
         // Compute actual real deltas
         $diffVisitors = $totalVisitors - $prevVisitors;
@@ -248,8 +258,12 @@ try {
         $diffDuration = round($avgDuration - $prevDuration);
 
         $formatDiff = function ($diff, $suffix = '') {
-            if ($diff > 0) return "+{$diff}{$suffix}";
-            if ($diff < 0) return "{$diff}{$suffix}";
+            if ($diff > 0) {
+                return "+{$diff}{$suffix}";
+            }
+            if ($diff < 0) {
+                return "{$diff}{$suffix}";
+            }
             return "0{$suffix}";
         };
 
@@ -258,7 +272,7 @@ try {
             'sessions' => $formatDiff($diffSessions),
             'pageviews' => $formatDiff($diffPageviews),
             'bounce_rate' => $formatDiff($diffBounce, '%'),
-            'duration' => $formatDiff($diffDuration, 's')
+            'duration' => $formatDiff($diffDuration, 's'),
         ];
     }
 
@@ -300,7 +314,7 @@ try {
     } elseif ($range === 'custom') {
         $effectiveStart = strtotime(gmdate('Y-m-d', $startUnix) . ' 00:00:00 UTC');
         $endStep = strtotime(gmdate('Y-m-d', $endUnix) . ' 00:00:00 UTC');
-        $spanDays = max(1, (int)round(($endStep - $effectiveStart) / 86400));
+        $spanDays = max(1, (int) round(($endStep - $effectiveStart) / 86400));
         if ($spanDays <= 2) {
             $intervalHours = 1;
             $stepSeconds = 3600;
@@ -322,11 +336,11 @@ try {
         $maxDbTime = $db->querySingle("SELECT MAX(timestamp) FROM user_activity WHERE timestamp IS NOT NULL" . $siteCondition);
 
         if ($minDbTime) {
-            $effectiveStart = strtotime(substr((string)$minDbTime, 0, 10) . ' 00:00:00 UTC');
-            $maxDbUnix = strtotime(substr((string)$maxDbTime, 0, 10) . ' 00:00:00 UTC');
+            $effectiveStart = strtotime(substr((string) $minDbTime, 0, 10) . ' 00:00:00 UTC');
+            $maxDbUnix = strtotime(substr((string) $maxDbTime, 0, 10) . ' 00:00:00 UTC');
             $endStep = max(strtotime('today midnight'), $maxDbUnix);
 
-            $spanDays = max(1, (int)round(($endStep - $effectiveStart) / 86400));
+            $spanDays = max(1, (int) round(($endStep - $effectiveStart) / 86400));
             if ($spanDays <= 2) {
                 $intervalHours = 1;
                 $stepSeconds = 3600;
@@ -373,21 +387,23 @@ try {
     $tsStmt = $db->prepare($tsSql);
     $tsStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
     $tsStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) $tsStmt->bindValue($k, $v, SQLITE3_TEXT);
+    foreach ($siteParams as $k => $v) {
+        $tsStmt->bindValue($k, $v, SQLITE3_TEXT);
+    }
     $tsRes = $tsStmt->execute();
 
     $slotMap = [];
     while ($r = $tsRes->fetchArray(SQLITE3_ASSOC)) {
         $slotMap[$r['slot']] = [
-            'views' => (int)$r['views'],
-            'sessions' => (int)$r['sessions'],
-            'visitors' => (int)$r['visitors'],
-            'events' => (int)$r['events']
+            'views' => (int) $r['views'],
+            'sessions' => (int) $r['sessions'],
+            'visitors' => (int) $r['visitors'],
+            'events' => (int) $r['events'],
         ];
     }
 
     // Build timeline sequence
-    $spanDays = max(1, (int)round(($endStep - $effectiveStart) / 86400));
+    $spanDays = max(1, (int) round(($endStep - $effectiveStart) / 86400));
     $timeseries = [];
     $currStep = $effectiveStart;
 
@@ -398,18 +414,18 @@ try {
         $events = 0;
 
         if ($intervalHours === 1) {
-            $subKey = gmdate('Y-m-d H:00:00', (int)$currStep);
+            $subKey = gmdate('Y-m-d H:00:00', (int) $currStep);
             if (isset($slotMap[$subKey])) {
                 $views = $slotMap[$subKey]['views'];
                 $sessions = $slotMap[$subKey]['sessions'];
                 $visitors = $slotMap[$subKey]['visitors'];
                 $events = $slotMap[$subKey]['events'];
             }
-            $timeLabel = gmdate('h A', (int)$currStep);
-            $dateLabel = gmdate('M d, Y', (int)$currStep);
-            $fullLabel = gmdate('l, F j, Y \a\t h:i A', (int)$currStep);
+            $timeLabel = gmdate('h A', (int) $currStep);
+            $dateLabel = gmdate('M d, Y', (int) $currStep);
+            $fullLabel = gmdate('l, F j, Y \a\t h:i A', (int) $currStep);
         } elseif ($intervalHours === 24) {
-            $dayKey = gmdate('Y-m-d', (int)$currStep);
+            $dayKey = gmdate('Y-m-d', (int) $currStep);
             if (isset($slotMap[$dayKey])) {
                 $views = $slotMap[$dayKey]['views'];
                 $sessions = $slotMap[$dayKey]['sessions'];
@@ -417,19 +433,19 @@ try {
                 $events = $slotMap[$dayKey]['events'];
             }
             if ($range === '7d') {
-                $timeLabel = gmdate('D, j M', (int)$currStep);
+                $timeLabel = gmdate('D, j M', (int) $currStep);
             } elseif ($range === '30d') {
-                $timeLabel = gmdate('M d', (int)$currStep);
+                $timeLabel = gmdate('M d', (int) $currStep);
             } else {
-                $timeLabel = ($spanDays > 180) ? gmdate('M y', (int)$currStep) : gmdate('M d', (int)$currStep);
+                $timeLabel = ($spanDays > 180) ? gmdate('M y', (int) $currStep) : gmdate('M d', (int) $currStep);
             }
-            $dateLabel = gmdate('M d, Y', (int)$currStep);
-            $fullLabel = gmdate('l, F j, Y', (int)$currStep);
+            $dateLabel = gmdate('M d, Y', (int) $currStep);
+            $fullLabel = gmdate('l, F j, Y', (int) $currStep);
         } else {
             // Multi-day interval (e.g. weekly)
-            $intervalDays = (int)($intervalHours / 24);
+            $intervalDays = (int) ($intervalHours / 24);
             for ($sub = 0; $sub < $intervalDays; $sub++) {
-                $dayKey = gmdate('Y-m-d', (int)($currStep + $sub * 86400));
+                $dayKey = gmdate('Y-m-d', (int) ($currStep + $sub * 86400));
                 if (isset($slotMap[$dayKey])) {
                     $views += $slotMap[$dayKey]['views'];
                     $sessions += $slotMap[$dayKey]['sessions'];
@@ -437,9 +453,9 @@ try {
                     $events += $slotMap[$dayKey]['events'];
                 }
             }
-            $timeLabel = gmdate('M d', (int)$currStep);
-            $dateLabel = gmdate('M d, Y', (int)$currStep);
-            $fullLabel = 'Week of ' . gmdate('l, F j, Y', (int)$currStep);
+            $timeLabel = gmdate('M d', (int) $currStep);
+            $dateLabel = gmdate('M d, Y', (int) $currStep);
+            $fullLabel = 'Week of ' . gmdate('l, F j, Y', (int) $currStep);
         }
 
         $timeseries[] = [
@@ -451,7 +467,7 @@ try {
             'pageviews' => $views,
             'sessions' => $sessions,
             'visitors' => $visitors,
-            'events' => $events
+            'events' => $events,
         ];
 
         $currStep += $stepSeconds;
@@ -459,7 +475,9 @@ try {
 
     // Helper to normalize domains for exact match comparison
     $normalizeDomain = static function (?string $raw): string {
-        if (!$raw) return '';
+        if (!$raw) {
+            return '';
+        }
         $raw = trim(strtolower($raw));
         if (!str_contains($raw, '://')) {
             $raw = 'http://' . $raw;
@@ -475,9 +493,13 @@ try {
     foreach ($availableSites as $s) {
         if (($s['id'] ?? '') === $cleanSite) {
             $d = $normalizeDomain($s['domain'] ?? '');
-            if ($d !== '') $ownDomains[$d] = true;
+            if ($d !== '') {
+                $ownDomains[$d] = true;
+            }
             $sid = $normalizeDomain($s['id'] ?? '');
-            if ($sid !== '' && str_contains($sid, '.')) $ownDomains[$sid] = true;
+            if ($sid !== '' && str_contains($sid, '.')) {
+                $ownDomains[$sid] = true;
+            }
         }
     }
     try {
@@ -489,7 +511,7 @@ try {
         ");
         if ($hostQuery) {
             while ($hRow = $hostQuery->fetchArray(SQLITE3_ASSOC)) {
-                $dh = $normalizeDomain((string)$hRow['h']);
+                $dh = $normalizeDomain((string) $hRow['h']);
                 if ($dh !== '') {
                     $ownDomains[$dh] = true;
                 }
@@ -516,19 +538,21 @@ try {
     $pStmt = $db->prepare($pagesSql);
     $pStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
     $pStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) $pStmt->bindValue($k, $v, SQLITE3_TEXT);
+    foreach ($siteParams as $k => $v) {
+        $pStmt->bindValue($k, $v, SQLITE3_TEXT);
+    }
     $pRes = $pStmt->execute();
 
     $topPages = [];
     while ($pr = $pRes->fetchArray(SQLITE3_ASSOC)) {
-        $vCount = (int)$pr['views'];
+        $vCount = (int) $pr['views'];
         $pct = $totalPageviews > 0 ? round(($vCount / $totalPageviews) * 100, 1) : 0;
         $topPages[] = [
             'path' => $pr['path'] ?: '/',
             'title' => $pr['title'] ?: $pr['path'],
             'views' => $vCount,
-            'visitors' => (int)$pr['visitors'],
-            'percentage' => $pct
+            'visitors' => (int) $pr['visitors'],
+            'percentage' => $pct,
         ];
     }
 
@@ -548,12 +572,14 @@ try {
     $rStmt = $db->prepare($refSql);
     $rStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
     $rStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) $rStmt->bindValue($k, $v, SQLITE3_TEXT);
+    foreach ($siteParams as $k => $v) {
+        $rStmt->bindValue($k, $v, SQLITE3_TEXT);
+    }
     $rRes = $rStmt->execute();
 
     $topReferrers = [];
     while ($rr = $rRes->fetchArray(SQLITE3_ASSOC)) {
-        $rawRef = trim((string)($rr['referrer'] ?? ''));
+        $rawRef = trim((string) ($rr['referrer'] ?? ''));
         $cleanRef = 'Direct / None';
         $domain = 'direct';
 
@@ -572,7 +598,7 @@ try {
             }
         }
 
-        $cnt = (int)$rr['count'];
+        $cnt = (int) $rr['count'];
         $pct = $totalPageviews > 0 ? round(($cnt / $totalPageviews) * 100, 1) : 0;
 
         $topReferrers[] = [
@@ -580,7 +606,7 @@ try {
             'domain' => $domain,
             'raw' => $rawRef,
             'views' => $cnt,
-            'percentage' => $pct
+            'percentage' => $pct,
         ];
 
         if (count($topReferrers) >= 100) {
@@ -604,16 +630,18 @@ try {
     $eStmt = $db->prepare($evtSql);
     $eStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
     $eStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) $eStmt->bindValue($k, $v, SQLITE3_TEXT);
+    foreach ($siteParams as $k => $v) {
+        $eStmt->bindValue($k, $v, SQLITE3_TEXT);
+    }
     $eRes = $eStmt->execute();
 
     $topEvents = [];
     $nonPageViewCount = 0;
     $rawEvents = [];
     while ($er = $eRes->fetchArray(SQLITE3_ASSOC)) {
-        $cnt = (int)$er['count'];
+        $cnt = (int) $er['count'];
         $nonPageViewCount += $cnt;
-        $rawEvents[] = ['name' => (string)$er['event_name'], 'count' => $cnt];
+        $rawEvents[] = ['name' => (string) $er['event_name'], 'count' => $cnt];
     }
 
     foreach ($rawEvents as $re) {
@@ -621,7 +649,7 @@ try {
         $topEvents[] = [
             'name' => $re['name'],
             'count' => $re['count'],
-            'percentage' => $pct
+            'percentage' => $pct,
         ];
     }
     // 7. Environment Breakdowns (Browsers, OS, Devices)
@@ -643,16 +671,18 @@ try {
         $stmt = $db->prepare($sql);
         $stmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
         $stmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-        foreach ($siteParams as $k => $v) $stmt->bindValue($k, $v, SQLITE3_TEXT);
+        foreach ($siteParams as $k => $v) {
+            $stmt->bindValue($k, $v, SQLITE3_TEXT);
+        }
         $res = $stmt->execute();
         $list = [];
         while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
-            $cnt = (int)$row['count'];
+            $cnt = (int) $row['count'];
             $pct = $totalVisitors > 0 ? round(($cnt / $totalVisitors) * 100, 1) : 0;
             $list[] = [
-                'name' => (string)$row['label'],
+                'name' => (string) $row['label'],
                 'count' => $cnt,
-                'percentage' => $pct
+                'percentage' => $pct,
             ];
         }
         return $list;
@@ -679,17 +709,19 @@ try {
     $cStmt = $db->prepare($countrySql);
     $cStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
     $cStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) $cStmt->bindValue($k, $v, SQLITE3_TEXT);
+    foreach ($siteParams as $k => $v) {
+        $cStmt->bindValue($k, $v, SQLITE3_TEXT);
+    }
     $cRes = $cStmt->execute();
     $topCountries = [];
     while ($cr = $cRes->fetchArray(SQLITE3_ASSOC)) {
-        $cnt = (int)$cr['count'];
+        $cnt = (int) $cr['count'];
         $pct = $totalVisitors > 0 ? round(($cnt / $totalVisitors) * 100, 1) : 0;
         $topCountries[] = [
-            'name' => (string)$cr['country'],
-            'code' => strtoupper((string)$cr['country_code']),
+            'name' => (string) $cr['country'],
+            'code' => strtoupper((string) $cr['country_code']),
             'count' => $cnt,
-            'percentage' => $pct
+            'percentage' => $pct,
         ];
     }
 
@@ -698,17 +730,17 @@ try {
         'range' => $range,
         'site_id' => $cleanSite,
         'available_sites' => $availableSites,
-        'filters' => (object)$activeFilters,
+        'filters' => (object) $activeFilters,
         'summary' => [
             'visitors' => $totalVisitors,
             'sessions' => $totalSessions,
-            'session_count' => (int)($sumRow['sessions'] ?? 0),
+            'session_count' => (int) ($sumRow['sessions'] ?? 0),
             'pageviews' => $totalPageviews,
             'events' => $totalEvents,
             'bounce_rate' => $bounceRate,
             'avg_duration_seconds' => $avgDuration,
             'live_visitors' => $liveVisitors,
-            'deltas' => $deltas
+            'deltas' => $deltas,
         ],
         'timeseries' => $timeseries,
         'top_pages' => $topPages,
@@ -717,9 +749,9 @@ try {
         'environment' => [
             'browsers' => $topBrowsers,
             'os' => $topOs,
-            'devices' => $topDevices
+            'devices' => $topDevices,
         ],
-        'countries' => $topCountries
+        'countries' => $topCountries,
     ], JSON_UNESCAPED_SLASHES);
 } catch (Throwable $e) {
     http_response_code(500);

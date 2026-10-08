@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Minilytics\Auth\Auth;
 use Minilytics\Database\Database;
+
 require_once __DIR__ . '/../vendor/autoload.php';
 Auth::startSession();
 $step = $_GET['step'] ?? ($_SERVER['REQUEST_METHOD'] === 'POST' ? 'account' : 'welcome');
@@ -21,10 +22,12 @@ if ($step === 'database') {
 }
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $step === 'account') {
     $email = trim(strtolower($_POST['email'] ?? ''));
-    $password = (string)($_POST['password'] ?? '');
-    if (!Auth::validEmail($email)) $error = 'Enter a valid email address.';
-    elseif ($passwordError = Auth::passwordError($password)) $error = $passwordError;
-    else {
+    $password = (string) ($_POST['password'] ?? '');
+    if (!Auth::validEmail($email)) {
+        $error = 'Enter a valid email address.';
+    } elseif ($passwordError = Auth::passwordError($password)) {
+        $error = $passwordError;
+    } else {
         $db = Auth::db();
         $stmt = $db->prepare('INSERT INTO users (email, password_hash, role) VALUES (:email, :password, "admin")');
         $stmt->bindValue(':email', $email, SQLITE3_TEXT);

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use Minilytics\Auth\Auth;
@@ -23,8 +24,10 @@ try {
         exit;
     }
 
-    $input = json_decode((string)file_get_contents('php://input'), true);
-    if (!is_array($input)) throw new InvalidArgumentException('Invalid database settings.');
+    $input = json_decode((string) file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        throw new InvalidArgumentException('Invalid database settings.');
+    }
     $action = $input['action'] ?? 'test';
 
     if ($action === 'test') {

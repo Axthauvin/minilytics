@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use Minilytics\Analytics\AnalyticsFilters;
@@ -12,7 +13,7 @@ header('Access-Control-Allow-Headers: Content-Type');
 require_once __DIR__ . '/../../../vendor/autoload.php';
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
     // Public demo sites are readable without an account; deletion stays admin-only below.
-    Auth::requireSiteAccess((string)($_GET['site_id'] ?? $_GET['site'] ?? ''));
+    Auth::requireSiteAccess((string) ($_GET['site_id'] ?? $_GET['site'] ?? ''));
 } else {
     Auth::requireLogin();
 }
@@ -32,10 +33,18 @@ $formatDurationLabel = static function (int $seconds): string {
     $seconds %= 60;
 
     $parts = [];
-    if ($days > 0) $parts[] = "{$days}d";
-    if ($hours > 0 || $days > 0) $parts[] = "{$hours}h";
-    if ($minutes > 0 || $hours > 0 || $days > 0) $parts[] = "{$minutes}m";
-    if ($seconds > 0 || empty($parts)) $parts[] = "{$seconds}s";
+    if ($days > 0) {
+        $parts[] = "{$days}d";
+    }
+    if ($hours > 0 || $days > 0) {
+        $parts[] = "{$hours}h";
+    }
+    if ($minutes > 0 || $hours > 0 || $days > 0) {
+        $parts[] = "{$minutes}m";
+    }
+    if ($seconds > 0 || empty($parts)) {
+        $parts[] = "{$seconds}s";
+    }
 
     return implode(' ', $parts);
 };
@@ -48,10 +57,12 @@ try {
     $siteId = $_GET['site_id'] ?? $_GET['site'] ?? null;
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'DELETE') {
         Auth::requireAdmin();
-        $input = json_decode((string)file_get_contents('php://input'), true) ?: [];
+        $input = json_decode((string) file_get_contents('php://input'), true) ?: [];
         $siteId = $input['site_id'] ?? $siteId;
-        $sessionId = trim((string)($input['session_id'] ?? $_GET['session_id'] ?? ''));
-        if ($sessionId === '' || strlen($sessionId) > 255) throw new InvalidArgumentException('A valid session ID is required.');
+        $sessionId = trim((string) ($input['session_id'] ?? $_GET['session_id'] ?? ''));
+        if ($sessionId === '' || strlen($sessionId) > 255) {
+            throw new InvalidArgumentException('A valid session ID is required.');
+        }
         $cleanSite = Database::sanitizeSiteId($siteId);
         $db = Database::getConnection($cleanSite);
         $delete = $db->prepare('DELETE FROM user_activity WHERE session_id = :session_id');
@@ -105,24 +116,33 @@ try {
             if ($firstTime === null) {
                 $firstTime = $ts;
                 $data = $act['data'] ?? [];
-                if (!empty($data['path']))
+                if (!empty($data['path'])) {
                     $entryPage = $data['path'];
-                if (!empty($data['referrer']))
+                }
+                if (!empty($data['referrer'])) {
                     $referrer = $data['referrer'];
-                if (!empty($data['browser']))
+                }
+                if (!empty($data['browser'])) {
                     $browser = $data['browser'];
-                if (!empty($data['os']))
+                }
+                if (!empty($data['os'])) {
                     $os = $data['os'];
-                if (!empty($data['device']))
+                }
+                if (!empty($data['device'])) {
                     $device = $data['device'];
-                if (!empty($data['country']))
+                }
+                if (!empty($data['country'])) {
                     $country = $data['country'];
-                if (!empty($data['country_code']))
+                }
+                if (!empty($data['country_code'])) {
                     $countryCode = $data['country_code'];
-                if (!empty($data['city']))
+                }
+                if (!empty($data['city'])) {
                     $city = $data['city'];
-                if (!empty($data['_ml_tracking_mode']))
+                }
+                if (!empty($data['_ml_tracking_mode'])) {
                     $trackingMode = $data['_ml_tracking_mode'];
+                }
             }
             $lastTime = $ts;
 
@@ -130,7 +150,9 @@ try {
             $offsetLabel = '+' . $formatDurationLabel($offsetSec);
 
             // Engagement is an internal timing signal, not a visitor-facing event.
-            if (($act['name'] ?? '') === '_ml_engaged') continue;
+            if (($act['name'] ?? '') === '_ml_engaged') {
+                continue;
+            }
             if (($act['name'] ?? '') === 'pageview') {
                 $pageviewCount++;
             } else {
@@ -143,7 +165,7 @@ try {
                 'data' => $act['data'] ?? [],
                 'timestamp' => $row['timestamp'],
                 'offset_label' => $offsetLabel,
-                'offset_seconds' => $offsetSec
+                'offset_seconds' => $offsetSec,
             ];
         }
 
@@ -177,8 +199,8 @@ try {
                 'city' => $city,
                 'tracking_mode' => $trackingMode,
                 'avatar_url' => "https://api.dicebear.com/10.x/glyphs/svg?seed=" . rawurlencode($specificSessionId),
-                'events' => $events
-            ]
+                'events' => $events,
+            ],
         ], JSON_UNESCAPED_SLASHES);
         exit;
     }
@@ -218,7 +240,7 @@ try {
             '90d' => $now - (90 * 86400),
             '6m', '180d' => $now - (180 * 86400),
             'all' => 0,
-            default => $now - (7 * 86400)
+            default => $now - (7 * 86400),
         };
         $startDateStr = gmdate('Y-m-d H:i:s', $startUnix);
         $endDateStr = gmdate('Y-m-d H:i:s', $endUnix);
@@ -256,8 +278,9 @@ try {
     // Total distinct sessions count
     $cntSql = "SELECT COUNT(DISTINCT session_id) FROM user_activity WHERE {$whereClause}";
     $cntStmt = $db->prepare($cntSql);
-    foreach ($params as $k => $v)
+    foreach ($params as $k => $v) {
         $cntStmt->bindValue($k, $v, SQLITE3_TEXT);
+    }
     $totalSessions = (int) $cntStmt->execute()->fetchArray(SQLITE3_NUM)[0];
 
     // Aggregated sessions
@@ -277,8 +300,9 @@ try {
         LIMIT :limit OFFSET :offset
     ";
     $sStmt = $db->prepare($sessSql);
-    foreach ($params as $k => $v)
+    foreach ($params as $k => $v) {
         $sStmt->bindValue($k, $v, SQLITE3_TEXT);
+    }
     $sStmt->bindValue(':limit', $limit, SQLITE3_INTEGER);
     $sStmt->bindValue(':offset', $offset, SQLITE3_INTEGER);
     $sRes = $sStmt->execute();
@@ -310,25 +334,35 @@ try {
             $data = $act['data'] ?? [];
 
             if ($entryPage === null) {
-                if (!empty($data['path']))
+                if (!empty($data['path'])) {
                     $entryPage = $data['path'];
-                if (!empty($data['referrer']))
+                }
+                if (!empty($data['referrer'])) {
                     $referrer = $data['referrer'];
-                if (!empty($data['browser']))
+                }
+                if (!empty($data['browser'])) {
                     $browser = $data['browser'];
-                if (!empty($data['os']))
+                }
+                if (!empty($data['os'])) {
                     $os = $data['os'];
-                if (!empty($data['device']))
+                }
+                if (!empty($data['device'])) {
                     $device = $data['device'];
-                if (!empty($data['country']))
+                }
+                if (!empty($data['country'])) {
                     $country = $data['country'];
-                if (!empty($data['country_code']))
+                }
+                if (!empty($data['country_code'])) {
                     $countryCode = $data['country_code'];
-                if (!empty($data['city']))
+                }
+                if (!empty($data['city'])) {
                     $city = $data['city'];
+                }
             }
 
-            if ($name === '_ml_engaged') continue;
+            if ($name === '_ml_engaged') {
+                continue;
+            }
             if ($name === 'pageview') {
                 $p = $data['path'] ?? '/';
                 $flow[] = ['type' => 'pageview', 'label' => $p];
@@ -340,14 +374,15 @@ try {
         // Relative time ago calculation
         $startTs = strtotime($sr['started_at'] . ' UTC');
         $diff = time() - $startTs;
-        if ($diff < 60)
+        if ($diff < 60) {
             $timeAgo = 'just now';
-        elseif ($diff < 3600)
+        } elseif ($diff < 3600) {
             $timeAgo = floor($diff / 60) . 'm ago';
-        elseif ($diff < 86400)
+        } elseif ($diff < 86400) {
             $timeAgo = floor($diff / 3600) . 'h ago';
-        else
+        } else {
             $timeAgo = floor($diff / 86400) . 'd ago';
+        }
 
         $sessions[] = [
             'session_id' => $sId,
@@ -368,7 +403,7 @@ try {
             'country_code' => strtoupper($countryCode),
             'city' => $city,
             'avatar_url' => "https://api.dicebear.com/10.x/glyphs/svg?seed=" . rawurlencode($sId),
-            'flow' => $flow
+            'flow' => $flow,
         ];
     }
 
@@ -388,7 +423,7 @@ try {
         if (!empty($er['name']) && $er['name'] !== '_ml_engaged') {
             $availableEvents[] = [
                 'name' => $er['name'],
-                'count' => (int)$er['count']
+                'count' => (int) $er['count'],
             ];
         }
     }
@@ -400,7 +435,7 @@ try {
         'page' => $page,
         'limit' => $limit,
         'total_pages' => max(1, (int) ceil($totalSessions / $limit)),
-        'available_events' => $availableEvents
+        'available_events' => $availableEvents,
     ], JSON_UNESCAPED_SLASHES);
 
 } catch (Throwable $e) {

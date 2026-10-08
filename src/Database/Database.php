@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 namespace Minilytics\Database;
+
 use InvalidArgumentException;
 use PDO;
 use RuntimeException;
@@ -37,7 +38,7 @@ class Database
     }
     public static function getDatabaseConfig(): array
     {
-        $config = is_file(self::getDatabaseConfigPath()) ? json_decode((string)file_get_contents(self::getDatabaseConfigPath()), true) : [];
+        $config = is_file(self::getDatabaseConfigPath()) ? json_decode((string) file_get_contents(self::getDatabaseConfigPath()), true) : [];
         $config = is_array($config) ? $config : [];
         return array_merge(['driver' => 'sqlite', 'host' => '', 'port' => 3306, 'database' => '', 'username' => '', 'password' => ''], $config);
     }
@@ -50,12 +51,18 @@ class Database
     }
     public static function saveDatabaseConfig(array $input): array
     {
-        $driver = strtolower(trim((string)($input['driver'] ?? 'sqlite')));
-        if (!in_array($driver, ['sqlite', 'mysql', 'mariadb'], true)) throw new InvalidArgumentException('Unsupported database driver.');
+        $driver = strtolower(trim((string) ($input['driver'] ?? 'sqlite')));
+        if (!in_array($driver, ['sqlite', 'mysql', 'mariadb'], true)) {
+            throw new InvalidArgumentException('Unsupported database driver.');
+        }
         $current = self::getDatabaseConfig();
-        $config = ['driver' => $driver, 'host' => trim((string)($input['host'] ?? '')), 'port' => max(1, min(65535, (int)($input['port'] ?? 3306))), 'database' => trim((string)($input['database'] ?? '')), 'username' => trim((string)($input['username'] ?? '')), 'password' => array_key_exists('password', $input) && $input['password'] !== '' ? (string)$input['password'] : $current['password']];
-        if ($driver === 'sqlite') $config = ['driver' => 'sqlite', 'host' => '', 'port' => 3306, 'database' => '', 'username' => '', 'password' => ''];
-        if ($driver !== 'sqlite' && ($config['host'] === '' || $config['database'] === '' || $config['username'] === '')) throw new InvalidArgumentException('Host, database name and username are required.');
+        $config = ['driver' => $driver, 'host' => trim((string) ($input['host'] ?? '')), 'port' => max(1, min(65535, (int) ($input['port'] ?? 3306))), 'database' => trim((string) ($input['database'] ?? '')), 'username' => trim((string) ($input['username'] ?? '')), 'password' => array_key_exists('password', $input) && $input['password'] !== '' ? (string) $input['password'] : $current['password']];
+        if ($driver === 'sqlite') {
+            $config = ['driver' => 'sqlite', 'host' => '', 'port' => 3306, 'database' => '', 'username' => '', 'password' => ''];
+        }
+        if ($driver !== 'sqlite' && ($config['host'] === '' || $config['database'] === '' || $config['username'] === '')) {
+            throw new InvalidArgumentException('Host, database name and username are required.');
+        }
         self::testDatabaseConfig(array_merge($config, ['create_database' => !empty($input['create_database'])]));
         file_put_contents(self::getDatabaseConfigPath(), json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
         @chmod(self::getDatabaseConfigPath(), 0600);
@@ -64,20 +71,28 @@ class Database
     }
     public static function testDatabaseConfig(array $input): array
     {
-        $driver = strtolower((string)($input['driver'] ?? 'sqlite'));
+        $driver = strtolower((string) ($input['driver'] ?? 'sqlite'));
         if ($driver === 'sqlite') {
-            if (!class_exists('SQLite3')) throw new RuntimeException('The SQLite3 PHP extension is not enabled.');
+            if (!class_exists('SQLite3')) {
+                throw new RuntimeException('The SQLite3 PHP extension is not enabled.');
+            }
             return ['driver' => 'sqlite', 'version' => SQLite3::version()['versionString']];
         }
-        if (!extension_loaded('pdo_mysql')) throw new RuntimeException('The PDO MySQL extension (pdo_mysql) is not enabled on this server.');
-        $host = trim((string)($input['host'] ?? ''));
-        $database = trim((string)($input['database'] ?? ''));
-        $username = trim((string)($input['username'] ?? ''));
-        if ($host === '' || $database === '' || $username === '') throw new InvalidArgumentException('Host, database name and username are required.');
-        if (!preg_match('/^[A-Za-z0-9_$]{1,64}$/', $database)) throw new InvalidArgumentException('Database names may contain only letters, numbers, underscores and dollar signs.');
-        $port = max(1, min(65535, (int)($input['port'] ?? 3306)));
+        if (!extension_loaded('pdo_mysql')) {
+            throw new RuntimeException('The PDO MySQL extension (pdo_mysql) is not enabled on this server.');
+        }
+        $host = trim((string) ($input['host'] ?? ''));
+        $database = trim((string) ($input['database'] ?? ''));
+        $username = trim((string) ($input['username'] ?? ''));
+        if ($host === '' || $database === '' || $username === '') {
+            throw new InvalidArgumentException('Host, database name and username are required.');
+        }
+        if (!preg_match('/^[A-Za-z0-9_$]{1,64}$/', $database)) {
+            throw new InvalidArgumentException('Database names may contain only letters, numbers, underscores and dollar signs.');
+        }
+        $port = max(1, min(65535, (int) ($input['port'] ?? 3306)));
         $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5];
-        $password = (string)($input['password'] ?? '');
+        $password = (string) ($input['password'] ?? '');
         $created = false;
         if (!empty($input['create_database'])) {
             // Connect without a schema first: this permits creating a missing
@@ -89,7 +104,7 @@ class Database
             $server->exec("CREATE DATABASE IF NOT EXISTS `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         }
         $pdo = new PDO("mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4", $username, $password, $options);
-        return ['driver' => $driver, 'version' => (string)$pdo->query('SELECT VERSION()')->fetchColumn(), 'database_created' => $created];
+        return ['driver' => $driver, 'version' => (string) $pdo->query('SELECT VERSION()')->fetchColumn(), 'database_created' => $created];
     }
 
     public static function sanitizeSiteId(?string $siteId): string
@@ -131,7 +146,7 @@ class Database
                 $sitesChanged = true;
             }
             if (!isset($site['allowed_domains'])) {
-                $site['allowed_domains'] = array_values(array_filter([self::normalizeHost((string)($site['domain'] ?? ''))]));
+                $site['allowed_domains'] = array_values(array_filter([self::normalizeHost((string) ($site['domain'] ?? ''))]));
                 $sitesChanged = true;
             }
             if (!isset($site['internal_ips'])) {
@@ -144,7 +159,9 @@ class Database
             }
         }
         unset($site);
-        if ($sitesChanged) self::saveSites($sites);
+        if ($sitesChanged) {
+            self::saveSites($sites);
+        }
 
         // Auto-discover any .db files inside data/
         $dbFiles = glob("{$dataDir}/*.db") ?: [];
@@ -152,7 +169,9 @@ class Database
 
         foreach ($dbFiles as $file) {
             $base = basename($file, '.db');
-            if ($base === 'auth') continue;
+            if ($base === 'auth') {
+                continue;
+            }
             if (!in_array($base, $knownIds)) {
                 $sites[] = [
                     'id' => $base,
@@ -162,12 +181,14 @@ class Database
                     'internal_ips' => [],
                     'retention_days' => 395,
                     'write_key' => bin2hex(random_bytes(24)),
-                    'created_at' => gmdate('Y-m-d H:i:s', filemtime($file))
+                    'created_at' => gmdate('Y-m-d H:i:s', filemtime($file)),
                 ];
                 $sitesChanged = true;
             }
         }
-        if ($sitesChanged) self::saveSites($sites);
+        if ($sitesChanged) {
+            self::saveSites($sites);
+        }
 
         return $sites;
     }
@@ -196,11 +217,11 @@ class Database
             if (self::getDatabaseConfig()['driver'] !== 'sqlite' || file_exists($dbPath)) {
                 try {
                     $db = self::getConnection($site['id']);
-                    $views = (int)$db->querySingle("SELECT COUNT(*) FROM user_activity WHERE json_extract(action, '$.name') = 'pageview'");
-                    $visitors = (int)$db->querySingle("SELECT COUNT(DISTINCT COALESCE(visitor_id, session_id)) FROM user_activity");
-                    $visitors7d = (int)$db->querySingle("SELECT COUNT(DISTINCT COALESCE(visitor_id, session_id)) FROM user_activity WHERE timestamp >= '{$sevenDaysAgo}'");
+                    $views = (int) $db->querySingle("SELECT COUNT(*) FROM user_activity WHERE json_extract(action, '$.name') = 'pageview'");
+                    $visitors = (int) $db->querySingle("SELECT COUNT(DISTINCT COALESCE(visitor_id, session_id)) FROM user_activity");
+                    $visitors7d = (int) $db->querySingle("SELECT COUNT(DISTINCT COALESCE(visitor_id, session_id)) FROM user_activity WHERE timestamp >= '{$sevenDaysAgo}'");
                     $liveThresh = gmdate('Y-m-d H:i:s', time() - 300);
-                    $live = (int)$db->querySingle("SELECT COUNT(DISTINCT COALESCE(visitor_id, session_id)) FROM user_activity WHERE timestamp >= '{$liveThresh}'");
+                    $live = (int) $db->querySingle("SELECT COUNT(DISTINCT COALESCE(visitor_id, session_id)) FROM user_activity WHERE timestamp >= '{$liveThresh}'");
                     $lastActive = $db->querySingle("SELECT MAX(timestamp) FROM user_activity");
 
                     // Real daily visitors for the 7 days
@@ -212,7 +233,7 @@ class Database
                     $spRes = $spStmt->execute();
                     while ($spRow = $spRes->fetchArray(SQLITE3_ASSOC)) {
                         if (isset($sparklineMap[$spRow['day']])) {
-                            $sparklineMap[$spRow['day']] = (int)$spRow['v'];
+                            $sparklineMap[$spRow['day']] = (int) $spRow['v'];
                         }
                     }
                 } catch (Throwable $e) {
@@ -240,18 +261,22 @@ class Database
     public static function normalizeHost(string $value): string
     {
         $value = strtolower(trim($value));
-        if ($value === '') return '';
+        if ($value === '') {
+            return '';
+        }
         $parsed = parse_url(str_contains($value, '://') ? $value : '//' . $value, PHP_URL_HOST);
         $value = $parsed ?: preg_replace('#^https?://#', '', $value);
-        $value = preg_replace('#/.*$#', '', (string)$value);
-        return trim((string)$value, '.');
+        $value = preg_replace('#/.*$#', '', (string) $value);
+        return trim((string) $value, '.');
     }
 
     public static function trackingSite(string $siteId): ?array
     {
         $cleanId = preg_replace('/[^a-zA-Z0-9_\-]/', '', strtolower($siteId));
         foreach (self::getAvailableSites() as $site) {
-            if (($site['id'] ?? '') === $cleanId) return $site;
+            if (($site['id'] ?? '') === $cleanId) {
+                return $site;
+            }
         }
         return null;
     }
@@ -267,8 +292,12 @@ class Database
     {
         $cleanId = $siteId === null ? null : preg_replace('/[^a-zA-Z0-9_\-]/', '', strtolower($siteId));
         foreach (self::getAvailableSites() as $site) {
-            if (empty($site['is_public'])) continue;
-            if ($cleanId === null || ($site['id'] ?? '') === $cleanId) return $site;
+            if (empty($site['is_public'])) {
+                continue;
+            }
+            if ($cleanId === null || ($site['id'] ?? '') === $cleanId) {
+                return $site;
+            }
         }
         return null;
     }
@@ -289,19 +318,29 @@ class Database
         $cleanId = self::sanitizeSiteId($siteId);
         $sites = self::getAvailableSites();
         foreach ($sites as &$site) {
-            if ($site['id'] !== $cleanId) continue;
-            if (array_key_exists('domain', $input)) $site['domain'] = trim((string)$input['domain']);
+            if ($site['id'] !== $cleanId) {
+                continue;
+            }
+            if (array_key_exists('domain', $input)) {
+                $site['domain'] = trim((string) $input['domain']);
+            }
             if (array_key_exists('allowed_domains', $input)) {
-                $raw = is_array($input['allowed_domains']) ? $input['allowed_domains'] : explode(',', (string)$input['allowed_domains']);
+                $raw = is_array($input['allowed_domains']) ? $input['allowed_domains'] : explode(',', (string) $input['allowed_domains']);
                 $site['allowed_domains'] = array_values(array_unique(array_filter(array_map([self::class, 'normalizeHost'], $raw))));
             }
             if (array_key_exists('internal_ips', $input)) {
-                $raw = is_array($input['internal_ips']) ? $input['internal_ips'] : preg_split('/[\s,]+/', (string)$input['internal_ips']);
+                $raw = is_array($input['internal_ips']) ? $input['internal_ips'] : preg_split('/[\s,]+/', (string) $input['internal_ips']);
                 $site['internal_ips'] = array_values(array_unique(array_filter(array_map('trim', $raw))));
             }
-            if (array_key_exists('retention_days', $input)) $site['retention_days'] = max(1, min(760, (int)$input['retention_days']));
-            if (array_key_exists('is_public', $input)) $site['is_public'] = filter_var($input['is_public'], FILTER_VALIDATE_BOOLEAN);
-            if (!empty($input['rotate_key'])) $site['write_key'] = bin2hex(random_bytes(24));
+            if (array_key_exists('retention_days', $input)) {
+                $site['retention_days'] = max(1, min(760, (int) $input['retention_days']));
+            }
+            if (array_key_exists('is_public', $input)) {
+                $site['is_public'] = filter_var($input['is_public'], FILTER_VALIDATE_BOOLEAN);
+            }
+            if (!empty($input['rotate_key'])) {
+                $site['write_key'] = bin2hex(random_bytes(24));
+            }
             self::saveSites($sites);
             return $site;
         }
@@ -333,7 +372,7 @@ class Database
             'internal_ips' => [],
             'retention_days' => 395,
             'write_key' => bin2hex(random_bytes(24)),
-            'created_at' => gmdate('Y-m-d H:i:s')
+            'created_at' => gmdate('Y-m-d H:i:s'),
         ];
 
         $sites[] = $newSite;
@@ -360,9 +399,15 @@ class Database
         if (self::getDatabaseConfig()['driver'] === 'sqlite') {
             $dataDir = self::getDataDir();
             $dbFile = "{$dataDir}/{$cleanId}.db";
-            if (file_exists($dbFile)) @unlink($dbFile);
-            if (file_exists("{$dbFile}-wal")) @unlink("{$dbFile}-wal");
-            if (file_exists("{$dbFile}-shm")) @unlink("{$dbFile}-shm");
+            if (file_exists($dbFile)) {
+                @unlink($dbFile);
+            }
+            if (file_exists("{$dbFile}-wal")) {
+                @unlink("{$dbFile}-wal");
+            }
+            if (file_exists("{$dbFile}-shm")) {
+                @unlink("{$dbFile}-shm");
+            }
         }
 
         // Update sites.json
@@ -384,7 +429,11 @@ class Database
             if (!$db->isMysql()) {
                 $cols = $db->query("PRAGMA table_info(user_activity)");
                 $hasVisitorId = false;
-                while (($col = $cols?->fetchArray(SQLITE3_ASSOC)) !== false) if ($col['name'] === 'visitor_id') $hasVisitorId = true;
+                while (($col = $cols?->fetchArray(SQLITE3_ASSOC)) !== false) {
+                    if ($col['name'] === 'visitor_id') {
+                        $hasVisitorId = true;
+                    }
+                }
                 if (!$hasVisitorId) {
                     @$db->exec("ALTER TABLE user_activity ADD COLUMN visitor_id TEXT");
                     @$db->exec("UPDATE user_activity SET visitor_id = session_id WHERE visitor_id IS NULL");
@@ -435,7 +484,7 @@ class Database
 
     private static function runRetention(DatabaseConnection $db, array $site): void
     {
-        $days = max(1, min(760, (int)($site['retention_days'] ?? 395)));
+        $days = max(1, min(760, (int) ($site['retention_days'] ?? 395)));
         $cutoff = gmdate('Y-m-d H:i:s', time() - $days * 86400);
         $stmt = $db->prepare('DELETE FROM user_activity WHERE timestamp < :cutoff');
         $stmt->bindValue(':cutoff', $cutoff, SQLITE3_TEXT);

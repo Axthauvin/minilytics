@@ -35,9 +35,9 @@ if (isset($options['help'])) {
     fwrite(STDOUT, "Usage: php scripts/seed-demo-data.php [--site=demo_site] [--days=30] [--reset] [--live-only] [--domain=example.com]\n");
     exit(0);
 }
-$siteId = preg_replace('/[^a-z0-9_\-]/', '', strtolower((string)($options['site'] ?? 'demo_site')));
-$days = max(1, min(365, (int)($options['days'] ?? 30)));
-$extraDomains = array_filter((array)($options['domain'] ?? []), 'is_string');
+$siteId = preg_replace('/[^a-z0-9_\-]/', '', strtolower((string) ($options['site'] ?? 'demo_site')));
+$days = max(1, min(365, (int) ($options['days'] ?? 30)));
+$extraDomains = array_filter((array) ($options['domain'] ?? []), 'is_string');
 
 // ---------------------------------------------------------------------------
 // 1. Website configuration: create if missing, flag as public, allow local hosts
@@ -47,7 +47,7 @@ if (!Database::trackingSite($siteId)) {
     fwrite(STDOUT, "Created website '{$siteId}'.\n");
 }
 $site = Database::trackingSite($siteId);
-$allowed = array_merge((array)($site['allowed_domains'] ?? []), ['localhost', '127.0.0.1'], $extraDomains);
+$allowed = array_merge((array) ($site['allowed_domains'] ?? []), ['localhost', '127.0.0.1'], $extraDomains);
 Database::updateSiteConfig($siteId, ['is_public' => true, 'allowed_domains' => $allowed]);
 fwrite(STDOUT, "Website '{$siteId}' is public (allowed domains: " . implode(', ', array_unique(array_map([Database::class, 'normalizeHost'], $allowed))) . ").\n");
 
@@ -148,17 +148,21 @@ function pick(array $weighted): mixed
     $roll = mt_rand(1, $total);
     foreach ($weighted as $row) {
         $roll -= $row[0];
-        if ($roll <= 0) return $row;
+        if ($roll <= 0) {
+            return $row;
+        }
     }
     return end($weighted);
 }
 
 function pickKey(array $weights): ?string
 {
-    $roll = mt_rand(1, (int)array_sum($weights));
+    $roll = mt_rand(1, (int) array_sum($weights));
     foreach ($weights as $key => $weight) {
         $roll -= $weight;
-        if ($roll <= 0) return $key === '' ? null : (string)$key;
+        if ($roll <= 0) {
+            return $key === '' ? null : (string) $key;
+        }
     }
     return null;
 }
@@ -208,7 +212,9 @@ function buildSession(int $start, int $maxEnd, string $siteId): array
     $engaged = false;
     for ($depth = 0; $path !== null && $depth < 7 && $time <= $maxEnd; $depth++) {
         $data = ['path' => $path, 'title' => PAGES[$path], 'referrer' => $previous] + $base;
-        if ($first) $data += $utm;
+        if ($first) {
+            $data += $utm;
+        }
         $hits[] = [$time, 'pageview', $data];
         $first = false;
         $eventBase = ['path' => $path, 'title' => PAGES[$path], 'referrer' => 'localhost'] + $base;
@@ -252,13 +258,19 @@ const HOURLY = [1, 1, 1, 1, 1, 2, 3, 5, 7, 9, 10, 10, 9, 10, 11, 11, 10, 9, 8, 7
 function randomTimeInDay(int $dayStart, int $now): ?int
 {
     $limit = min($dayStart + 86399, $now - 360);
-    if ($limit < $dayStart) return null;
+    if ($limit < $dayStart) {
+        return null;
+    }
     for ($attempt = 0; $attempt < 10; $attempt++) {
         $weights = [];
-        foreach (HOURLY as $hour => $w) $weights[(string)$hour] = $w;
-        $hour = (int)pickKey($weights);
+        foreach (HOURLY as $hour => $w) {
+            $weights[(string) $hour] = $w;
+        }
+        $hour = (int) pickKey($weights);
         $ts = $dayStart + $hour * 3600 + mt_rand(0, 3599);
-        if ($ts <= $limit) return $ts;
+        if ($ts <= $limit) {
+            return $ts;
+        }
     }
     return mt_rand($dayStart, $limit);
 }
@@ -273,7 +285,9 @@ $events = 0;
 $sessions = 0;
 
 $store = static function (array $hits, string $visitor) use ($insert, $siteId, &$events, &$sessions): void {
-    if (!$hits) return;
+    if (!$hits) {
+        return;
+    }
     $session = randomId();
     foreach ($hits as [$ts, $name, $data]) {
         $insert->bindValue(':session', $session, SQLITE3_TEXT);
@@ -288,7 +302,9 @@ $store = static function (array $hits, string $visitor) use ($insert, $siteId, &
 
 $visitorFor = static function () use (&$visitorPool): string {
     // About a quarter of visits come from returning visitors.
-    if ($visitorPool && mt_rand(1, 100) <= 25) return $visitorPool[array_rand($visitorPool)];
+    if ($visitorPool && mt_rand(1, 100) <= 25) {
+        return $visitorPool[array_rand($visitorPool)];
+    }
     $id = 'vid_' . substr(randomId(), 0, 12);
     $visitorPool[] = $id;
     return $id;
@@ -300,15 +316,19 @@ try {
         $spikeDay = min($days - 1, 11); // A "Hacker News launch" a dozen days ago.
         for ($d = $days - 1; $d >= 0; $d--) {
             $dayStart = strtotime(gmdate('Y-m-d 00:00:00', $now - $d * 86400) . ' UTC');
-            $weekday = (int)gmdate('N', $dayStart);
+            $weekday = (int) gmdate('N', $dayStart);
             $growth = 1 + ($days - $d) / $days * 0.6;              // steady growth
             $weekend = $weekday >= 6 ? 0.6 : 1.0;                   // quieter weekends
             $spike = $d === $spikeDay ? 3.2 : ($d === $spikeDay - 1 ? 1.8 : 1.0);
-            $count = (int)round(38 * $growth * $weekend * $spike * (mt_rand(85, 115) / 100));
-            if ($d === 0) $count = (int)round($count * min(1, ($now - $dayStart) / 86400 + 0.1));
+            $count = (int) round(38 * $growth * $weekend * $spike * (mt_rand(85, 115) / 100));
+            if ($d === 0) {
+                $count = (int) round($count * min(1, ($now - $dayStart) / 86400 + 0.1));
+            }
             for ($i = 0; $i < $count; $i++) {
                 $start = randomTimeInDay($dayStart, $now);
-                if ($start === null) continue;
+                if ($start === null) {
+                    continue;
+                }
                 $store(buildSession($start, $now - 300, $siteId), $visitorFor());
             }
         }
@@ -346,11 +366,15 @@ $funnels = [
 ];
 $existing = [];
 $result = $db->query('SELECT name FROM funnels');
-while ($result && ($row = $result->fetchArray(SQLITE3_ASSOC))) $existing[$row['name']] = true;
+while ($result && ($row = $result->fetchArray(SQLITE3_ASSOC))) {
+    $existing[$row['name']] = true;
+}
 $funnelInsert = $db->prepare('INSERT INTO funnels (name, kind, steps) VALUES (:name, :kind, :steps)');
 $createdFunnels = 0;
 foreach ($funnels as [$name, $kind, $steps]) {
-    if (isset($existing[$name])) continue;
+    if (isset($existing[$name])) {
+        continue;
+    }
     $funnelInsert->bindValue(':name', $name, SQLITE3_TEXT);
     $funnelInsert->bindValue(':kind', $kind, SQLITE3_TEXT);
     $funnelInsert->bindValue(':steps', json_encode($steps), SQLITE3_TEXT);

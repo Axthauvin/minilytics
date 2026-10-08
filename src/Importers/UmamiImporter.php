@@ -10,61 +10,75 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use RuntimeException;
 
-
 /**
  * Umami Analytics Importer
  * Parses Umami export archives (.zip) or CSV directories (website_event.csv, event_data.csv).
  */
-class UmamiImporter extends BaseImporter {
+class UmamiImporter extends BaseImporter
+{
     /** Uploaded files use PHP temporary names without a .zip extension on Windows. */
-    private function isZipArchiveFile(string $path): bool {
-        if (!is_file($path)) return false;
+    private function isZipArchiveFile(string $path): bool
+    {
+        if (!is_file($path)) {
+            return false;
+        }
         $handle = @fopen($path, 'rb');
-        if (!$handle) return false;
+        if (!$handle) {
+            return false;
+        }
         $signature = fread($handle, 4);
         fclose($handle);
         return in_array($signature, ["PK\x03\x04", "PK\x05\x06", "PK\x07\x08"], true);
     }
-    public function getId(): string {
+    public function getId(): string
+    {
         return 'umami';
     }
 
-    public function getName(): string {
+    public function getName(): string
+    {
         return 'Umami Analytics';
     }
 
-    public function getDescription(): string {
+    public function getDescription(): string
+    {
         return 'Import website events, pageviews and custom event data from an Umami export (.zip or CSV files).';
     }
 
-    public function getStatus(): string {
+    public function getStatus(): string
+    {
         return 'ready';
     }
 
-    public function getBadge(): string {
+    public function getBadge(): string
+    {
         return 'Available';
     }
 
-    public function getIcon(): string {
+    public function getIcon(): string
+    {
         return '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM16.5 16.5C15.26 17.74 13.63 18.5 12 18.5C10.37 18.5 8.74 17.74 7.5 16.5L12 12L16.5 16.5Z" fill="currentColor"/></svg>';
     }
 
-    public function isAvailable(): bool {
+    public function isAvailable(): bool
+    {
         return true;
     }
 
-    public function getSupportedFormats(): array {
+    public function getSupportedFormats(): array
+    {
         return ['.zip', '.csv'];
     }
 
     /**
      * Inspect a source to discover CSV files
      */
-    public function findFiles(string $dir): array {
+    public function findFiles(string $dir): array
+    {
         $files = [
             'website_event' => null,
             'event_data' => null,
-            'session_data' => null
+            'session_data' => null,
         ];
 
         $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS));
@@ -87,7 +101,8 @@ class UmamiImporter extends BaseImporter {
     /**
      * Quick metadata inspection before importing
      */
-    public function inspect(string $sourcePath): array {
+    public function inspect(string $sourcePath): array
+    {
         $tempDir = null;
         $workDir = $sourcePath;
 
@@ -128,7 +143,7 @@ class UmamiImporter extends BaseImporter {
                 'has_session_data' => !empty($found['session_data']),
                 'detected_host' => $primaryHost,
                 'suggested_site_id' => preg_replace('/[^a-z0-9_\-]/', '', strtolower(explode('.', $primaryHost)[0] ?: 'imported_site')),
-                'suggested_name' => ucwords(str_replace(['.', '-', '_'], ' ', $primaryHost ?: 'Imported Site'))
+                'suggested_name' => ucwords(str_replace(['.', '-', '_'], ' ', $primaryHost ?: 'Imported Site')),
             ];
         } finally {
             if ($tempDir) {
@@ -140,7 +155,8 @@ class UmamiImporter extends BaseImporter {
     /**
      * Import data into Minilytics SQLite database
      */
-    public function import(string $sourcePath, string $siteId, array $options = []): array {
+    public function import(string $sourcePath, string $siteId, array $options = []): array
+    {
         $cleanSiteId = preg_replace('/[^a-zA-Z0-9_\-]/', '', strtolower(trim($siteId)));
         if ($cleanSiteId === '') {
             throw new InvalidArgumentException('A valid website identifier is required for import.');
@@ -182,7 +198,9 @@ class UmamiImporter extends BaseImporter {
                         while (($row = fgetcsv($edHandle)) !== false) {
                             $eid = $row[$eidIdx] ?? '';
                             $key = $row[$keyIdx] ?? '';
-                            if ($eid === '' || $key === '') continue;
+                            if ($eid === '' || $key === '') {
+                                continue;
+                            }
 
                             $numVal = ($numIdx !== false && isset($row[$numIdx]) && $row[$numIdx] !== '\N') ? $row[$numIdx] : null;
                             $strVal = ($strIdx !== false && isset($row[$strIdx]) && $row[$strIdx] !== '\N') ? $row[$strIdx] : null;
@@ -190,7 +208,7 @@ class UmamiImporter extends BaseImporter {
 
                             $val = $strVal;
                             if ($typeVal === '2' && $numVal !== null) {
-                                $val = (str_contains($numVal, '.')) ? (float)$numVal : (int)$numVal;
+                                $val = (str_contains($numVal, '.')) ? (float) $numVal : (int) $numVal;
                             } elseif ($typeVal === '3') {
                                 $val = ($strVal === 'true' || $strVal === '1');
                             }
@@ -223,22 +241,27 @@ class UmamiImporter extends BaseImporter {
                     'id' => $cleanSiteId,
                     'name' => $siteName,
                     'domain' => $siteDomain,
-                    'created_at' => gmdate('Y-m-d H:i:s')
+                    'created_at' => gmdate('Y-m-d H:i:s'),
                 ];
                 Database::saveSites($sites);
             }
 
             $db = Database::getConnection($cleanSiteId);
-            if (!$db->isMysql()) { $db->exec('PRAGMA synchronous = OFF;'); $db->exec('PRAGMA journal_mode = MEMORY;'); }
+            if (!$db->isMysql()) {
+                $db->exec('PRAGMA synchronous = OFF;');
+                $db->exec('PRAGMA journal_mode = MEMORY;');
+            }
 
             // Ensure table and performance indexes
-            if (!$db->isMysql()) $db->exec("CREATE TABLE IF NOT EXISTS user_activity (
+            if (!$db->isMysql()) {
+                $db->exec("CREATE TABLE IF NOT EXISTS user_activity (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, 
                 session_id TEXT NOT NULL, 
                 visitor_id TEXT,
                 action TEXT NOT NULL, 
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
+            }
 
             if (!$db->isMysql()) {
                 $db->exec("CREATE INDEX IF NOT EXISTS idx_ua_timestamp ON user_activity(timestamp)");
@@ -282,7 +305,7 @@ class UmamiImporter extends BaseImporter {
                 $sessionId = $get('session_id') ?: ('sess_' . uniqid());
                 $visitorId = $get('distinct_id') ?: $get('session_id') ?: $sessionId;
                 $eventId = $get('event_id');
-                $eventType = (string)($get('event_type') ?? '1');
+                $eventType = (string) ($get('event_type') ?? '1');
                 $rawEventName = $get('event_name');
                 $hostname = $get('hostname') ?: '';
                 $urlPath = $get('url_path') ?: '/';
@@ -293,8 +316,12 @@ class UmamiImporter extends BaseImporter {
                     $hostnamesMap[$hostname] = ($hostnamesMap[$hostname] ?? 0) + 1;
                 }
 
-                if ($createdAt < $minTimestamp) $minTimestamp = $createdAt;
-                if ($createdAt > $maxTimestamp) $maxTimestamp = $createdAt;
+                if ($createdAt < $minTimestamp) {
+                    $minTimestamp = $createdAt;
+                }
+                if ($createdAt > $maxTimestamp) {
+                    $maxTimestamp = $createdAt;
+                }
 
                 $distinctSessions[$sessionId] = true;
 
@@ -323,7 +350,7 @@ class UmamiImporter extends BaseImporter {
                 }
 
                 // Country & Geo
-                $countryCode = strtoupper((string)($get('country') ?: ''));
+                $countryCode = strtoupper((string) ($get('country') ?: ''));
                 $countryName = $countryCode ? $this->getCountryName($countryCode) : null;
 
                 // Base structured data object
@@ -338,13 +365,13 @@ class UmamiImporter extends BaseImporter {
                     'screen' => $get('screen'),
                     'viewport' => $get('screen'),
                     'device' => $this->normalizeDevice($get('device')),
-                    'language' => $get('language') ? explode('-', (string)$get('language'))[0] : null,
+                    'language' => $get('language') ? explode('-', (string) $get('language'))[0] : null,
                     'browser' => $this->normalizeBrowser($get('browser')),
                     'os' => $this->normalizeOs($get('os')),
                     'country_code' => $countryCode ?: null,
                     'country' => $countryName,
                     'region' => $get('region'),
-                    'city' => $get('city')
+                    'city' => $get('city'),
                 ];
 
                 // UTM tracking parameters
@@ -368,7 +395,7 @@ class UmamiImporter extends BaseImporter {
                     'session_id' => $sessionId,
                     'visitor_id' => $visitorId,
                     'name' => $actionName,
-                    'data' => $data
+                    'data' => $data,
                 ];
 
                 $insertStmt->bindValue(':session_id', $sessionId, SQLITE3_TEXT);
@@ -384,7 +411,10 @@ class UmamiImporter extends BaseImporter {
             fclose($weHandle);
 
             // Revert SQLite settings to standard WAL
-            if (!$db->isMysql()) { $db->exec('PRAGMA synchronous = NORMAL;'); $db->exec('PRAGMA journal_mode = WAL;'); }
+            if (!$db->isMysql()) {
+                $db->exec('PRAGMA synchronous = NORMAL;');
+                $db->exec('PRAGMA journal_mode = WAL;');
+            }
 
             // If domain was not set, update sites.json with primary hostname
             if (empty($siteDomain) && !empty($hostnamesMap)) {
@@ -413,7 +443,7 @@ class UmamiImporter extends BaseImporter {
                 'sessions' => count($distinctSessions),
                 'date_start' => ($totalImported > 0) ? $minTimestamp : null,
                 'date_end' => ($totalImported > 0) ? $maxTimestamp : null,
-                'detected_hostnames' => array_keys($hostnamesMap)
+                'detected_hostnames' => array_keys($hostnamesMap),
             ];
 
         } finally {

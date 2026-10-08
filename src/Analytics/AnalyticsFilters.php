@@ -45,9 +45,13 @@ final class AnalyticsFilters
             $values = is_array($raw) ? $raw : [$raw];
             $clean = [];
             foreach ($values as $value) {
-                if (!is_string($value)) continue;
+                if (!is_string($value)) {
+                    continue;
+                }
                 $value = trim($value);
-                if ($value !== '') $clean[$value] = true;
+                if ($value !== '') {
+                    $clean[$value] = true;
+                }
             }
             if ($clean) {
                 $filters[$dimension] = array_slice(array_keys($clean), 0, self::MAX_VALUES_PER_DIMENSION);
@@ -91,7 +95,9 @@ final class AnalyticsFilters
         $i = 0;
         foreach ($filters as $dimension => $values) {
             $expression = self::EXPRESSIONS[$dimension] ?? null;
-            if ($expression === null || !$values) continue;
+            if ($expression === null || !$values) {
+                continue;
+            }
 
             $placeholders = [];
             foreach ($values as $value) {

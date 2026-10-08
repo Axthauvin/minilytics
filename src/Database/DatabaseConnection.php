@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 namespace Minilytics\Database;
+
 use PDO;
 use SQLite3;
 
@@ -27,13 +28,17 @@ final class DatabaseConnection
     public function exec(string $sql): int|bool
     {
         // SQLite pragmas have no MySQL equivalent and are intentionally no-ops.
-        if ($this->isMysql() && preg_match('/^\s*PRAGMA\b/i', $sql)) return true;
+        if ($this->isMysql() && preg_match('/^\s*PRAGMA\b/i', $sql)) {
+            return true;
+        }
         return $this->connection->exec($this->translate($sql));
     }
     public function querySingle(string $sql): mixed
     {
         $result = $this->query($sql);
-        if ($result === false) return null;
+        if ($result === false) {
+            return null;
+        }
         $row = $result->fetchArray(SQLITE3_NUM);
         return $row === false || $row === null ? null : $row[0];
     }
@@ -43,11 +48,13 @@ final class DatabaseConnection
     }
     public function lastInsertRowID(): int
     {
-        return $this->connection instanceof SQLite3 ? $this->connection->lastInsertRowID() : (int)$this->connection->lastInsertId();
+        return $this->connection instanceof SQLite3 ? $this->connection->lastInsertRowID() : (int) $this->connection->lastInsertId();
     }
     public function close(): bool
     {
-        if ($this->connection instanceof SQLite3) return $this->connection->close();
+        if ($this->connection instanceof SQLite3) {
+            return $this->connection->close();
+        }
         return true;
     }
     public function createFunction(string $name, callable $callback, int $argumentCount, int $flags = 0): bool
@@ -56,7 +63,9 @@ final class DatabaseConnection
     }
     private function translate(string $sql): string
     {
-        if (!$this->isMysql()) return $sql;
+        if (!$this->isMysql()) {
+            return $sql;
+        }
         // Remote connectors are shared, so physical table names stay isolated
         // per website just as they are with individual SQLite files.
         $prefix = 'ml_' . preg_replace('/[^a-z0-9_]/', '_', strtolower($this->siteId)) . '_';
@@ -71,12 +80,14 @@ final class DatabaseConnection
             static function (array $m): string {
                 $format = $m[1];
                 $expression = $m[2];
-                if ($format === '%s') return "UNIX_TIMESTAMP({$expression})";
+                if ($format === '%s') {
+                    return "UNIX_TIMESTAMP({$expression})";
+                }
 
                 // SQLite's %M means minutes, while MySQL's %i means minutes.
                 return "DATE_FORMAT({$expression}, '" . str_replace('%M', '%i', $format) . "')";
             },
-            $sql
+            $sql,
         );
         $sql = str_ireplace('INSERT OR IGNORE', 'INSERT IGNORE', $sql);
         $sql = str_ireplace('temp.ml_filtered_sessions', 'ml_filtered_sessions', $sql);

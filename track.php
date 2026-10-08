@@ -13,7 +13,9 @@ header('Access-Control-Allow-Headers: Content-Type');
 // A preflight contains no site key. The actual POST below performs the
 // authoritative allowlist check before returning a CORS response.
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
-    if (!empty($_SERVER['HTTP_ORIGIN'])) header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+    if (!empty($_SERVER['HTTP_ORIGIN'])) {
+        header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+    }
     http_response_code(204);
     exit;
 }
@@ -33,7 +35,7 @@ function failTracking(string $message, int $status = 400): never
 }
 function trackingHost(string $value): string
 {
-    return Database::normalizeHost((string)(parse_url($value, PHP_URL_HOST) ?: $value));
+    return Database::normalizeHost((string) (parse_url($value, PHP_URL_HOST) ?: $value));
 }
 function trackingIp(): string
 {
@@ -45,29 +47,59 @@ function botReason(string $ua): ?string
 }
 function browserFromUserAgent(string $ua): string
 {
-    if (preg_match('/edg(?:e|a|ios)?\//i', $ua)) return 'Microsoft Edge';
-    if (preg_match('/opr\//i', $ua) || stripos($ua, 'opera') !== false) return 'Opera';
-    if (stripos($ua, 'samsungbrowser') !== false) return 'Samsung Internet';
-    if (stripos($ua, 'firefox') !== false || stripos($ua, 'fxios') !== false) return 'Firefox';
-    if (stripos($ua, 'crios') !== false) return 'Chrome';
-    if (stripos($ua, 'chrome') !== false || stripos($ua, 'chromium') !== false) return 'Chrome';
-    if (stripos($ua, 'safari') !== false) return 'Safari';
+    if (preg_match('/edg(?:e|a|ios)?\//i', $ua)) {
+        return 'Microsoft Edge';
+    }
+    if (preg_match('/opr\//i', $ua) || stripos($ua, 'opera') !== false) {
+        return 'Opera';
+    }
+    if (stripos($ua, 'samsungbrowser') !== false) {
+        return 'Samsung Internet';
+    }
+    if (stripos($ua, 'firefox') !== false || stripos($ua, 'fxios') !== false) {
+        return 'Firefox';
+    }
+    if (stripos($ua, 'crios') !== false) {
+        return 'Chrome';
+    }
+    if (stripos($ua, 'chrome') !== false || stripos($ua, 'chromium') !== false) {
+        return 'Chrome';
+    }
+    if (stripos($ua, 'safari') !== false) {
+        return 'Safari';
+    }
     return 'Other';
 }
 function osFromUserAgent(string $ua): string
 {
-    if (stripos($ua, 'cros') !== false) return 'Chrome OS';
-    if (stripos($ua, 'windows') !== false) return 'Windows';
-    if (stripos($ua, 'android') !== false) return 'Android';
-    if (preg_match('/iphone|ipad|ipod/i', $ua)) return 'iOS';
-    if (stripos($ua, 'mac os') !== false || stripos($ua, 'macintosh') !== false) return 'macOS';
-    if (stripos($ua, 'linux') !== false) return 'Linux';
+    if (stripos($ua, 'cros') !== false) {
+        return 'Chrome OS';
+    }
+    if (stripos($ua, 'windows') !== false) {
+        return 'Windows';
+    }
+    if (stripos($ua, 'android') !== false) {
+        return 'Android';
+    }
+    if (preg_match('/iphone|ipad|ipod/i', $ua)) {
+        return 'iOS';
+    }
+    if (stripos($ua, 'mac os') !== false || stripos($ua, 'macintosh') !== false) {
+        return 'macOS';
+    }
+    if (stripos($ua, 'linux') !== false) {
+        return 'Linux';
+    }
     return 'Other';
 }
 function deviceFromUserAgent(string $ua): string
 {
-    if (preg_match('/ipad|tablet|kindle|silk\//i', $ua) || (stripos($ua, 'android') !== false && !preg_match('/mobile/i', $ua))) return 'Tablet';
-    if (preg_match('/mobile|iphone|ipod|android/i', $ua)) return 'Mobile';
+    if (preg_match('/ipad|tablet|kindle|silk\//i', $ua) || (stripos($ua, 'android') !== false && !preg_match('/mobile/i', $ua))) {
+        return 'Tablet';
+    }
+    if (preg_match('/mobile|iphone|ipod|android/i', $ua)) {
+        return 'Mobile';
+    }
     return 'Desktop';
 }
 function trackingLocation(DatabaseConnection $db, string $ip): array
@@ -83,21 +115,25 @@ function trackingLocation(DatabaseConnection $db, string $ip): array
         ['country' => 'GEOIP_COUNTRY_CODE', 'region' => 'GEOIP_REGION_NAME', 'city' => 'GEOIP_CITY'],
     ];
     foreach ($locationHeaders as $headers) {
-        $candidate = trim((string)($_SERVER[$headers['country']] ?? ''));
+        $candidate = trim((string) ($_SERVER[$headers['country']] ?? ''));
         if ($candidate !== '') {
             $code = strtoupper($candidate);
             if (preg_match('/^[A-Z]{2}$/', $code) && $code !== 'XX') {
                 $name = class_exists('Locale') ? Locale::getDisplayRegion('und_' . $code, 'en') : $code;
-                return ['country' => $name ?: $code, 'country_code' => $code, 'region' => trim((string)($_SERVER[$headers['region']] ?? '')), 'city' => trim((string)($_SERVER[$headers['city']] ?? ''))];
+                return ['country' => $name ?: $code, 'country_code' => $code, 'region' => trim((string) ($_SERVER[$headers['region']] ?? '')), 'city' => trim((string) ($_SERVER[$headers['city']] ?? ''))];
             }
         }
     }
-    if ($ip === '::1' || str_starts_with($ip, '127.') || filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) return ['country' => 'Local development', 'country_code' => 'UN', 'region' => '', 'city' => ''];
+    if ($ip === '::1' || str_starts_with($ip, '127.') || filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+        return ['country' => 'Local development', 'country_code' => 'UN', 'region' => '', 'city' => ''];
+    }
     // GeoIP enrichment is optional: a missing database or extension must never
     // make the public collection endpoint return a 500.
     try {
         $location = GeoLocation::lookup($ip);
-        if (is_array($location)) return $location;
+        if (is_array($location)) {
+            return $location;
+        }
     } catch (Throwable $error) {
         error_log('[Minilytics] GeoIP lookup failed: ' . $error->getMessage());
     }
@@ -110,18 +146,28 @@ function activeSessionId(DatabaseConnection $db, string $visitorId): ?string
     $stmt->bindValue(':visitor', $visitorId, SQLITE3_TEXT);
     $stmt->bindValue(':cutoff', $cutoff, SQLITE3_TEXT);
     $row = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
-    return is_array($row) && !empty($row['session_id']) ? (string)$row['session_id'] : null;
+    return is_array($row) && !empty($row['session_id']) ? (string) $row['session_id'] : null;
 }
 function cleanValue(mixed $value, int $depth = 0): mixed
 {
-    if ($depth > 3) return null;
-    if (is_string($value)) return substr($value, 0, 500);
-    if (is_bool($value) || is_int($value) || is_float($value) || $value === null) return $value;
-    if (!is_array($value)) return null;
+    if ($depth > 3) {
+        return null;
+    }
+    if (is_string($value)) {
+        return substr($value, 0, 500);
+    }
+    if (is_bool($value) || is_int($value) || is_float($value) || $value === null) {
+        return $value;
+    }
+    if (!is_array($value)) {
+        return null;
+    }
     $safe = [];
     foreach ($value as $key => $item) {
-        $key = substr((string)$key, 0, 80);
-        if (!preg_match('/password|token|secret|email|phone|address|card|authorization/i', $key)) $safe[$key] = cleanValue($item, $depth + 1);
+        $key = substr((string) $key, 0, 80);
+        if (!preg_match('/password|token|secret|email|phone|address|card|authorization/i', $key)) {
+            $safe[$key] = cleanValue($item, $depth + 1);
+        }
     }
     return $safe;
 }
@@ -145,44 +191,64 @@ function withinRateLimit(DatabaseConnection $db, string $ip): bool
     $check = $db->prepare('SELECT count FROM rate_limits WHERE bucket=:bucket AND ip_hash=:hash');
     $check->bindValue(':bucket', $bucket, SQLITE3_TEXT);
     $check->bindValue(':hash', $hash, SQLITE3_TEXT);
-    return (int)$check->execute()->fetchArray(SQLITE3_NUM)[0] <= 240;
+    return (int) $check->execute()->fetchArray(SQLITE3_NUM)[0] <= 240;
 }
 
-$payload = json_decode((string)file_get_contents('php://input'), true);
-if (!is_array($payload) || !is_string($payload['name'] ?? null) || !is_array($payload['data'] ?? null)) failTracking('Expected name and data object.');
-$site = Database::trackingSite((string)($payload['site_id'] ?? ''));
-if (!$site) failTracking('Unknown website.', 404);
-$origin = (string)($_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? '');
+$payload = json_decode((string) file_get_contents('php://input'), true);
+if (!is_array($payload) || !is_string($payload['name'] ?? null) || !is_array($payload['data'] ?? null)) {
+    failTracking('Expected name and data object.');
+}
+$site = Database::trackingSite((string) ($payload['site_id'] ?? ''));
+if (!$site) {
+    failTracking('Unknown website.', 404);
+}
+$origin = (string) ($_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? '');
 $originHost = trackingHost($origin);
-$allowed = array_values(array_filter(array_map([Database::class, 'normalizeHost'], (array)($site['allowed_domains'] ?? []))));
-if (!$allowed) failTracking('No allowed domains are configured for this website.', 403);
-if ($originHost === '' || !in_array($originHost, $allowed, true)) failTracking('Origin is not authorized for this website.', 403);
-if (!hash_equals((string)($site['write_key'] ?? ''), (string)($payload['site_key'] ?? ''))) failTracking('Invalid tracking key.', 403);
-if (!empty($_SERVER['HTTP_ORIGIN'])) header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+$allowed = array_values(array_filter(array_map([Database::class, 'normalizeHost'], (array) ($site['allowed_domains'] ?? []))));
+if (!$allowed) {
+    failTracking('No allowed domains are configured for this website.', 403);
+}
+if ($originHost === '' || !in_array($originHost, $allowed, true)) {
+    failTracking('Origin is not authorized for this website.', 403);
+}
+if (!hash_equals((string) ($site['write_key'] ?? ''), (string) ($payload['site_key'] ?? ''))) {
+    failTracking('Invalid tracking key.', 403);
+}
+if (!empty($_SERVER['HTTP_ORIGIN'])) {
+    header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+}
 $db = Database::getConnection($site['id']);
-$ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+$ua = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
 $ip = trackingIp();
-if (!withinRateLimit($db, $ip)) failTracking('Rate limit exceeded.', 429);
+if (!withinRateLimit($db, $ip)) {
+    failTracking('Rate limit exceeded.', 429);
+}
 if (($reason = botReason($ua)) !== null) {
     recordIgnored($db, $reason, $ua, $originHost, $ip);
     echo json_encode(['ignored' => 'bot']);
     exit;
 }
-if (in_array($ip, (array)($site['internal_ips'] ?? []), true)) {
+if (in_array($ip, (array) ($site['internal_ips'] ?? []), true)) {
     recordIgnored($db, 'internal_traffic', $ua, $originHost, $ip);
     echo json_encode(['ignored' => 'internal']);
     exit;
 }
 
-$name = trim(preg_replace('/[\x00-\x1F\x7F]/u', '', substr((string)$payload['name'], 0, 100)) ?? '');
-if ($name === '') failTracking('Invalid event name.');
+$name = trim(preg_replace('/[\x00-\x1F\x7F]/u', '', substr((string) $payload['name'], 0, 100)) ?? '');
+if ($name === '') {
+    failTracking('Invalid event name.');
+}
 $data = cleanValue($payload['data']);
 unset($data['url'], $data['search'], $data['hash']);
 $trackingMode = ($data['tracking_mode'] ?? 'strict') === 'enriched' ? 'enriched' : 'strict';
 unset($data['tracking_mode']);
 $data['_ml_tracking_mode'] = $trackingMode;
-if (isset($data['path'])) $data['path'] = '/' . ltrim((string)$data['path'], '/');
-if (isset($data['referrer'])) $data['referrer'] = trackingHost((string)$data['referrer']);
+if (isset($data['path'])) {
+    $data['path'] = '/' . ltrim((string) $data['path'], '/');
+}
+if (isset($data['referrer'])) {
+    $data['referrer'] = trackingHost((string) $data['referrer']);
+}
 $data['browser'] = browserFromUserAgent($ua);
 $data['os'] = osFromUserAgent($ua);
 $data['device'] = deviceFromUserAgent($ua);
@@ -193,11 +259,11 @@ try {
     $data = array_merge($data, ['country' => 'Unknown', 'country_code' => 'UN', 'region' => '', 'city' => '']);
 }
 if ($trackingMode === 'strict') {
-    $visitor = generateVisitorId((string)$site['id'], $ip, $ua);
+    $visitor = generateVisitorId((string) $site['id'], $ip, $ua);
     $session = activeSessionId($db, $visitor) ?? generateSessionId();
 } else {
-    $session = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)($payload['session_id'] ?? '')) ?: generateSessionId();
-    $visitor = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)($payload['visitor_id'] ?? '')) ?: $session;
+    $session = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) ($payload['session_id'] ?? '')) ?: generateSessionId();
+    $visitor = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) ($payload['visitor_id'] ?? '')) ?: $session;
 }
 $action = ['site_id' => $site['id'], 'name' => $name, 'data' => $data];
 $stmt = $db->prepare('INSERT INTO user_activity (session_id, visitor_id, action) VALUES (:session,:visitor,:action)');

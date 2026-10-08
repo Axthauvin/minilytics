@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use Minilytics\Auth\Auth;
@@ -24,7 +25,7 @@ try {
     if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($action === 'providers' || empty($action))) {
         echo json_encode([
             'success' => true,
-            'providers' => ImporterRegistry::getProvidersList()
+            'providers' => ImporterRegistry::getProvidersList(),
         ], JSON_UNESCAPED_SLASHES);
         exit;
     }
@@ -98,7 +99,7 @@ try {
                 http_response_code(413);
                 $maxSize = ini_get('upload_max_filesize');
                 echo json_encode([
-                    'error' => "The uploaded ZIP file exceeds the PHP maximum upload limit ({$maxSize}). You can either increase 'upload_max_filesize' in php.ini, or specify a server/local path."
+                    'error' => "The uploaded ZIP file exceeds the PHP maximum upload limit ({$maxSize}). You can either increase 'upload_max_filesize' in php.ini, or specify a server/local path.",
                 ]);
                 exit;
             } elseif ($fileError !== UPLOAD_ERR_OK && $fileError !== UPLOAD_ERR_NO_FILE) {
@@ -146,8 +147,12 @@ try {
             try {
                 $inspected = $importer->inspect($sourcePath);
                 $siteId = $inspected['suggested_site_id'] ?? 'imported_site';
-                if (empty($siteName)) $siteName = $inspected['suggested_name'] ?? $siteId;
-                if (empty($siteDomain)) $siteDomain = $inspected['detected_host'] ?? '';
+                if (empty($siteName)) {
+                    $siteName = $inspected['suggested_name'] ?? $siteId;
+                }
+                if (empty($siteDomain)) {
+                    $siteDomain = $inspected['detected_host'] ?? '';
+                }
             } catch (Throwable $e) {
                 $siteId = 'imported_site';
             }
@@ -159,7 +164,7 @@ try {
 
         $result = $importer->import($sourcePath, $siteId, [
             'name' => $siteName,
-            'domain' => $siteDomain
+            'domain' => $siteDomain,
         ]);
 
         echo json_encode($result, JSON_UNESCAPED_SLASHES);
@@ -172,6 +177,6 @@ try {
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode([
-        'error' => $e->getMessage()
+        'error' => $e->getMessage(),
     ]);
 }

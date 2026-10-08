@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use Minilytics\Auth\Auth;
@@ -28,7 +29,7 @@ try {
         $users = [];
         while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
             $users[] = [
-                'id' => (int)$row['id'],
+                'id' => (int) $row['id'],
                 'email' => $row['email'],
                 'role' => $row['role'],
                 'created_at' => $row['created_at'],
@@ -37,10 +38,10 @@ try {
         echo json_encode([
             'users' => $users,
             'current_user' => [
-                'id' => (int)($currentUser['id'] ?? 0),
+                'id' => (int) ($currentUser['id'] ?? 0),
                 'email' => $currentUser['email'] ?? '',
                 'role' => $currentUser['role'] ?? 'member',
-            ]
+            ],
         ]);
         exit;
     }
@@ -54,14 +55,14 @@ try {
 
     // 2. DELETE: Remove an authorized user
     if ($method === 'DELETE' || $action === 'delete') {
-        $userId = (int)($body['id'] ?? $_GET['id'] ?? 0);
+        $userId = (int) ($body['id'] ?? $_GET['id'] ?? 0);
         if ($userId <= 0) {
             http_response_code(400);
             Auth::jsonError('A valid user ID is required.');
         }
 
         // Prevent self-deletion
-        if ($userId === (int)$admin['id']) {
+        if ($userId === (int) $admin['id']) {
             http_response_code(400);
             Auth::jsonError('You cannot delete your own account.');
         }
@@ -77,7 +78,7 @@ try {
 
         // If target is an admin, ensure at least one other administrator remains
         if ($userToDelete['role'] === 'admin') {
-            $adminCount = (int)$db->querySingle("SELECT COUNT(*) FROM users WHERE role = 'admin'");
+            $adminCount = (int) $db->querySingle("SELECT COUNT(*) FROM users WHERE role = 'admin'");
             if ($adminCount <= 1) {
                 http_response_code(400);
                 Auth::jsonError('Cannot delete the only administrator.');
@@ -96,15 +97,15 @@ try {
 
         echo json_encode([
             'success' => true,
-            'message' => 'User deleted successfully.'
+            'message' => 'User deleted successfully.',
         ]);
         exit;
     }
 
     // 3. UPDATE ROLE: Promote or demote user (grant or revoke admin status)
     if ($method === 'PATCH' || $method === 'PUT' || $action === 'update_role' || $action === 'set_role') {
-        $userId = (int)($body['id'] ?? $_GET['id'] ?? 0);
-        $newRole = trim(strtolower((string)($body['role'] ?? '')));
+        $userId = (int) ($body['id'] ?? $_GET['id'] ?? 0);
+        $newRole = trim(strtolower((string) ($body['role'] ?? '')));
 
         if ($userId <= 0 || !in_array($newRole, ['admin', 'member'], true)) {
             http_response_code(400);
@@ -121,14 +122,14 @@ try {
         }
 
         // Prevent self-demotion from administrator status
-        if ($userId === (int)$admin['id'] && $newRole !== 'admin') {
+        if ($userId === (int) $admin['id'] && $newRole !== 'admin') {
             http_response_code(400);
             Auth::jsonError('You cannot revoke your own administrator status.');
         }
 
         // If demoting an admin, ensure at least one other administrator remains
         if ($targetUser['role'] === 'admin' && $newRole !== 'admin') {
-            $adminCount = (int)$db->querySingle("SELECT COUNT(*) FROM users WHERE role = 'admin'");
+            $adminCount = (int) $db->querySingle("SELECT COUNT(*) FROM users WHERE role = 'admin'");
             if ($adminCount <= 1) {
                 http_response_code(400);
                 Auth::jsonError('Cannot remove the only administrator.');
@@ -145,7 +146,7 @@ try {
         echo json_encode([
             'success' => true,
             'message' => $newRole === 'admin' ? 'User granted administrator status.' : 'Administrator status removed.',
-            'role' => $newRole
+            'role' => $newRole,
         ]);
         exit;
     }
@@ -174,7 +175,7 @@ try {
         $s->bindValue(':email', $email, SQLITE3_TEXT);
         $s->bindValue(':hash', hash('sha256', $token), SQLITE3_TEXT);
         $s->bindValue(':expires', gmdate('Y-m-d H:i:s', time() + 7 * 86400), SQLITE3_TEXT);
-        $s->bindValue(':by', (int)$admin['id'], SQLITE3_INTEGER);
+        $s->bindValue(':by', (int) $admin['id'], SQLITE3_INTEGER);
         $s->execute();
 
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
@@ -182,7 +183,7 @@ try {
         echo json_encode([
             'success' => true,
             'invite_url' => "$scheme://$host/dashboard/accept-invite.php?token=$token",
-            'expires_at' => gmdate('c', time() + 7 * 86400)
+            'expires_at' => gmdate('c', time() + 7 * 86400),
         ]);
         exit;
     }

@@ -79,7 +79,7 @@ echo "[2/3] Processing events and inserting into data/{$siteId}.db...\n";
 $start = microtime(true);
 $result = $importer->import($source, $siteId, [
     'name' => $siteName,
-    'domain' => $domain
+    'domain' => $domain,
 ]);
 $elapsed = round(microtime(true) - $start, 2);
 
