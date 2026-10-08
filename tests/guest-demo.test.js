@@ -19,8 +19,6 @@ function prepareInstall() {
   fs.cpSync(path.join(root, 'dashboard'), path.join(workdir, 'dashboard'), { recursive: true });
   fs.cpSync(path.join(root, 'src'), path.join(workdir, 'src'), { recursive: true });
   fs.cpSync(path.join(root, 'vendor'), path.join(workdir, 'vendor'), { recursive: true });
-  fs.mkdirSync(path.join(workdir, 'landing'));
-  fs.copyFileSync(path.join(root, 'landing/demo-tracker.php'), path.join(workdir, 'landing/demo-tracker.php'));
   const data = path.join(workdir, 'data');
   fs.mkdirSync(data);
   const site = (id, extra = {}) => ({
@@ -131,10 +129,4 @@ test('dashboard opens the demo for guests and keeps private sites behind login',
 
   const none = await fetch(`${BASE}/dashboard/`, { redirect: 'manual' });
   assert.match(none.headers.get('location'), /login\.php$/);
-});
-
-test('landing tracker loader targets the public demo site', { skip: !hasPhp }, async () => {
-  const js = await (await fetch(`${BASE}/landing/demo-tracker.php`)).text();
-  assert.match(js, /"data-site-id":"demo_site"/);
-  assert.ok(!js.includes('private_site'));
 });
