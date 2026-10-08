@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use Minilytics\Database\Database;
+use Minilytics\Database\DatabaseConnection;
+
 /**
  * Minilytics live demo seeder.
  *
@@ -25,7 +28,7 @@ if (PHP_SAPI !== 'cli') {
     exit;
 }
 
-require_once dirname(__DIR__) . '/dashboard/src/api/db.php';
+require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 $options = getopt('', ['site::', 'days::', 'reset', 'live-only', 'domain::', 'help']);
 if (isset($options['help'])) {

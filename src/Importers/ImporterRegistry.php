@@ -1,12 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
-require_once __DIR__ . '/ImporterInterface.php';
-require_once __DIR__ . '/UmamiImporter.php';
-require_once __DIR__ . '/GoogleAnalyticsImporter.php';
-require_once __DIR__ . '/PlausibleImporter.php';
-require_once __DIR__ . '/MatomoImporter.php';
-require_once __DIR__ . '/SimpleAnalyticsImporter.php';
+namespace Minilytics\Importers;
+
 
 /**
  * Registry of analytics data importers

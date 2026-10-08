@@ -1,5 +1,10 @@
 <?php
+
 declare(strict_types=1);
+
+namespace Minilytics\Analytics;
+
+use Minilytics\Database\DatabaseConnection;
 
 /**
  * Shared dashboard filters (Overview + Sessions).

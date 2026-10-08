@@ -1,11 +1,14 @@
 <?php
 declare(strict_types=1);
 
+use Minilytics\Auth\Auth;
+use Minilytics\Importers\ImporterRegistry;
+
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../../../vendor/autoload.php';
 Auth::requireLogin();
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
@@ -13,8 +16,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
     exit;
 }
 
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/importers/ImporterRegistry.php';
 
 try {
     $action = $_GET['action'] ?? $_POST['action'] ?? '';

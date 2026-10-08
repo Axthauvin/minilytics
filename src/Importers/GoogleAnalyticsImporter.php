@@ -1,7 +1,10 @@
 <?php
+
 declare(strict_types=1);
 
-require_once __DIR__ . '/BaseImporter.php';
+namespace Minilytics\Importers;
+use RuntimeException;
+
 
 /**
  * Google Analytics (GA4 / UA) Importer — Coming Soon

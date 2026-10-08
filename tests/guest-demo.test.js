@@ -17,6 +17,8 @@ let server;
 function prepareInstall() {
   workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'minilytics-guest-'));
   fs.cpSync(path.join(root, 'dashboard'), path.join(workdir, 'dashboard'), { recursive: true });
+  fs.cpSync(path.join(root, 'src'), path.join(workdir, 'src'), { recursive: true });
+  fs.cpSync(path.join(root, 'vendor'), path.join(workdir, 'vendor'), { recursive: true });
   fs.mkdirSync(path.join(workdir, 'landing'));
   fs.copyFileSync(path.join(root, 'landing/demo-tracker.php'), path.join(workdir, 'landing/demo-tracker.php'));
   const data = path.join(workdir, 'data');
@@ -31,11 +33,10 @@ function prepareInstall() {
   ]));
   // Auth database (onboarding done) and one pageview per website.
   const setup = spawnSync('php', ['-r', `
-    require '${workdir}/dashboard/src/api/auth.php';
-    require '${workdir}/dashboard/src/api/db.php';
-    Auth::db()->exec("INSERT INTO users (email, password_hash, role) VALUES ('a@b.c', 'x', 'admin')");
+    require '${workdir}/vendor/autoload.php';
+    Minilytics\\Auth\\Auth::db()->exec("INSERT INTO users (email, password_hash, role) VALUES ('a@b.c', 'x', 'admin')");
     foreach (['demo_site', 'private_site'] as $id) {
-      $db = Database::getConnection($id);
+      $db = Minilytics\\Database\\Database::getConnection($id);
       $db->exec("INSERT INTO user_activity (session_id, visitor_id, action) VALUES ('s1', 'v1', '{\\"name\\":\\"pageview\\",\\"data\\":{\\"path\\":\\"/\\"}}')");
     }
   `]);

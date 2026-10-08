@@ -1,10 +1,16 @@
 <?php
+
 declare(strict_types=1);
+
+namespace Minilytics\Auth;
+
+use Minilytics\Database\Database;
+use SQLite3;
 
 /** Authentication and invitation helpers for the private dashboard. */
 final class Auth {
     public static function dataDir(): string {
-        $dir = dirname(__DIR__, 3) . '/data';
+        $dir = dirname(__DIR__, 2) . '/data';
         if (!is_dir($dir)) mkdir($dir, 0777, true);
         return $dir;
     }
@@ -49,7 +55,6 @@ final class Auth {
     public static function requireSiteAccess(?string $siteId): void {
         if (!self::hasDatabase()) { http_response_code(409); self::jsonError('Onboarding is required.'); }
         if (self::user()) return;
-        require_once __DIR__ . '/db.php';
         if (Database::isPublicSite((string)$siteId)) return;
         http_response_code(401); self::jsonError('Authentication required.');
     }

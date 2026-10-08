@@ -1,8 +1,10 @@
 <?php
 
 declare(strict_types=1);
-require_once __DIR__ . '/src/api/auth.php';
-require_once __DIR__ . '/src/api/db.php';
+
+use Minilytics\Auth\Auth;
+use Minilytics\Database\Database;
+require_once __DIR__ . '/../vendor/autoload.php';
 Auth::startSession();
 $step = $_GET['step'] ?? ($_SERVER['REQUEST_METHOD'] === 'POST' ? 'account' : 'welcome');
 if (Auth::hasDatabase() && $step !== 'database') {

@@ -1,8 +1,10 @@
 <?php
 declare(strict_types=1);
+
+use Minilytics\Auth\Auth;
+use Minilytics\Database\Database;
 header('Content-Type: application/json; charset=utf-8');
-require_once __DIR__ . '/auth.php'; Auth::requireAdmin();
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/../../../vendor/autoload.php'; Auth::requireAdmin();
 try {
     $site=Database::sanitizeSiteId($_GET['site_id'] ?? null); $visitor=trim((string)($_GET['visitor_id'] ?? ''));
     if ($visitor==='') throw new InvalidArgumentException('visitor_id is required.');

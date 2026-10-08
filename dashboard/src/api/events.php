@@ -1,13 +1,15 @@
 <?php
 declare(strict_types=1);
 
+use Minilytics\Auth\Auth;
+use Minilytics\Database\Database;
+
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../../../vendor/autoload.php';
 // Public demo sites are readable without an account.
 Auth::requireSiteAccess((string)($_GET['site_id'] ?? $_GET['site'] ?? ''));
 
-require_once __DIR__ . '/db.php';
 
 try {
     $siteId = $_GET['site_id'] ?? $_GET['site'] ?? null;

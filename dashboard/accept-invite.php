@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
-require_once __DIR__ . '/src/api/auth.php'; Auth::startSession();
+
+use Minilytics\Auth\Auth;
+require_once __DIR__ . '/../vendor/autoload.php'; Auth::startSession();
 $token = (string)($_GET['token'] ?? $_POST['token'] ?? ''); $error = ''; $invite = null;
 if (Auth::hasDatabase() && preg_match('/^[a-f0-9]{64}$/', $token)) { $db = Auth::db(); $s = $db->prepare('SELECT * FROM invitations WHERE token_hash = :hash AND accepted_at IS NULL AND expires_at > CURRENT_TIMESTAMP'); $s->bindValue(':hash', hash('sha256', $token), SQLITE3_TEXT); $invite = $s->execute()->fetchArray(SQLITE3_ASSOC) ?: null; }
 if (!$invite) $error = 'This invitation link is invalid or has expired.';

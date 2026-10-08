@@ -1,7 +1,12 @@
 <?php
+
 declare(strict_types=1);
 
-require_once __DIR__ . '/ImporterInterface.php';
+namespace Minilytics\Importers;
+use InvalidArgumentException;
+use RuntimeException;
+use ZipArchive;
+
 
 /**
  * Base Importer Class with shared normalization utilities.

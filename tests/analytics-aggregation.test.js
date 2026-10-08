@@ -18,7 +18,7 @@ test('audience breakdowns aggregate distinct visitors and use visitor labels', (
 });
 
 test('visitor-facing secondary analytics use visitor ids instead of sessions', () => {
-  const db = read('dashboard/src/api/db.php');
+  const db = read('src/Database/Database.php');
   const funnels = read('dashboard/src/api/funnels.php');
 
   assert.doesNotMatch(db, /COUNT\(DISTINCT session_id\) FROM user_activity/);
@@ -34,7 +34,7 @@ test('overview bounce-rate query does not nest aggregate functions', () => {
 
 test('overview treats MySQL JSON null referrers as direct traffic', () => {
   const stats = read('dashboard/src/api/stats.php');
-  const db = read('dashboard/src/api/db.php');
+  const db = read('src/Database/DatabaseConnection.php');
 
   assert.match(stats, /strtolower\(\$rawRef\) !== 'null'/);
   assert.match(db, /NULLIF\(NULLIF\(REPLACE\(SUBSTRING_INDEX/);
@@ -50,7 +50,7 @@ test('tracker accepts country codes from supported server-side geo providers', (
 });
 
 test('local GeoIP database is refreshed without an API key or visitor lookup', () => {
-  const geo = read('dashboard/src/api/geo.php');
+  const geo = read('src/Geo/GeoLocation.php');
 
   assert.match(geo, /dbip-city-lite\.mmdb\.gz/);
   assert.match(geo, /MAX_AGE_SECONDS = 35 \* 86400/);

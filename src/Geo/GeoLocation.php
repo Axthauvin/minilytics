@@ -1,11 +1,15 @@
 <?php
+
 declare(strict_types=1);
+
+namespace Minilytics\Geo;
+use RuntimeException;
+use Throwable;
 
 /**
  * Local, no-quota country/region/city lookup backed by DB-IP City Lite.
  * The database is CC BY 4.0; the dashboard links to DB-IP as required.
  */
-require_once __DIR__ . '/../lib/maxmind-db/autoload.php';
 
 final class GeoLocation {
     private const DATABASE_URL = 'https://cdn.jsdelivr.net/npm/dbip-city-lite/dbip-city-lite.mmdb.gz';
@@ -33,7 +37,7 @@ final class GeoLocation {
     }
 
     private static function directory(): string {
-        return dirname(__DIR__, 3) . '/data/geo';
+        return dirname(__DIR__, 2) . '/data/geo';
     }
 
     private static function databasePath(): string {

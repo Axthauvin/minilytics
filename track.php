@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+use Minilytics\Database\Database;
+use Minilytics\Database\DatabaseConnection;
+use Minilytics\Geo\GeoLocation;
+
 /** Public ingestion: registered sites, per-site keys, allowed origins only. */
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -18,15 +22,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     echo json_encode(['error' => 'POST required']);
     exit;
 }
-require_once __DIR__ . '/dashboard/src/api/db.php';
-// GeoIP enrichment is optional: an incomplete deployment or an unavailable
-// extension must never make the public collection endpoint return a 500.
-try {
-    $geoHelper = __DIR__ . '/dashboard/src/api/geo.php';
-    if (is_file($geoHelper)) require_once $geoHelper;
-} catch (Throwable $error) {
-    error_log('[Minilytics] GeoIP module could not be loaded: ' . $error->getMessage());
-}
+require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/session.php';
 
 function failTracking(string $message, int $status = 400): never
@@ -97,13 +93,13 @@ function trackingLocation(DatabaseConnection $db, string $ip): array
         }
     }
     if ($ip === '::1' || str_starts_with($ip, '127.') || filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) return ['country' => 'Local development', 'country_code' => 'UN', 'region' => '', 'city' => ''];
-    if (class_exists('GeoLocation')) {
-        try {
-            $location = GeoLocation::lookup($ip);
-            if (is_array($location)) return $location;
-        } catch (Throwable $error) {
-            error_log('[Minilytics] GeoIP lookup failed: ' . $error->getMessage());
-        }
+    // GeoIP enrichment is optional: a missing database or extension must never
+    // make the public collection endpoint return a 500.
+    try {
+        $location = GeoLocation::lookup($ip);
+        if (is_array($location)) return $location;
+    } catch (Throwable $error) {
+        error_log('[Minilytics] GeoIP lookup failed: ' . $error->getMessage());
     }
     return ['country' => 'Unknown', 'country_code' => 'UN', 'region' => '', 'city' => ''];
 }

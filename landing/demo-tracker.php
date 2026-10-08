@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Minilytics\Database\Database;
+
 /**
  * Loads the Minilytics tracker for the public demo website, so the landing
  * page is measured by Minilytics itself. Only public sites are exposed here;
@@ -10,7 +12,7 @@ declare(strict_types=1);
 header('Content-Type: application/javascript; charset=utf-8');
 header('Cache-Control: no-cache, must-revalidate');
 
-require_once dirname(__DIR__) . '/dashboard/src/api/db.php';
+require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 try {
     $site = Database::getPublicSite();

@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
-require_once __DIR__ . '/src/api/auth.php';
+
+use Minilytics\Auth\Auth;
+require_once __DIR__ . '/../vendor/autoload.php';
 Auth::startSession();
 if (!Auth::hasDatabase()) { header('Location: /dashboard/onboarding.php'); exit; }
 if (Auth::user()) { header('Location: /dashboard/'); exit; }

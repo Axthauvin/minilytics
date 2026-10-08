@@ -1,8 +1,15 @@
 <?php
+
 declare(strict_types=1);
 
-require_once __DIR__ . '/BaseImporter.php';
-require_once __DIR__ . '/../db.php';
+namespace Minilytics\Importers;
+
+use InvalidArgumentException;
+use Minilytics\Database\Database;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use RuntimeException;
+
 
 /**
  * Umami Analytics Importer

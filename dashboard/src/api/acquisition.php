@@ -1,8 +1,10 @@
 <?php
 declare(strict_types=1);
+
+use Minilytics\Auth\Auth;
+use Minilytics\Database\Database;
 header('Content-Type: application/json; charset=utf-8');
-require_once __DIR__ . '/auth.php'; Auth::requireSiteAccess((string)($_GET['site_id'] ?? ''));
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/../../../vendor/autoload.php'; Auth::requireSiteAccess((string)($_GET['site_id'] ?? ''));
 try {
     $site = Database::sanitizeSiteId($_GET['site_id'] ?? null); $db = Database::getConnection($site);
     $range = $_GET['range'] ?? '7d'; $now = time();

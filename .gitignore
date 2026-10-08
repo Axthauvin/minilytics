@@ -16,3 +16,6 @@ dist/
 umami-import/
 !data/.htaccess
 
+
+# Composer dependencies (installed with `composer install`, bundled in release archives)
+/vendor/

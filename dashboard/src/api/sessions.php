@@ -1,11 +1,15 @@
 <?php
 declare(strict_types=1);
 
+use Minilytics\Analytics\AnalyticsFilters;
+use Minilytics\Auth\Auth;
+use Minilytics\Database\Database;
+
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../../../vendor/autoload.php';
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
     // Public demo sites are readable without an account; deletion stays admin-only below.
     Auth::requireSiteAccess((string)($_GET['site_id'] ?? $_GET['site'] ?? ''));
@@ -13,8 +17,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
     Auth::requireLogin();
 }
 
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/filters.php';
 
 $formatDurationLabel = static function (int $seconds): string {
     $seconds = max(0, $seconds);

@@ -1,5 +1,8 @@
 <?php
-require_once __DIR__ . '/src/api/auth.php';
+
+use Minilytics\Auth\Auth;
+use Minilytics\Database\Database;
+require_once __DIR__ . '/../vendor/autoload.php';
 Auth::startSession();
 if (!Auth::hasDatabase()) { header('Location: /dashboard/onboarding.php'); exit; }
 $authUser = Auth::user();
@@ -8,7 +11,6 @@ $publicSite = null;
 if (!$authUser) {
     // Live demo: anonymous visitors may browse a public website read-only
     // (?demo=1 picks the first public site, ?site=<id> a specific one).
-    require_once __DIR__ . '/src/api/db.php';
     $requestedSite = $_GET['site'] ?? $_GET['site_id'] ?? null;
     if ($requestedSite !== null || !empty($_GET['demo'])) {
         $publicSite = Database::getPublicSite($requestedSite !== null ? (string)$requestedSite : null);

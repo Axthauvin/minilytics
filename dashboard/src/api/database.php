@@ -1,8 +1,10 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/auth.php';
-require_once __DIR__ . '/db.php';
+use Minilytics\Auth\Auth;
+use Minilytics\Database\Database;
+
+require_once __DIR__ . '/../../../vendor/autoload.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
