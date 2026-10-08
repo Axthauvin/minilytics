@@ -19,3 +19,4 @@ umami-import/
 
 # Composer dependencies (installed with `composer install`, bundled in release archives)
 /vendor/
+.php-cs-fixer.cache

@@ -26,7 +26,7 @@
         "optimize-autoloader": true
     },
     "scripts": {
-        "cs:check": "php-cs-fixer fix --dry-run --diff",
+        "cs:check": "php-cs-fixer fix --dry-run --diff --ansi",
         "cs:fix": "php-cs-fixer fix"
     }
 }
