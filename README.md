@@ -27,7 +27,7 @@ It was built because today's most modern analytics tools require heavy Node.js r
 
 - PHP 8.1 or later with the `sqlite3` extension enabled
 - For MySQL or MariaDB: the `pdo_mysql` PHP extension and a database/user with `CREATE`, `ALTER`, `INDEX`, `SELECT`, `INSERT`, `UPDATE` and `DELETE` permissions
-- Web server write access to the `data/` directory
+- A writable data directory outside the web root (default: `minilytics-data/` next to the web root, or set `MINILYTICS_DATA_DIR`)
 - Outbound HTTPS access and `zlib` support (to download the local DB-IP City Lite geolocation database)
 
 _Note: The `zip` extension is only needed if you import historical data from external services._
@@ -41,7 +41,7 @@ curl -LO https://github.com/axthauvin/minilytics/releases/latest/download/minily
 tar -xzf minilytics.tar.gz && rm minilytics.tar.gz
 ```
 
-1. Ensure your web server has write access to the `data/` directory.
+1. Ensure your web server can write to `../minilytics-data/` (created automatically if the parent is writable), or point `MINILYTICS_DATA_DIR` to another folder **outside** the web root.
 2. Navigate to `https://your-domain.com/dashboard/` to create the initial administrator account.
 3. Add your website in the dashboard and paste the tracking snippet into your website's `<head>`.
 
@@ -50,7 +50,7 @@ tar -xzf minilytics.tar.gz && rm minilytics.tar.gz
 SQLite is the default (because it's lightweight and doesn't require a separated server), but you can change it any time !
 To use a managed database, open **Settings → Database**, select MySQL or MariaDB, enter the host, port, database name, username and password, then use **Test connection** before saving. The test can create the named database when it is missing if the database user has the `CREATE` permission. **Existing SQLite analytics are not copied automatically**.
 
-> On Apache, the included `.htaccess` files protect stored SQLite databases automatically (ensure `AllowOverride All` is enabled). On Nginx, block direct HTTP access to `/data/`.
+> Data is stored outside the web root so redeploying or re-extracting the archive can never overwrite or expose it.
 
 ### Local Development
 

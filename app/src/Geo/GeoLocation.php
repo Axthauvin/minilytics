@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Minilytics\Geo;
 
+use Minilytics\Database\Database;
 use RuntimeException;
 use Throwable;
 
@@ -45,7 +46,7 @@ final class GeoLocation
 
     private static function directory(): string
     {
-        return dirname(__DIR__, 2) . '/data/geo';
+        return Database::getDataDir() . '/geo';
     }
 
     private static function databasePath(): string

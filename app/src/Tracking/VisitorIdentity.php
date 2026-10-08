@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Minilytics\Tracking;
 
+use Minilytics\Database\Database;
 use RuntimeException;
 
 /** Server-side, cookie-free visitor identity helpers. */
@@ -16,7 +17,7 @@ final class VisitorIdentity
             return $configured;
         }
 
-        $file = dirname(__DIR__, 2) . '/data/.tracking-secret';
+        $file = Database::getDataDir() . '/.tracking-secret';
         $stored = @file_get_contents($file);
         if (is_string($stored) && strlen(trim($stored)) >= 32) {
             return trim($stored);

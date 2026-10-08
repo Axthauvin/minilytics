@@ -74,7 +74,7 @@ if (empty($domain)) {
 }
 
 echo "      Target Site: '{$siteName}' (ID: {$siteId}, Domain: " . ($domain ?: 'none') . ")\n";
-echo "[2/3] Processing events and inserting into data/{$siteId}.db...\n";
+echo "[2/3] Processing events and inserting into the data directory ({$siteId}.db)...\n";
 
 $start = microtime(true);
 $result = $importer->import($source, $siteId, [
@@ -86,7 +86,7 @@ $elapsed = round(microtime(true) - $start, 2);
 echo "[3/3] Import successfully completed in {$elapsed}s!\n\n";
 echo str_repeat('=', 60) . "\n";
 echo sprintf("  Target Website:      %s (ID: %s)\n", $result['site_name'], $result['site_id']);
-echo sprintf("  Database:            data/%s.db\n", $result['site_id']);
+echo sprintf("  Database:            %s.db (in the data directory)\n", $result['site_id']);
 echo sprintf("  Total Events:        %s\n", number_format($result['total_imported']));
 echo sprintf("  Pageviews:           %s\n", number_format($result['pageviews']));
 echo sprintf("  Custom Events:       %s\n", number_format($result['custom_events']));

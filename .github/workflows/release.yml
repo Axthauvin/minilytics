@@ -75,7 +75,7 @@ jobs:
           tar -xzf minilytics.tar.gz && rm minilytics.tar.gz
           \`\`\`
 
-          Ensure your web server has write access to \`data/\`, then open \`/dashboard/\` to create the administrator account.
+          Ensure your web server can write to \`../minilytics-data/\` (or the folder set in \`MINILYTICS_DATA_DIR\`), then open \`/dashboard/\` to create the administrator account.
 
           ### Checksum
 
