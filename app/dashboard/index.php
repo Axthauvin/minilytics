@@ -101,7 +101,7 @@ if ($path === '/dashboard') {
                 <a href="/dashboard/?site=<?php echo urlencode($publicSite['id']); ?>#overview" target="_blank" rel="noopener">Open full demo ↗</a>
                 <?php else: ?>
                 <span><strong>Live demo</strong> · read-only mock data.</span>
-                <a href="/landing/install.html">Get Minilytics</a>
+                <a href="/install.html">Get Minilytics</a>
                 <?php endif; ?>
             </div>
             <?php endif; ?>

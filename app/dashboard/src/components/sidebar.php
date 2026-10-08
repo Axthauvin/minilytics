@@ -2,7 +2,7 @@
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-top">
         <div class="sidebar-header-row">
-            <a href="<?php echo !empty($isGuest) ? '/landing/' : '#websites'; ?>" class="sidebar-brand-link" id="sidebarBrandLink" title="<?php echo !empty($isGuest) ? 'Minilytics | Home' : 'Minilytics | All Websites'; ?>">
+            <a href="<?php echo !empty($isGuest) ? '/' : '#websites'; ?>" class="sidebar-brand-link" id="sidebarBrandLink" title="<?php echo !empty($isGuest) ? 'Minilytics | Home' : 'Minilytics | All Websites'; ?>">
                 <img src="/dashboard/src/assets/logo.svg" class="sidebar-brand-icon" width="28" height="28" alt="Minilytics Logo">
                 <span class="sidebar-brand-text">Minilytics</span>
             </a>
@@ -128,7 +128,7 @@
         <div class="demo-mode-card">
             <div class="demo-mode-badge"><span class="pulse-dot"></span><span>Demo Mode</span></div>
             <p class="demo-mode-text">Read-only mock data. Settings and imports are disabled.</p>
-            <a class="demo-mode-cta" href="/landing/install.html" target="_top">
+            <a class="demo-mode-cta" href="/install.html" target="_top">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                 <span>Get Minilytics</span>
             </a>
