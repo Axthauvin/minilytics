@@ -12,11 +12,7 @@ final class Auth
 {
     public static function dataDir(): string
     {
-        $dir = dirname(__DIR__, 2) . '/data';
-        if (!is_dir($dir)) {
-            mkdir($dir, 0777, true);
-        }
-        return $dir;
+        return Database::getDataDir();
     }
 
     public static function dbPath(): string

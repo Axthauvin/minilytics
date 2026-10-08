@@ -7,8 +7,9 @@
 # It extracts the dashboard and landing archives found in a dist/ folder into
 # the directory the script lives in, after verifying their SHA256 checksums.
 #
-# Runtime data (data/*.db, data/sites.json, ...) is never part of the archives,
-# so it is left untouched. A backup of data/ is made before extracting anyway.
+# Runtime data (*.db, sites.json, ...) is never part of the archives, so it is
+# left untouched. It lives outside the web root: MINILYTICS_DATA_DIR if set,
+# otherwise ../minilytics-data. A backup is made before extracting anyway.
 #
 # Usage: ./deploy.sh [DIST_DIR]
 #   DIST_DIR  folder holding the archives
@@ -42,10 +43,12 @@ for archive in "${ARCHIVES[@]}"; do
 done
 
 # 2. Back up runtime data
-if [ -d "${WEB_ROOT}/data" ]; then
-    BACKUP="${WEB_ROOT}/../data-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
-    tar -czf "${BACKUP}" -C "${WEB_ROOT}" data
-    echo "==> data/ backed up to: ${BACKUP}"
+DATA_DIR="${MINILYTICS_DATA_DIR:-${WEB_ROOT}/../minilytics-data}"
+STAMP="$(date +%Y%m%d-%H%M%S)"
+if [ -d "${DATA_DIR}" ]; then
+    BACKUP="${WEB_ROOT}/../data-backup-${STAMP}.tar.gz"
+    tar -czf "${BACKUP}" -C "${DATA_DIR}" .
+    echo "==> ${DATA_DIR} backed up to: ${BACKUP}"
 fi
 
 # 3. Extract dashboard, then landing, into the web root
@@ -54,8 +57,9 @@ for archive in "${ARCHIVES[@]}"; do
     tar -xzf "${DIST_DIR}/${archive}" -C "${WEB_ROOT}"
 done
 
-# 4. data/ must be writable by the web server
-mkdir -p "${WEB_ROOT}/data"
-chmod u+rwX,g+rwX "${WEB_ROOT}/data" 2>/dev/null || true
+# 4. The data dir must exist, be writable by the web server, and stay out of the web root
+mkdir -p "${DATA_DIR}"
+chmod u+rwX,g+rwX "${DATA_DIR}" 2>/dev/null || true
+echo "==> Data directory: ${DATA_DIR}"
 
 echo "==> Done. Landing: /  Dashboard: /dashboard/"

@@ -18,13 +18,28 @@ class Database
 {
     private static array $instances = [];
 
+    /**
+     * Resolve the persistent data directory, kept outside the web root.
+     *
+     * Uses MINILYTICS_DATA_DIR when set, otherwise a "minilytics-data" folder
+     * next to the web root.
+     */
     public static function getDataDir(): string
     {
-        $dir = dirname(__DIR__, 2) . '/data';
-        if (!is_dir($dir)) {
-            mkdir($dir, 0777, true);
+        static $resolved = null;
+        if ($resolved !== null) {
+            return $resolved;
         }
-        return $dir;
+
+        $configured = getenv('MINILYTICS_DATA_DIR');
+        $dir = is_string($configured) && trim($configured) !== ''
+            ? rtrim(trim($configured), '/\\')
+            : dirname(__DIR__, 3) . '/minilytics-data';
+
+        if ((is_dir($dir) || @mkdir($dir, 0770, true) || is_dir($dir)) && is_writable($dir)) {
+            return $resolved = $dir;
+        }
+        throw new RuntimeException('No writable data directory. Set MINILYTICS_DATA_DIR to a writable path outside the web root.');
     }
 
     public static function getSitesFilePath(): string

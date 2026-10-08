@@ -14,6 +14,7 @@ demo.html
 *.tar.gz.sha256
 dist/
 app/umami-import/
+minilytics-data/
 !app/data/.htaccess
 
 
