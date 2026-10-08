@@ -17,6 +17,8 @@ Minilytics is a lightweight web analytics platform built for simplicity, perform
 
 It was built because today's most modern analytics tools require heavy Node.js runtimes, complex Docker setups, or dedicated database servers. Minilytics is **minimal by design**. It's designed to run anywhere standard PHP is available, consumes negligible server resources, while trying to provide a clean and modern user experience.
 
+![Screenshot of the Minilytics dashboard](docs/assets/dashboard.png)
+
 ---
 
 ## Quick Start

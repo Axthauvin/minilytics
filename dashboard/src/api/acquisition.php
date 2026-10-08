@@ -46,6 +46,7 @@ try {
             $inc('terms', (string) ($data['utm_term'] ?? $utm['utm_term'] ?? ''));
             $inc('landing_pages', (string) ($data['path'] ?? '/'));
             $channel = $medium ? ucfirst(strtolower($medium)) : ($ref ? 'Referral' : 'Direct');
+            // If the source or referrer is a search engine, attribute the session to the Organic Search channel.
             if (preg_match('/google|bing|duckduckgo|yahoo/', $source . ' ' . $ref)) {
                 $channel = 'Organic Search';
             } elseif (preg_match('/facebook|instagram|linkedin|twitter|tiktok/', $source . ' ' . $ref)) {
