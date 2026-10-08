@@ -4,31 +4,32 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # Minilytics Release Packaging Script
 # -----------------------------------------------------------------------------
-# Packages the deployable application into a .tar.gz archive.
-# Excludes repository/dev/doc/test files and handles potential landing page
-# additions in the repository.
+# Packages the deployable application (the app/ directory) into a .tar.gz
+# archive. The landing page, docs and repository tooling live outside app/ and
+# are never part of the archive.
 # -----------------------------------------------------------------------------
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+APP_DIR="${PROJECT_ROOT}/app"
 
 # Output configuration
 DIST_DIR="${1:-${PROJECT_ROOT}/dist}"
 ARCHIVE_NAME="${2:-minilytics.tar.gz}"
 OUTPUT_ARCHIVE="${DIST_DIR}/${ARCHIVE_NAME}"
 
-echo "==> Packaging Minilytics from: ${PROJECT_ROOT}"
+echo "==> Packaging Minilytics from: ${APP_DIR}"
 echo "==> Target archive: ${OUTPUT_ARCHIVE}"
 
 mkdir -p "${DIST_DIR}"
 
 # The archive must ship production dependencies so installs without shell
 # access (or Composer) work out of the box: `composer install --no-dev`.
-if [ ! -f "${PROJECT_ROOT}/vendor/autoload.php" ]; then
+if [ ! -f "${APP_DIR}/vendor/autoload.php" ]; then
     echo "ERROR: vendor/autoload.php is missing. Run 'composer install --no-dev --optimize-autoloader' first." >&2
     exit 1
 fi
-if [ -d "${PROJECT_ROOT}/vendor/friendsofphp" ]; then
+if [ -d "${APP_DIR}/vendor/friendsofphp" ]; then
     echo "ERROR: vendor/ contains dev dependencies. Run 'composer install --no-dev --optimize-autoloader' first." >&2
     exit 1
 fi
@@ -37,31 +38,15 @@ fi
 STAGING_DIR="$(mktemp -d)"
 trap 'rm -rf "${STAGING_DIR}"' EXIT
 
-# List of files/directories to exclude from deployment
+# Files/directories inside app/ that must not be deployed
 EXCLUDES=(
-    ".git"
-    ".github"
-    ".gitignore"
-    ".gitattributes"
-    ".git-blame-ignore-revs"
-    ".editorconfig"
-    ".php-cs-fixer.dist.php"
-    ".php-cs-fixer.cache"
-    "README.md"
-    "docs"
     "tests"
-    "scripts"
-    "dist"
-    "landing"
-    "website"
     "umami-import"
-    "node_modules"
+    "bin/seed-demo.php"
     "*.tar.gz"
     "*.zip"
     "*.log"
     ".DS_Store"
-    ".idea"
-    ".vscode"
 )
 
 # Build rsync / copy exclusion arguments
@@ -76,30 +61,31 @@ EXCLUDE_ARGS+=(
     --exclude "data/*.db-wal"
     --exclude "data/*.db-shm"
     --exclude "data/sites.json"
+    --exclude "data/database.json"
     --exclude "data/.tracking-secret"
 )
 
 # Synchronize project files to staging directory
 if command -v rsync >/dev/null 2>&1; then
-    rsync -a "${EXCLUDE_ARGS[@]}" "${PROJECT_ROOT}/" "${STAGING_DIR}/"
+    rsync -a "${EXCLUDE_ARGS[@]}" "${APP_DIR}/" "${STAGING_DIR}/"
 else
     # Fallback if rsync is not installed
-    cp -R "${PROJECT_ROOT}/." "${STAGING_DIR}/"
+    cp -R "${APP_DIR}/." "${STAGING_DIR}/"
     for item in "${EXCLUDES[@]}"; do
         rm -rf "${STAGING_DIR:?}/${item}" 2>/dev/null || true
     done
-    rm -f "${STAGING_DIR}/data"/*.db "${STAGING_DIR}/data"/*.db-wal "${STAGING_DIR}/data"/*.db-shm "${STAGING_DIR}/data/sites.json" "${STAGING_DIR}/data/.tracking-secret" 2>/dev/null || true
+    rm -f "${STAGING_DIR}/data"/*.db "${STAGING_DIR}/data"/*.db-wal "${STAGING_DIR}/data"/*.db-shm "${STAGING_DIR}/data/sites.json" "${STAGING_DIR}/data/database.json" "${STAGING_DIR}/data/.tracking-secret" 2>/dev/null || true
 fi
 
 # Ensure data/ directory exists and contains data/.htaccess
 mkdir -p "${STAGING_DIR}/data"
-if [ ! -f "${STAGING_DIR}/data/.htaccess" ] && [ -f "${PROJECT_ROOT}/data/.htaccess" ]; then
-    cp "${PROJECT_ROOT}/data/.htaccess" "${STAGING_DIR}/data/.htaccess"
+if [ ! -f "${STAGING_DIR}/data/.htaccess" ] && [ -f "${APP_DIR}/data/.htaccess" ]; then
+    cp "${APP_DIR}/data/.htaccess" "${STAGING_DIR}/data/.htaccess"
 fi
 
 # Ensure .htaccess at root exists
-if [ ! -f "${STAGING_DIR}/.htaccess" ] && [ -f "${PROJECT_ROOT}/.htaccess" ]; then
-    cp "${PROJECT_ROOT}/.htaccess" "${STAGING_DIR}/.htaccess"
+if [ ! -f "${STAGING_DIR}/.htaccess" ] && [ -f "${APP_DIR}/.htaccess" ]; then
+    cp "${APP_DIR}/.htaccess" "${STAGING_DIR}/.htaccess"
 fi
 
 # Safety check: ensure no db files leaked into staging

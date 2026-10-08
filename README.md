@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="favicon.svg" alt="Minilytics logo" width="160" />
+  <img src="app/favicon.svg" alt="Minilytics logo" width="160" />
   <h1>Minilytics</h1>
   <p><strong>Minimal, self-hosted web analytics powered by PHP with SQLite, MySQL, or MariaDB.</strong></p>
 
@@ -54,16 +54,17 @@ To use a managed database, open **Settings → Database**, select MySQL or Maria
 
 ### Local Development
 
-To run Minilytics locally without installing a full web server, clone the repository, install the PHP dependencies with [Composer](https://getcomposer.org/) and start PHP's built-in development server:
+Clone the repository, install the PHP dependencies with [Composer](https://getcomposer.org/) and start the development server:
 
 ```bash
+cd app
 composer install
-php -S localhost:8080
+composer serve # or php -S localhost:8080 -t app scripts/dev-router.php
 ```
 
-Release archives already bundle `vendor/`, so Composer is only needed when running from a clone of the repository.
+Open [http://localhost:8080/dashboard/](http://localhost:8080/dashboard/) for the dashboard and [http://localhost:8080/](http://localhost:8080/) for the landing page. The development router (`scripts/dev-router.php`) overlays `landing/` on top of `app/`. Without Composer, run `php -S localhost:8080 -t app scripts/dev-router.php` from the repository root.
 
-Open [http://localhost:8080/dashboard/](http://localhost:8080/dashboard/) to access the dashboard.
+Release archives already bundle `vendor/`, so Composer is only needed when running from a clone of the repository.
 
 ---
 
@@ -81,7 +82,7 @@ Open [http://localhost:8080/dashboard/](http://localhost:8080/dashboard/) to acc
 Node.js is used only to run unit and smoke tests during development. **Node.js is not required to run Minilytics in production.**
 
 ```bash
-node --test tests/tracker-smoke.test.js
+node --test app/tests/*.test.js
 ```
 
 ---

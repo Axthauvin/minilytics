@@ -6,7 +6,7 @@ use Minilytics\Importers\UmamiImporter;
 
 /**
  * Minilytics Pure-PHP CLI Import Tool
- * Runs in terminal via `php import.php --zip export.zip`
+ * Runs in terminal via `php bin/import.php --zip export.zip`
  * 100% PHP, zero Python dependency!
  */
 
@@ -15,7 +15,7 @@ if (php_sapi_name() !== 'cli') {
     exit;
 }
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 echo "\n" . str_repeat('=', 60) . "\n";
 echo "   Minilytics CLI Data Importer (100% Pure PHP)\n";
@@ -24,7 +24,7 @@ echo str_repeat('=', 60) . "\n\n";
 $options = getopt('', ['zip:', 'folder:', 'site-id:', 'site-name:', 'domain:', 'help']);
 
 if (isset($options['help'])) {
-    echo "Usage: php import.php [options]\n\n";
+    echo "Usage: php bin/import.php [options]\n\n";
     echo "Options:\n";
     echo "  --zip <path>        Path to Umami .zip export archive\n";
     echo "  --folder <path>     Path to folder containing Umami CSVs\n";
@@ -38,13 +38,13 @@ if (isset($options['help'])) {
 $source = $options['zip'] ?? $options['folder'] ?? null;
 
 if (!$source) {
-    if (file_exists(__DIR__ . '/umami-export-sample.zip')) {
-        $source = __DIR__ . '/umami-export-sample.zip';
-    } elseif (is_dir(__DIR__ . '/umami-import')) {
-        $source = __DIR__ . '/umami-import';
+    if (file_exists(dirname(__DIR__) . '/umami-export-sample.zip')) {
+        $source = dirname(__DIR__) . '/umami-export-sample.zip';
+    } elseif (is_dir(dirname(__DIR__) . '/umami-import')) {
+        $source = dirname(__DIR__) . '/umami-import';
     } else {
         fwrite(STDERR, "Error: Please specify --zip <path> or --folder <path>\n");
-        fwrite(STDERR, "Run `php import.php --help` for usage details.\n\n");
+        fwrite(STDERR, "Run `php bin/import.php --help` for usage details.\n\n");
         exit(1);
     }
 }

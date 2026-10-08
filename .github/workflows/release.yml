@@ -3,13 +3,13 @@ name: Release
 on:
   push:
     tags:
-      - '*'
+      - "*"
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Tag or version name (e.g. v1.0.0)'
+        description: "Tag or version name (e.g. v1.0.0)"
         required: false
-        default: 'manual-release'
+        default: "manual-release"
 
 permissions:
   contents: write
@@ -39,12 +39,12 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: "8.1"
           tools: composer:v2
           coverage: none
 
       - name: Install production dependencies
-        run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+        run: composer install --working-dir=app --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
       - name: Package deployable application
         run: |
@@ -53,6 +53,11 @@ jobs:
           cp dist/minilytics.tar.gz "dist/minilytics-${{ steps.vars.outputs.tag }}.tar.gz"
           cd dist
           sha256sum "minilytics-${{ steps.vars.outputs.tag }}.tar.gz" > "minilytics-${{ steps.vars.outputs.tag }}.tar.gz.sha256"
+
+      - name: Package landing page
+        run: |
+          chmod +x scripts/build-landing.sh
+          ./scripts/build-landing.sh dist minilytics-landing.tar.gz
 
       - name: Generate Release Notes
         run: |
@@ -88,6 +93,8 @@ jobs:
             dist/minilytics.tar.gz.sha256
             dist/minilytics-${{ steps.vars.outputs.tag }}.tar.gz
             dist/minilytics-${{ steps.vars.outputs.tag }}.tar.gz.sha256
+            dist/minilytics-landing.tar.gz
+            dist/minilytics-landing.tar.gz.sha256
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
@@ -104,5 +111,7 @@ jobs:
             dist/minilytics.tar.gz.sha256
             dist/minilytics-${{ steps.vars.outputs.tag }}.tar.gz
             dist/minilytics-${{ steps.vars.outputs.tag }}.tar.gz.sha256
+            dist/minilytics-landing.tar.gz
+            dist/minilytics-landing.tar.gz.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

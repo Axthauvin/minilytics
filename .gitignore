@@ -2,21 +2,21 @@
 *.db-wal
 *.db-shm
 
-data/*.db
-data/*.db-wal
-data/*.db-shm
-data/sites.json
-data/database.json
-data/.tracking-secret
+app/data/*.db
+app/data/*.db-wal
+app/data/*.db-shm
+app/data/sites.json
+app/data/database.json
+app/data/.tracking-secret
 demo.html
 *.zip
 *.tar.gz
 *.tar.gz.sha256
 dist/
-umami-import/
-!data/.htaccess
+app/umami-import/
+!app/data/.htaccess
 
 
 # Composer dependencies (installed with `composer install`, bundled in release archives)
-/vendor/
+/app/vendor/
 .php-cs-fixer.cache

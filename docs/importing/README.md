@@ -22,15 +22,15 @@ Open the data import flow, select the service you want to import from, then uplo
 If you prefer to use the command line, you can use the `import.php` script to import data from a ZIP file or an extracted folder.
 
 ```bash
-php import.php --zip umami-export.zip --site-id example
+php bin/import.php --zip umami-export.zip --site-id example
 ```
 
 To import an extracted directory and provide a display name:
 
 ```bash
-php import.php --folder umami-import --site-id example --site-name "Example"
+php bin/import.php --folder umami-import --site-id example --site-name "Example"
 ```
 
-Run `php import.php --help` for every option, including `--domain`.
+Run `php bin/import.php --help` for every option, including `--domain`.
 
 See also: [operations](../operations/README.md), [tracking](../tracking/README.md), [documentation index](../README.md).

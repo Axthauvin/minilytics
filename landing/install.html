@@ -22,9 +22,9 @@
   <body>
     <header class="nav wrap">
       <a class="brand" href="index.html"
-        ><img src="../favicon.svg" alt="" /><span>Minilytics</span></a
+        ><img src="favicon.svg" alt="" /><span>Minilytics</span></a
       >
-      <a class="back-link" href="index.html"
+      <a class="back-link" href="index.html" data-minilytics-event="back_to_site_click" data-minilytics-location="install_header"
         ><i data-lucide="arrow-left"></i>Back to site</a
       >
     </header>
@@ -38,6 +38,7 @@
         <a
           class="button"
           href="https://github.com/axthauvin/minilytics/releases/latest/download/minilytics.tar.gz"
+          data-minilytics-event="download_archive" data-minilytics-location="install_hero"
           ><i data-lucide="download"></i>Download minilytics.tar.gz</a
         >
       </section>
@@ -166,7 +167,7 @@
             from Umami (with more providers planned soon) anytime.
           </p>
         </div>
-        <a class="button" href="https://github.com/axthauvin/minilytics"
+        <a class="button" href="https://github.com/axthauvin/minilytics" data-minilytics-event="docs_click" data-minilytics-location="install_footer_cta"
           ><i data-lucide="book-open"></i>Read the documentation</a
         >
       </section>
@@ -175,7 +176,7 @@
       <a class="brand" href="index.html"
         ><img src="favicon.svg" alt="" /><span>Minilytics</span></a
       ><span>Minimal, self-hosted web analytics.</span
-      ><a href="https://github.com/axthauvin/minilytics"
+      ><a href="https://github.com/axthauvin/minilytics" data-minilytics-event="github_click" data-minilytics-location="footer"
         >GitHub <i data-lucide="arrow-up-right"></i
       ></a>
     </footer>

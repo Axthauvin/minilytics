@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="Minilytics">
-  <rect x="1" y="1" width="30" height="30" rx="8" fill="#EEF2FF" stroke="#C7D2FE"/>
-  <path d="M7 23.5V18.5C7 17.672 7.672 17 8.5 17H9.5C10.328 17 11 17.672 11 18.5V23.5H7Z" fill="#A5B4FC"/>
-  <path d="M13 23.5V13.5C13 12.672 13.672 12 14.5 12H15.5C16.328 12 17 12.672 17 13.5V23.5H13Z" fill="#818CF8"/>
-  <path d="M19 23.5V8.5C19 7.672 19.672 7 20.5 7H21.5C22.328 7 23 7.672 23 8.5V23.5H19Z" fill="#4F46E5"/>
-  <path d="M7.5 15.5L12.5 11.5L16 13.5L23.5 7" stroke="#4338CA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="23.5" cy="7" r="2" fill="#FFF" stroke="#4338CA" stroke-width="1.5"/>
-</svg>
