@@ -26,7 +26,11 @@
         "optimize-autoloader": true
     },
     "scripts": {
-        "cs:check": "php-cs-fixer fix --dry-run --diff --ansi",
-        "cs:fix": "php-cs-fixer fix"
+        "serve": [
+            "Composer\\Config::disableProcessTimeout",
+            "php -S localhost:8080 -t . ../scripts/dev-router.php"
+        ],
+        "cs:check": "php-cs-fixer fix --config=../.php-cs-fixer.dist.php --dry-run --diff --ansi",
+        "cs:fix": "php-cs-fixer fix --config=../.php-cs-fixer.dist.php"
     }
 }

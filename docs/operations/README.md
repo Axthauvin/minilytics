@@ -25,7 +25,7 @@ Retention runs when a site's database is opened. The default is 395 days; each s
 Run this command from a scheduled task to copy the SQLite databases:
 
 ```bash
-php backup.php --destination /secure/backups/minilytics
+php bin/backup.php --destination /secure/backups/minilytics
 ```
 
 The destination directory is created with restrictive permissions when it does not already exist.

@@ -13,7 +13,7 @@ use Minilytics\Database\DatabaseConnection;
  * and flags the website as public so anonymous visitors can browse it.
  *
  * Usage:
- *   php scripts/seed-demo-data.php [--site=demo_site] [--days=30] [--reset]
+ *   php bin/seed-demo.php [--site=demo_site] [--days=30] [--reset]
  *                                  [--live-only] [--domain=example.com ...]
  *
  *   --reset      Delete the site's existing events and funnels first.
@@ -32,7 +32,7 @@ require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 $options = getopt('', ['site::', 'days::', 'reset', 'live-only', 'domain::', 'help']);
 if (isset($options['help'])) {
-    fwrite(STDOUT, "Usage: php scripts/seed-demo-data.php [--site=demo_site] [--days=30] [--reset] [--live-only] [--domain=example.com]\n");
+    fwrite(STDOUT, "Usage: php bin/seed-demo.php [--site=demo_site] [--days=30] [--reset] [--live-only] [--domain=example.com]\n");
     exit(0);
 }
 $siteId = preg_replace('/[^a-z0-9_\-]/', '', strtolower((string) ($options['site'] ?? 'demo_site')));

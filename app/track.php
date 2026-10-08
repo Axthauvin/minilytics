@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Minilytics\Database\Database;
 use Minilytics\Database\DatabaseConnection;
 use Minilytics\Geo\GeoLocation;
+use Minilytics\Tracking\VisitorIdentity;
 
 /** Public ingestion: registered sites, per-site keys, allowed origins only. */
 header('Content-Type: application/json; charset=utf-8');
@@ -25,7 +26,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     exit;
 }
 require_once __DIR__ . '/vendor/autoload.php';
-require_once __DIR__ . '/session.php';
 
 function failTracking(string $message, int $status = 400): never
 {
@@ -259,10 +259,10 @@ try {
     $data = array_merge($data, ['country' => 'Unknown', 'country_code' => 'UN', 'region' => '', 'city' => '']);
 }
 if ($trackingMode === 'strict') {
-    $visitor = generateVisitorId((string) $site['id'], $ip, $ua);
-    $session = activeSessionId($db, $visitor) ?? generateSessionId();
+    $visitor = VisitorIdentity::visitorId((string) $site['id'], $ip, $ua);
+    $session = activeSessionId($db, $visitor) ?? VisitorIdentity::sessionId();
 } else {
-    $session = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) ($payload['session_id'] ?? '')) ?: generateSessionId();
+    $session = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) ($payload['session_id'] ?? '')) ?: VisitorIdentity::sessionId();
     $visitor = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) ($payload['visitor_id'] ?? '')) ?: $session;
 }
 $action = ['site_id' => $site['id'], 'name' => $name, 'data' => $data];
