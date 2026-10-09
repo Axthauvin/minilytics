@@ -14,6 +14,22 @@ const App = {
   isGuest: window.MINILYTICS_GUEST === true,
   guestSiteId: window.MINILYTICS_PUBLIC_SITE || null,
 
+  /**
+   * Warns administrators when the web server ignores the .htaccess rules
+   * (Nginx, Caddy…): composer.json is then served as JSON instead of denied.
+   */
+  checkServerConfig() {
+    const banner = document.getElementById("serverConfigWarning");
+    // Local development servers (php -S) serve every file on purpose.
+    if (!banner || /^(localhost|127\.0\.0\.1|\[::1\])$|\.(localhost|test)$/.test(window.location.hostname)) return;
+    fetch("/composer.json", { cache: "no-store" })
+      .then((res) => {
+        // Some servers answer missing files with an HTML page and a 200 status.
+        banner.hidden = !(res.ok && (res.headers.get("Content-Type") || "").includes("json"));
+      })
+      .catch(() => {});
+  },
+
   init() {
     // Read URL search parameter (?site=... or ?site_id=...)
     const urlParams = new URLSearchParams(window.location.search);
@@ -23,6 +39,7 @@ const App = {
     }
     if (this.isGuest) this.currentSiteId = this.guestSiteId;
 
+    this.checkServerConfig();
     this.bindNavigation();
     this.bindHeaderActions();
     this.restoreDateRangePreference();

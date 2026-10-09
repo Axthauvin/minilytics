@@ -26,6 +26,7 @@ It was built because today's most modern analytics tools require heavy Node.js r
 ### Requirements
 
 - PHP 8.1 or later with the `sqlite3` and `pdo_sqlite` extensions enabled
+- Apache or LiteSpeed work out of the box; for Nginx or Caddy, apply the [web server configuration](docs/operations/README.md#web-server-configuration)
 - For MySQL or MariaDB: the `pdo_mysql` PHP extension and a database/user with `CREATE`, `ALTER`, `INDEX`, `SELECT`, `INSERT`, `UPDATE` and `DELETE` permissions
 - A writable data directory outside the web root (default: `minilytics-data/` next to the web root, or set `MINILYTICS_DATA_DIR`)
 - Outbound HTTPS access and `zlib` support (to download the local DB-IP City Lite geolocation database)

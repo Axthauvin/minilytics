@@ -3858,6 +3858,43 @@ pre, .json-box, .code-box {
     background: var(--primary-hover);
 }
 
+/* Admin warning when the web server ignores the .htaccess rules */
+.server-config-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 16px;
+    background: var(--warning-bg);
+    border-bottom: 1px solid #fde68a;
+    color: #92400e;
+    font-size: 12.5px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.server-config-banner[hidden] {
+    display: none;
+}
+
+.server-config-banner code {
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: #fef3c7;
+    font-size: 12px;
+}
+
+.server-config-banner a {
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    background: var(--warning);
+    color: #ffffff;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
 .demo-mode-card {
     display: flex;
     flex-direction: column;

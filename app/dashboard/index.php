@@ -105,6 +105,13 @@ if ($path === '/dashboard') {
                 <?php endif; ?>
             </div>
             <?php endif; ?>
+            <?php if (($authUser['role'] ?? '') === 'admin'): ?>
+            <!-- Shown by App.checkServerConfig() when the .htaccess rules are not applied -->
+            <div class="server-config-banner" id="serverConfigWarning" role="alert" hidden>
+                <span><strong>Your web server is not applying the Minilytics access rules:</strong> application files such as <code>composer.json</code> are publicly readable.</span>
+                <a href="https://github.com/axthauvin/minilytics/blob/main/docs/operations/README.md#web-server-configuration" target="_blank" rel="noopener">Nginx &amp; Caddy setup ↗</a>
+            </div>
+            <?php endif; ?>
             <!-- Top Header with Live Visitors & Controls -->
             <?php include __DIR__ . '/src/components/header.php'; ?>
 
