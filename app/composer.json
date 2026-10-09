@@ -10,7 +10,9 @@
     ],
     "require": {
         "php": ">=8.1",
+        "ext-pdo_sqlite": "*",
         "ext-sqlite3": "*",
+        "delight-im/auth": "^9.0",
         "maxmind-db/reader": "^1.14"
     },
     "require-dev": {

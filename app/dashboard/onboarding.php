@@ -28,12 +28,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $step === 'account') {
     } elseif ($passwordError = Auth::passwordError($password)) {
         $error = $passwordError;
     } else {
-        $db = Auth::db();
-        $stmt = $db->prepare('INSERT INTO users (email, password_hash, role) VALUES (:email, :password, "admin")');
-        $stmt->bindValue(':email', $email, SQLITE3_TEXT);
-        $stmt->bindValue(':password', password_hash($password, PASSWORD_DEFAULT), SQLITE3_TEXT);
-        $stmt->execute();
-        Auth::login(['id' => $db->lastInsertRowID()]);
+        Auth::loginById(Auth::createUser($email, $password, 'admin'));
         header('Location: /dashboard/onboarding.php?step=database');
         exit;
     }

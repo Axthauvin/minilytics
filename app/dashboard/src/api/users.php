@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Delight\Auth\Role;
 use Minilytics\Auth\Auth;
 
 header('Content-Type: application/json; charset=utf-8');
@@ -25,14 +26,14 @@ $db = Auth::db();
 try {
     // 1. GET: List all authorized users and include current user info
     if ($method === 'GET') {
-        $result = $db->query('SELECT id, email, role, created_at FROM users ORDER BY created_at ASC');
+        $result = $db->query('SELECT id, email, roles_mask, registered FROM users ORDER BY registered ASC');
         $users = [];
         while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
             $users[] = [
                 'id' => (int) $row['id'],
                 'email' => $row['email'],
-                'role' => $row['role'],
-                'created_at' => $row['created_at'],
+                'role' => ((int) $row['roles_mask'] & Role::ADMIN) ? 'admin' : 'member',
+                'created_at' => gmdate('Y-m-d H:i:s', (int) $row['registered']),
             ];
         }
         echo json_encode([
@@ -68,7 +69,7 @@ try {
         }
 
         // Check if user exists
-        $stmt = $db->prepare('SELECT id, email, role FROM users WHERE id = :id');
+        $stmt = $db->prepare("SELECT id, email, CASE WHEN roles_mask & 1 THEN 'admin' ELSE 'member' END AS role FROM users WHERE id = :id");
         $stmt->bindValue(':id', $userId, SQLITE3_INTEGER);
         $userToDelete = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
         if (!$userToDelete) {
@@ -78,7 +79,7 @@ try {
 
         // If target is an admin, ensure at least one other administrator remains
         if ($userToDelete['role'] === 'admin') {
-            $adminCount = (int) $db->querySingle("SELECT COUNT(*) FROM users WHERE role = 'admin'");
+            $adminCount = (int) $db->querySingle('SELECT COUNT(*) FROM users WHERE roles_mask & 1');
             if ($adminCount <= 1) {
                 http_response_code(400);
                 Auth::jsonError('Cannot delete the only administrator.');
@@ -91,9 +92,7 @@ try {
         $cleanInvites->execute();
 
         // Delete the user record
-        $deleteStmt = $db->prepare('DELETE FROM users WHERE id = :id');
-        $deleteStmt->bindValue(':id', $userId, SQLITE3_INTEGER);
-        $deleteStmt->execute();
+        Auth::engine()->admin()->deleteUserById($userId);
 
         echo json_encode([
             'success' => true,
@@ -113,7 +112,7 @@ try {
         }
 
         // Check if user exists
-        $stmt = $db->prepare('SELECT id, email, role FROM users WHERE id = :id');
+        $stmt = $db->prepare("SELECT id, email, CASE WHEN roles_mask & 1 THEN 'admin' ELSE 'member' END AS role FROM users WHERE id = :id");
         $stmt->bindValue(':id', $userId, SQLITE3_INTEGER);
         $targetUser = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
         if (!$targetUser) {
@@ -129,7 +128,7 @@ try {
 
         // If demoting an admin, ensure at least one other administrator remains
         if ($targetUser['role'] === 'admin' && $newRole !== 'admin') {
-            $adminCount = (int) $db->querySingle("SELECT COUNT(*) FROM users WHERE role = 'admin'");
+            $adminCount = (int) $db->querySingle('SELECT COUNT(*) FROM users WHERE roles_mask & 1');
             if ($adminCount <= 1) {
                 http_response_code(400);
                 Auth::jsonError('Cannot remove the only administrator.');
@@ -137,10 +136,11 @@ try {
         }
 
         if ($targetUser['role'] !== $newRole) {
-            $updateStmt = $db->prepare('UPDATE users SET role = :role WHERE id = :id');
-            $updateStmt->bindValue(':role', $newRole, SQLITE3_TEXT);
-            $updateStmt->bindValue(':id', $userId, SQLITE3_INTEGER);
-            $updateStmt->execute();
+            if ($newRole === 'admin') {
+                Auth::engine()->admin()->addRoleForUserById($userId, Role::ADMIN);
+            } else {
+                Auth::engine()->admin()->removeRoleForUserById($userId, Role::ADMIN);
+            }
         }
 
         echo json_encode([

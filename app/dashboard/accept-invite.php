@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+use Delight\Auth\UserAlreadyExistsException;
 use Minilytics\Auth\Auth;
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -23,18 +24,14 @@ if (!$error && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $error = $passwordError;
     } else {
         try {
-            $s = $db->prepare('INSERT INTO users (email, password_hash, role) VALUES (:email, :password, "member")');
-            $s->bindValue(':email', $invite['email'], SQLITE3_TEXT);
-            $s->bindValue(':password', password_hash($password, PASSWORD_DEFAULT), SQLITE3_TEXT);
-            $s->execute();
-            $id = $db->lastInsertRowID();
+            $id = Auth::createUser($invite['email'], $password, 'member');
             $s = $db->prepare('UPDATE invitations SET accepted_at = CURRENT_TIMESTAMP WHERE id = :id');
             $s->bindValue(':id', $invite['id'], SQLITE3_INTEGER);
             $s->execute();
-            Auth::login(['id' => $id]);
+            Auth::loginById($id);
             header('Location: /dashboard/#websites');
             exit;
-        } catch (Throwable $e) {
+        } catch (UserAlreadyExistsException) {
             $error = 'An account already exists for this email address.';
         }
     }

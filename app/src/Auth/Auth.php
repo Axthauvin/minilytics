@@ -4,12 +4,22 @@ declare(strict_types=1);
 
 namespace Minilytics\Auth;
 
+use Delight\Auth\Auth as AuthEngine;
+use Delight\Auth\Role;
 use Minilytics\Database\Database;
+use PDO;
 use SQLite3;
 
-/** Authentication and invitation helpers for the private dashboard. */
+/**
+ * Authentication and invitation helpers for the private dashboard.
+ *
+ * Accounts, sessions and login throttling are handled by delight-im/auth;
+ * this class keeps the dashboard's small API ("admin" / "member" roles).
+ */
 final class Auth
 {
+    private static ?AuthEngine $engine = null;
+
     public static function dataDir(): string
     {
         return Database::getDataDir();
@@ -26,11 +36,15 @@ final class Auth
 
     public static function startSession(): void
     {
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_name('minilytics_session');
-            session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off']);
-            session_start();
+        // Before onboarding there is no auth database to attach the engine to.
+        if (!self::hasDatabase()) {
+            self::configureSession();
+            if (session_status() !== PHP_SESSION_ACTIVE) {
+                session_start();
+            }
+            return;
         }
+        self::engine();
     }
 
     public static function db(): SQLite3
@@ -38,29 +52,47 @@ final class Auth
         $db = new SQLite3(self::dbPath());
         $db->busyTimeout(5000);
         $db->exec('PRAGMA journal_mode = WAL;');
-        $db->exec('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE COLLATE NOCASE, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT "member", created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)');
-        $db->exec('CREATE TABLE IF NOT EXISTS invitations (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL COLLATE NOCASE, token_hash TEXT NOT NULL UNIQUE, expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, created_by INTEGER, accepted_at TEXT, FOREIGN KEY(created_by) REFERENCES users(id))');
+        AuthSchema::ensure($db);
         return $db;
+    }
+
+    public static function engine(): AuthEngine
+    {
+        if (self::$engine === null) {
+            self::configureSession();
+            self::db()->close();
+            $pdo = new PDO('sqlite:' . self::dbPath());
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $pdo->exec('PRAGMA busy_timeout = 5000;');
+            // Resync on every request so role changes and deleted accounts apply immediately.
+            self::$engine = new AuthEngine($pdo, null, null, null, 0);
+        }
+        return self::$engine;
+    }
+
+    private static function configureSession(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_name('minilytics_session');
+            session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax', 'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off']);
+        }
     }
 
     public static function isAuthenticated(): bool
     {
-        self::startSession();
-        return !empty($_SESSION['user_id']);
+        return self::hasDatabase() && self::engine()->isLoggedIn();
     }
     public static function user(): ?array
     {
-        if (!self::isAuthenticated() || !self::hasDatabase()) {
+        if (!self::isAuthenticated()) {
             return null;
         }
-        $db = self::db();
-        $stmt = $db->prepare('SELECT id, email, role FROM users WHERE id = :id');
-        $stmt->bindValue(':id', (int) $_SESSION['user_id'], SQLITE3_INTEGER);
-        $row = $stmt->execute()->fetchArray(SQLITE3_ASSOC) ?: null;
-        if (!$row) {
-            self::logout();
-        }
-        return $row;
+        $auth = self::engine();
+        return [
+            'id' => (int) $auth->getUserId(),
+            'email' => (string) $auth->getEmail(),
+            'role' => $auth->hasRole(Role::ADMIN) ? 'admin' : 'member',
+        ];
     }
     public static function requireLogin(): void
     {
@@ -111,14 +143,27 @@ final class Auth
         echo json_encode(['error' => $message]);
         exit;
     }
-    public static function login(array $user): void
+    /** Creates a verified account and returns its ID. */
+    public static function createUser(string $email, string $password, string $role): int
     {
-        self::startSession();
-        session_regenerate_id(true);
-        $_SESSION['user_id'] = (int) $user['id'];
+        $admin = self::engine()->admin();
+        $id = (int) $admin->createUser($email, $password);
+        if ($role === 'admin') {
+            $admin->addRoleForUserById($id, Role::ADMIN);
+        }
+        return $id;
+    }
+    public static function loginById(int $id): void
+    {
+        self::engine()->admin()->logInAsUserById($id);
     }
     public static function logout(): void
     {
+        if (self::hasDatabase()) {
+            self::engine()->logOut();
+            self::engine()->destroySession();
+            return;
+        }
         self::startSession();
         $_SESSION = [];
         session_destroy();
