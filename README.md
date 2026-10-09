@@ -66,6 +66,8 @@ Open [http://localhost:8080/dashboard/](http://localhost:8080/dashboard/) for th
 
 Release archives already bundle `vendor/`, so Composer is only needed when running from a clone of the repository.
 
+Want to contribute? Read the [contributing guide](CONTRIBUTING.md) for the coding standard, checks and commit convention.
+
 ---
 
 ## Documentation
