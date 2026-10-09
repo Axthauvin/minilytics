@@ -138,7 +138,7 @@ class UmamiImporter extends BaseImporter
             $primaryHost = !empty($detectedHostnames) ? array_key_first($detectedHostnames) : '';
 
             return [
-                'has_website_event' => !empty($found['website_event']),
+                'has_website_event' => true,
                 'has_event_data' => !empty($found['event_data']),
                 'has_session_data' => !empty($found['session_data']),
                 'detected_host' => $primaryHost,

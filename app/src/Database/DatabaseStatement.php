@@ -11,7 +11,6 @@ use SQLite3Stmt;
 /** Prepared statement wrapper exposing the SQLite3Stmt API over SQLite or PDO. */
 final class DatabaseStatement
 {
-    private array $values = [];
     public function __construct(private SQLite3Stmt|PDOStatement $statement, private bool $mysql) {}
     public function bindValue(string $name, mixed $value, int $type = SQLITE3_TEXT): bool
     {

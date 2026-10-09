@@ -71,22 +71,11 @@ function analyzeFunnel(DatabaseConnection $db, array $steps, string $start, stri
     $stmt->bindValue(':start', $start, SQLITE3_TEXT);
     $stmt->bindValue(':end', $end, SQLITE3_TEXT);
     $res = $stmt->execute();
-    $progress = array_fill(0, count($steps), 0);
-    $session = null;
-    $at = 0;
-    $finish = function () use (&$session, &$at, &$progress) {
-        if ($session !== null) {
-            for ($i = 0; $i < $at; $i++) {
-                $progress[$i]++;
-            }
-        }
-    };
+    // Number of consecutive steps each session has reached so far.
+    $reached = [];
     while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
-        if ($session !== $row['session_id']) {
-            $finish();
-            $session = $row['session_id'];
-            $at = 0;
-        }
+        $session = $row['session_id'];
+        $at = $reached[$session] ?? 0;
         if ($at >= count($steps)) {
             continue;
         }
@@ -96,11 +85,30 @@ function analyzeFunnel(DatabaseConnection $db, array $steps, string $start, stri
         $wanted = $steps[$at];
         $matches = $wanted['type'] === 'pageview' ? ($name === 'pageview' && $path === $wanted['value']) : ($name === $wanted['value']);
         if ($matches) {
-            $at++;
+            $reached[$session] = $at + 1;
         }
     }
-    $finish();
+    $progress = array_fill(0, count($steps), 0);
+    foreach ($reached as $at) {
+        for ($i = 0; $i < $at; $i++) {
+            $progress[$i]++;
+        }
+    }
     return $progress;
+}
+/** Adds one completed journey to the tree, counting each step along its branch. */
+function addJourneyPath(array &$tree, array $branchPath): void
+{
+    $node = & $tree;
+    $node['count']++;
+    foreach ($branchPath as $branch) {
+        if (!isset($node['children'][$branch['key']])) {
+            $node['children'][$branch['key']] = ['type' => $branch['type'], 'value' => $branch['value'], 'count' => 0, 'children' => []];
+        }
+        $node = & $node['children'][$branch['key']];
+        $node['count']++;
+    }
+    unset($node);
 }
 function analyzeJourneySources(DatabaseConnection $db, array $steps, string $start, string $end): array
 {
@@ -120,22 +128,6 @@ function analyzeJourneySources(DatabaseConnection $db, array $steps, string $sta
     $entered = 0;
     $completed = 0;
     $tree = ['count' => 0, 'children' => []];
-    $recordPath = function () use (&$branchPath, &$tree, &$completed): void {
-        if (!$branchPath) {
-            return;
-        }
-        $completed++;
-        $node = & $tree;
-        $node['count']++;
-        foreach ($branchPath as $branch) {
-            if (!isset($node['children'][$branch['key']])) {
-                $node['children'][$branch['key']] = ['type' => $branch['type'], 'value' => $branch['value'], 'count' => 0, 'children' => []];
-            }
-            $node = & $node['children'][$branch['key']];
-            $node['count']++;
-        }
-        unset($node);
-    };
     while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
         if ($currentSession !== $row['session_id']) {
             $currentSession = $row['session_id'];
@@ -165,7 +157,8 @@ function analyzeJourneySources(DatabaseConnection $db, array $steps, string $sta
         $branchPath[] = ['key' => $type . '|' . $value, 'type' => $type, 'value' => $value];
         $isExit = $exit['type'] === 'pageview' ? ($name === 'pageview' && $actionPath === $exit['value']) : ($name === $exit['value']);
         if ($isExit) {
-            $recordPath();
+            $completed++;
+            addJourneyPath($tree, $branchPath);
             $capturing = false;
         } elseif (count($branchPath) >= 12) {
             $capturing = false;

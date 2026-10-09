@@ -54,7 +54,6 @@ try {
 
     // Site filter condition (in isolated per-site DB, all records belong to the site)
     $siteCondition = '';
-    $siteParams = [];
 
     // Dashboard filters (pages, referrers, environment, countries). They are
     // injected through $siteCondition so every query below is filtered. The
@@ -74,9 +73,6 @@ try {
     $liveThreshold = gmdate('Y-m-d H:i:s', $now - 300);
     $liveStmt = $db->prepare("SELECT COUNT(DISTINCT COALESCE(visitor_id, session_id)) FROM user_activity WHERE timestamp >= :live_time" . $siteCondition);
     $liveStmt->bindValue(':live_time', $liveThreshold, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) {
-        $liveStmt->bindValue($k, $v, SQLITE3_TEXT);
-    }
     $liveResult = $liveStmt->execute();
     $liveVisitors = (int) $liveResult->fetchArray(SQLITE3_NUM)[0];
 
@@ -93,9 +89,6 @@ try {
     $sumStmt = $db->prepare($summarySql);
     $sumStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
     $sumStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) {
-        $sumStmt->bindValue($k, $v, SQLITE3_TEXT);
-    }
     $sumRow = $sumStmt->execute()->fetchArray(SQLITE3_ASSOC) ?: [];
 
     $totalPageviews = (int) ($sumRow['pageviews'] ?? 0);
@@ -151,9 +144,6 @@ try {
     $sessStmt = $db->prepare($sessionMetricsSql);
     $sessStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
     $sessStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) {
-        $sessStmt->bindValue($k, $v, SQLITE3_TEXT);
-    }
     $sessMetrics = $sessStmt->execute()->fetchArray(SQLITE3_ASSOC) ?: [];
 
     $totalSessions = (int) ($sessMetrics['total_sessions'] ?? $totalSessions);
@@ -186,9 +176,6 @@ try {
         $pSumStmt = $db->prepare($prevSumSql);
         $pSumStmt->bindValue(':prev_start', $prevStartDateStr, SQLITE3_TEXT);
         $pSumStmt->bindValue(':prev_end', $prevEndDateStr, SQLITE3_TEXT);
-        foreach ($siteParams as $k => $v) {
-            $pSumStmt->bindValue($k, $v, SQLITE3_TEXT);
-        }
         $prevSumRow = $pSumStmt->execute()->fetchArray(SQLITE3_ASSOC) ?: [];
 
         $prevPageviews = (int) ($prevSumRow['pageviews'] ?? 0);
@@ -241,9 +228,6 @@ try {
         $pSessStmt = $db->prepare($prevSessSql);
         $pSessStmt->bindValue(':prev_start', $prevStartDateStr, SQLITE3_TEXT);
         $pSessStmt->bindValue(':prev_end', $prevEndDateStr, SQLITE3_TEXT);
-        foreach ($siteParams as $k => $v) {
-            $pSessStmt->bindValue($k, $v, SQLITE3_TEXT);
-        }
         $pSessMetrics = $pSessStmt->execute()->fetchArray(SQLITE3_ASSOC) ?: [];
 
         $prevSessions = (int) ($pSessMetrics['total_sessions'] ?? 0);
@@ -387,9 +371,6 @@ try {
     $tsStmt = $db->prepare($tsSql);
     $tsStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
     $tsStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) {
-        $tsStmt->bindValue($k, $v, SQLITE3_TEXT);
-    }
     $tsRes = $tsStmt->execute();
 
     $slotMap = [];
@@ -538,9 +519,6 @@ try {
     $pStmt = $db->prepare($pagesSql);
     $pStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
     $pStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) {
-        $pStmt->bindValue($k, $v, SQLITE3_TEXT);
-    }
     $pRes = $pStmt->execute();
 
     $topPages = [];
@@ -572,9 +550,6 @@ try {
     $rStmt = $db->prepare($refSql);
     $rStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
     $rStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) {
-        $rStmt->bindValue($k, $v, SQLITE3_TEXT);
-    }
     $rRes = $rStmt->execute();
 
     $topReferrers = [];
@@ -630,9 +605,6 @@ try {
     $eStmt = $db->prepare($evtSql);
     $eStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
     $eStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) {
-        $eStmt->bindValue($k, $v, SQLITE3_TEXT);
-    }
     $eRes = $eStmt->execute();
 
     $topEvents = [];
@@ -655,7 +627,7 @@ try {
     // 7. Environment Breakdowns (Browsers, OS, Devices)
     // These are audience dimensions, not pageview dimensions: a visitor is
     // counted once for each value they used during the selected period.
-    $envQuery = function (string $field) use ($db, $startDateStr, $endDateStr, $totalVisitors, $siteCondition, $siteParams): array {
+    $envQuery = function (string $field) use ($db, $startDateStr, $endDateStr, $totalVisitors, $siteCondition): array {
         $sql = "
             SELECT 
                 COALESCE(json_extract(action, '$.data.{$field}'), 'Unknown') as label,
@@ -671,9 +643,6 @@ try {
         $stmt = $db->prepare($sql);
         $stmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
         $stmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-        foreach ($siteParams as $k => $v) {
-            $stmt->bindValue($k, $v, SQLITE3_TEXT);
-        }
         $res = $stmt->execute();
         $list = [];
         while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
@@ -709,9 +678,6 @@ try {
     $cStmt = $db->prepare($countrySql);
     $cStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
     $cStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
-    foreach ($siteParams as $k => $v) {
-        $cStmt->bindValue($k, $v, SQLITE3_TEXT);
-    }
     $cRes = $cStmt->execute();
     $topCountries = [];
     while ($cr = $cRes->fetchArray(SQLITE3_ASSOC)) {

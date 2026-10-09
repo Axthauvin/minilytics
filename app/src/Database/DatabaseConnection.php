@@ -40,7 +40,7 @@ final class DatabaseConnection
             return null;
         }
         $row = $result->fetchArray(SQLITE3_NUM);
-        return $row === false || $row === null ? null : $row[0];
+        return $row === false ? null : $row[0];
     }
     public function changes(): int
     {

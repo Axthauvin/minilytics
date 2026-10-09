@@ -161,7 +161,7 @@ class Database
                 $sitesChanged = true;
             }
             if (!isset($site['allowed_domains'])) {
-                $site['allowed_domains'] = array_values(array_filter([self::normalizeHost((string) ($site['domain'] ?? ''))]));
+                $site['allowed_domains'] = array_filter([self::normalizeHost((string) ($site['domain'] ?? ''))]);
                 $sitesChanged = true;
             }
             if (!isset($site['internal_ips'])) {
@@ -383,7 +383,7 @@ class Database
             'id' => $cleanId,
             'name' => trim($name) ?: $cleanId,
             'domain' => trim($domain),
-            'allowed_domains' => array_values(array_filter([self::normalizeHost($domain)])),
+            'allowed_domains' => array_filter([self::normalizeHost($domain)]),
             'internal_ips' => [],
             'retention_days' => 395,
             'write_key' => bin2hex(random_bytes(24)),
@@ -444,7 +444,7 @@ class Database
             if (!$db->isMysql()) {
                 $cols = $db->query("PRAGMA table_info(user_activity)");
                 $hasVisitorId = false;
-                while (($col = $cols?->fetchArray(SQLITE3_ASSOC)) !== false) {
+                while ($cols !== false && ($col = $cols->fetchArray(SQLITE3_ASSOC)) !== false) {
                     if ($col['name'] === 'visitor_id') {
                         $hasVisitorId = true;
                     }
