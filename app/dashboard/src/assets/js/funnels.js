@@ -110,7 +110,8 @@ const FunnelsPage = {
         const previousProgress = first ? (previous / first) * 100 : progress;
         const retainedHeight = previousProgress ? (progress / previousProgress) * 100 : 0;
         const retained = i ? (previous ? (count / previous) * 100 : 0) : 100;
-        const lost = i ? Math.max(0, 100 - retained) : 0;
+        // Nobody reached the previous step, so nobody could drop off.
+        const lost = i && previous ? Math.max(0, 100 - retained) : 0;
         return `<article class="funnel-stage"><div class="funnel-column-chart"><span class="funnel-bar-percent">${progress.toFixed(1)}%</span><div class="funnel-bar-slot"><div class="funnel-bar-stack" style="height:${Math.max(previousProgress, 3)}%"><div class="funnel-vertical-bar" style="height:${Math.max(retainedHeight, 3)}%"></div></div></div></div><div class="funnel-column-details"><div class="funnel-stage-top"><span class="funnel-step-number">${i + 1}</span><div class="funnel-stage-name"><strong>${this.esc(step.label)}</strong><span>${step.type === "pageview" ? "Page view" : "Event"} · ${this.esc(step.value)}</span></div></div><div class="funnel-stage-stat"><strong>${count.toLocaleString()}</strong><span>visitors</span></div><div class="funnel-stage-footer">${i ? `<span>${retained.toFixed(1)}% continued</span><span class="funnel-drop">−${lost.toFixed(1)}% dropped off</span>` : "<span>Starting point</span>"}</div></div></article>`;
       })
       .join("");
