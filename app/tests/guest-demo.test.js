@@ -13,6 +13,9 @@ const BASE = `http://127.0.0.1:${PORT}`;
 let workdir;
 let server;
 
+/** Points the app at the isolated data directory instead of ../minilytics-data. */
+const phpEnv = () => ({ ...process.env, MINILYTICS_DATA_DIR: path.join(workdir, 'data') });
+
 /** Isolated copy of the app with one public and one private website. */
 function prepareInstall() {
   workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'minilytics-guest-'));
@@ -32,13 +35,13 @@ function prepareInstall() {
   // Auth database (onboarding done) and one pageview per website.
   const setup = spawnSync('php', ['-r', `
     require '${workdir}/vendor/autoload.php';
-    Minilytics\\Auth\\Auth::db()->exec("INSERT INTO users (email, password_hash, role) VALUES ('a@b.c', 'x', 'admin')");
+    Minilytics\\Auth\\Auth::db()->exec("INSERT INTO users (email, password, verified, roles_mask, registered) VALUES ('a@b.c', 'x', 1, 1, 0)");
     foreach (['demo_site', 'private_site'] as $id) {
       $db = Minilytics\\Database\\Database::getConnection($id);
       $db->exec("INSERT INTO user_activity (session_id, visitor_id, action) VALUES ('s1', 'v1', '{\\"name\\":\\"pageview\\",\\"data\\":{\\"path\\":\\"/\\"}}')");
     }
-  `]);
-  assert.equal(setup.status, 0, setup.stderr.toString());
+  `], { env: phpEnv() });
+  assert.equal(setup.status, 0, setup.stdout.toString() + setup.stderr.toString());
 }
 
 async function waitForServer() {
@@ -53,7 +56,7 @@ const api = (endpoint, init) => fetch(`${BASE}/dashboard/src/api/${endpoint}`, {
 test.before(async () => {
   if (!hasPhp) return;
   prepareInstall();
-  server = spawn('php', ['-S', `127.0.0.1:${PORT}`, '-t', workdir], { stdio: 'ignore' });
+  server = spawn('php', ['-S', `127.0.0.1:${PORT}`, '-t', workdir], { stdio: 'ignore', env: phpEnv() });
   await waitForServer();
 });
 
