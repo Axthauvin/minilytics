@@ -1,0 +1,10 @@
+# Shared settings. phpstan.neon adds the baseline; `composer analyse:all` runs this file alone.
+parameters:
+    # Raise one level at a time: fix or baseline the new errors, then bump.
+    level: 5
+    paths:
+        - bin
+        - dashboard
+        - src
+        - index.php
+        - track.php

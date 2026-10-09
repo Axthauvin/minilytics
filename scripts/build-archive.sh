@@ -43,6 +43,7 @@ EXCLUDES=(
     "tests"
     "umami-import"
     "bin/seed-demo.php"
+    "phpstan*.neon"
     "*.tar.gz"
     "*.zip"
     "*.log"

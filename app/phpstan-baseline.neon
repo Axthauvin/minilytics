@@ -1,0 +1,73 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Anonymous function has an unused use \$completed\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: dashboard/src/api/funnels.php
+
+		-
+			message: '#^Anonymous function has an unused use \$tree\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: dashboard/src/api/funnels.php
+
+		-
+			message: '#^Comparison operation "\<" between 0 and 0 is always false\.$#'
+			identifier: smaller.alwaysFalse
+			count: 1
+			path: dashboard/src/api/funnels.php
+
+		-
+			message: '#^Negated boolean expression is always true\.$#'
+			identifier: booleanNot.alwaysTrue
+			count: 1
+			path: dashboard/src/api/funnels.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between null and null will always evaluate to false\.$#'
+			identifier: notIdentical.alwaysFalse
+			count: 1
+			path: dashboard/src/api/funnels.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: dashboard/src/api/funnels.php
+
+		-
+			message: '#^Empty array passed to foreach\.$#'
+			identifier: foreach.emptyArray
+			count: 11
+			path: dashboard/src/api/stats.php
+
+		-
+			message: '#^Parameter \#1 \$array \(array\{0\?\: non\-falsy\-string\}\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 2
+			path: src/Database/Database.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Minilytics\\Database\\DatabaseResult\|false\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: src/Database/Database.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between array and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: src/Database/DatabaseConnection.php
+
+		-
+			message: '#^Property Minilytics\\Database\\DatabaseStatement\:\:\$values is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: src/Database/DatabaseStatement.php
+
+		-
+			message: '#^Offset ''website_event'' on non\-empty\-array in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.offset
+			count: 1
+			path: src/Importers/UmamiImporter.php

@@ -51,7 +51,10 @@ Run these before opening a pull request. PHP commands run from `app/`:
 ```bash
 composer cs:check   # report coding standard violations
 composer cs:fix     # fix them automatically
+composer analyse    # static analysis with PHPStan
 ```
+
+PHPStan runs at the level set in `app/phpstan.base.neon`. Errors that existed when it was introduced are listed in `app/phpstan-baseline.neon`: new code must not add to it. Run `composer analyse:all` to see every error including the baselined ones, and when you fix one, regenerate the baseline with `composer analyse:baseline`.
 
 JavaScript tests run from the repository root:
 
