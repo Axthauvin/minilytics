@@ -62,6 +62,10 @@ JavaScript tests run from the repository root:
 node --test app/tests/*.test.js
 ```
 
+Some tests start a PHP server, so they are skipped when `php` is not on your `PATH`.
+
+The [CI workflow](.github/workflows/ci.yml) runs all of these checks, plus a PHP syntax check on PHP 8.1, on every pull request and every push to `main`.
+
 If you change something that the tests don't cover, describe how you checked it manually in the pull request.
 
 ## Commit convention

@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  php:
+    name: PHP lint, coding standard & static analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # The minimum supported version, so syntax from newer PHP releases fails here.
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+          extensions: sqlite3, pdo_sqlite
+          tools: composer:v2
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --working-dir=app --no-interaction --prefer-dist
+
+      - name: Check PHP syntax
+        run: |
+          find app scripts -name '*.php' -not -path 'app/vendor/*' -not -path 'app/umami-import/*' -print0 \
+            | xargs -0 -n1 php -l > /dev/null
+
+      - name: Check coding standard
+        run: composer cs:check --working-dir=app
+
+      - name: Run PHPStan
+        run: composer analyse --working-dir=app -- --no-progress --error-format=github
+
+  tests:
+    name: JavaScript tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # The guest demo tests start a PHP server against a copy of the app.
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+          extensions: sqlite3, pdo_sqlite
+          tools: composer:v2
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --working-dir=app --no-interaction --prefer-dist
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run tests
+        run: node --test app/tests/*.test.js
