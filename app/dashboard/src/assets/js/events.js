@@ -11,6 +11,15 @@ const EventsPage = {
     sessionId: "",
   },
   eventsMap: {},
+  // Event names the page focuses on; empty means every event.
+  selected: new Set(),
+  types: [],
+  breakdownQuery: "",
+  breakdownLimit: 10,
+  requestId: 0,
+  // How many series the chart plots when no event is selected.
+  TOP_SERIES: 8,
+  PALETTE: ["#f59e0b", "#2563eb", "#8b5cf6", "#10b981", "#ef4444", "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#6366f1"],
 
   // ── Init ────────────────────────────────────────────────────────────────
 
@@ -55,15 +64,28 @@ const EventsPage = {
         this.load();
       });
 
-    document.addEventListener("click", (event) => {
-      const combobox = document.getElementById("eventsSeriesCombobox");
-      const menu = document.getElementById("eventsSeriesMenu");
-      if (combobox && menu && !combobox.contains(event.target) && !menu.contains(event.target)) {
-        this.setSeriesMenuOpen(false);
+    document.getElementById("eventsSelectionReset")?.addEventListener("click", () => this.setSelection(new Set()));
+    document.getElementById("eventsBreakdownSearch")?.addEventListener("input", (event) => {
+      this.breakdownQuery = event.target.value;
+      this.breakdownLimit = 10;
+      this.renderBreakdown();
+    });
+    document.getElementById("eventsBreakdownMore")?.addEventListener("click", () => {
+      this.breakdownLimit += 25;
+      this.renderBreakdown();
+    });
+    const body = document.getElementById("eventsBreakdownBody");
+    body?.addEventListener("click", (event) => {
+      const row = event.target.closest?.("tr[data-event]");
+      if (row) this.toggleEvent(row.dataset.event);
+    });
+    body?.addEventListener("keydown", (event) => {
+      const row = event.target.closest?.("tr[data-event]");
+      if (row && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        this.toggleEvent(row.dataset.event);
       }
     });
-    window.addEventListener("resize", () => this.positionSeriesMenu());
-    document.addEventListener("scroll", () => this.positionSeriesMenu(), true);
   },
 
   // ── Public API ───────────────────────────────────────────────────────────
@@ -102,6 +124,36 @@ const EventsPage = {
     window.Filters?.openSessions();
   },
 
+  // ── Selection ────────────────────────────────────────────────────────────
+
+  /** From "all events", a click focuses on one event; afterwards it adds or removes events. */
+  toggleEvent(name) {
+    const next = new Set(this.selected);
+    if (next.has(name)) next.delete(name);
+    else next.add(name);
+    this.setSelection(next);
+  },
+
+  setSelection(selected) {
+    this.selected = selected;
+    this.filters.page = 1;
+    this.load();
+  },
+
+  selectionTitle() {
+    const names = [...this.selected];
+    if (names.length === 0) return "All events";
+    if (names.length === 1) return names[0];
+    return `${names[0]} + ${names.length - 1} more`;
+  },
+
+  /** Selected events get distinct colors in selection order; otherwise colors follow the ranking. */
+  colorFor(name) {
+    const selectedIndex = [...this.selected].indexOf(name);
+    const index = selectedIndex >= 0 ? selectedIndex : this.types.findIndex((type) => type.name === name);
+    return this.PALETTE[(index < 0 ? 0 : index) % this.PALETTE.length];
+  },
+
   // ── Data loading ─────────────────────────────────────────────────────────
 
   async load(range, siteId, customDates) {
@@ -109,22 +161,28 @@ const EventsPage = {
     if (customDates !== undefined) this.filters.customDates = customDates;
     const activeSite = siteId || window.App?.currentSiteId || this.filters.siteId || "";
     if (activeSite) this.filters.siteId = activeSite;
+    // Rapid clicks start several requests: only the latest one may render.
+    const requestId = ++this.requestId;
 
     try {
       if (window.App && typeof window.App.setLoading === "function") {
         window.App.setLoading(true, "Loading events stream...");
       }
 
-      const data = await Api.getEvents(this.filters);
-      this.renderInsights(data.total || 0, data.types || []);
+      const data = await Api.getEvents({ ...this.filters, events: [...this.selected] });
+      if (requestId !== this.requestId) return;
+      this.types = data.types || [];
+      this.renderSelectionHead();
+      this.renderInsights(data.summary || { events: data.total || 0, visitors: 0, sessions: 0, previous: null }, this.types);
       this.renderTrend(data.chart_data || [], data.series || []);
+      this.renderBreakdown();
       this.renderEvents(data.events || []);
       this.renderPagination(data);
     } catch (err) {
       window.App?.displayNoDataMessage(siteId);
       console.error("Error loading events:", err);
     } finally {
-      if (window.App && typeof window.App.setLoading === "function") {
+      if (requestId === this.requestId && window.App && typeof window.App.setLoading === "function") {
         window.App.setLoading(false);
       }
     }
@@ -132,174 +190,113 @@ const EventsPage = {
 
   // ── Rendering ────────────────────────────────────────────────────────────
 
-  renderInsights(total, types) {
+  renderSelectionHead() {
+    const title = document.getElementById("eventsSelectionTitle");
+    const reset = document.getElementById("eventsSelectionReset");
+    const stream = document.getElementById("eventsStreamTitle");
+    if (title) title.textContent = this.selectionTitle();
+    if (reset) reset.hidden = this.selected.size === 0;
+    if (stream) stream.textContent = this.selected.size ? `Event stream · ${this.selectionTitle()}` : "Real-Time Event Stream";
+  },
+
+  /** Change against the previous period, or "" when there is nothing to compare with. */
+  deltaBadge(current, previous) {
+    if (previous === null || previous === undefined) return "";
+    if (previous === 0) {
+      return current > 0 ? '<span class="event-delta event-delta-up">New</span>' : '<span class="event-delta">—</span>';
+    }
+    const change = ((current - previous) / previous) * 100;
+    const rounded = Math.abs(change) < 10 ? change.toFixed(1) : Math.round(change).toString();
+    if (Number(rounded) === 0) return '<span class="event-delta">0%</span>';
+    const up = change > 0;
+    return `<span class="event-delta ${up ? "event-delta-up" : "event-delta-down"}" title="vs previous period">${up ? "+" : ""}${rounded}%</span>`;
+  },
+
+  renderInsights(summary, types) {
     const container = document.getElementById("eventInsightsStrip");
     if (!container) return;
-    const topEvent = types[0];
+    const previous = summary.previous || null;
+    const perVisitor = summary.visitors ? summary.events / summary.visitors : 0;
+    const previousPerVisitor = previous && previous.visitors ? previous.events / previous.visitors : (previous ? 0 : null);
 
     const metrics = [
-      { label: "Events tracked", value: Number(total).toLocaleString(), detail: "in this period" },
-      { label: "Event types", value: types.length.toLocaleString(), detail: "distinct series" },
-      topEvent
-        ? { label: "Top event", value: Number(topEvent.count).toLocaleString(), detail: topEvent.name }
-        : { label: "Top event", value: "—", detail: "No events" },
+      { label: "Events", value: summary.events, delta: this.deltaBadge(summary.events, previous?.events ?? null) },
+      { label: "Unique visitors", value: summary.visitors, delta: this.deltaBadge(summary.visitors, previous?.visitors ?? null) },
+      { label: "Sessions", value: summary.sessions, delta: this.deltaBadge(summary.sessions, previous?.sessions ?? null) },
+      this.selected.size
+        ? { label: "Events per visitor", value: perVisitor.toFixed(1), delta: this.deltaBadge(perVisitor, previousPerVisitor) }
+        : { label: "Event types", value: types.length, delta: "" },
     ];
     container.innerHTML = metrics.map((metric) => `
       <div class="event-insight">
         <span class="event-insight-label">${this.esc(metric.label)}</span>
         <div class="event-insight-metric">
-          <strong class="event-insight-value">${this.esc(metric.value)}</strong>
-          <span class="event-insight-detail" title="${this.esc(metric.detail)}">${this.esc(metric.detail)}</span>
+          <strong class="event-insight-value">${this.esc(typeof metric.value === "number" ? metric.value.toLocaleString() : metric.value)}</strong>
+          ${metric.delta}
         </div>
       </div>`).join("");
   },
 
   renderTrend(points, series) {
-    const label = document.getElementById("eventsTrendLabel");
-    const palette = ["#f59e0b", "#2563eb", "#8b5cf6", "#10b981", "#ef4444", "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#6366f1"];
-    const available = new Set(series.map((item) => item.key));
-    const isFirstRender = this.activeSeries === undefined;
-    const previous = this.activeSeries || available;
-    const active = [...previous].filter((key) => available.has(key));
-    // “All events” is an intent, not the finite list returned for the last
-    // range. New series must therefore be selected when the range changes.
-    this.activeSeries = (isFirstRender || this.allSeriesSelected)
-      ? new Set(available)
-      : new Set(active);
-    if (isFirstRender) this.allSeriesSelected = true;
-    if (label) label.textContent = `${series.length} event series monitored`;
-    this.trendPoints = points;
-    this.trendSeries = series;
-    this.trendPalette = palette;
-
-    this.trendChart.seriesConfig = Object.fromEntries(series.map((item, index) => [item.key, {
-      key: item.key, label: item.name, singular: "event", color: palette[index % palette.length],
+    // Selected events, or the most frequent ones: 100+ overlapping lines are unreadable.
+    const plotted = this.selected.size
+      ? series.filter((item) => this.selected.has(item.name))
+      : series.slice(0, this.TOP_SERIES);
+    this.trendChart.seriesConfig = Object.fromEntries(series.map((item) => [item.key, {
+      key: item.key, label: item.name, singular: "event", color: this.colorFor(item.name),
       gradientStart: "rgba(255, 255, 255, 0)", gradientEnd: "rgba(255, 255, 255, 0)", lineWidth: 2.4,
     }]));
-    this.trendChart?.setData(points, [...this.activeSeries]);
-    this.renderSeriesCombobox();
+    this.trendChart?.setData(points, plotted.map((item) => item.key));
+
+    const legend = document.getElementById("eventsTrendLegend");
+    if (!legend) return;
+    const chips = plotted.map((item) => `
+      <span class="chart-metric-indicator">
+        <span class="metric-color-dot" style="background:${this.colorFor(item.name)}"></span>
+        <span class="metric-name">${this.esc(item.name)}</span>
+      </span>`).join("");
+    const note = !this.selected.size && series.length > plotted.length
+      ? `<span class="events-trend-note">Top ${plotted.length} of ${series.length} events · select events below to compare others</span>`
+      : "";
+    legend.innerHTML = chips + note || '<span class="events-trend-note">No events in this period</span>';
   },
 
-  renderSeriesCombobox() {
-    const trigger = document.getElementById("eventsSeriesTrigger");
-    const search = document.getElementById("eventsSeriesSearch");
-    const selectAll = document.getElementById("eventsSeriesSelectAll");
-    const clear = document.getElementById("eventsSeriesClear");
-    if (!trigger || !search || !selectAll || !clear) return;
+  renderBreakdown() {
+    const body = document.getElementById("eventsBreakdownBody");
+    const footer = document.getElementById("eventsBreakdownFooter");
+    const more = document.getElementById("eventsBreakdownMore");
+    if (!body) return;
+    const query = this.breakdownQuery.trim().toLowerCase();
+    const total = this.types.reduce((sum, type) => sum + type.count, 0);
+    // Selected events are pinned on top and stay visible whatever the search
+    // or the row limit, so they can always be found and deselected.
+    const pinned = this.types.filter((type) => this.selected.has(type.name));
+    const matches = this.types.filter((type) => !this.selected.has(type.name) && type.name.toLowerCase().includes(query));
+    const visible = [...pinned, ...matches.slice(0, this.breakdownLimit)];
 
-    trigger.onclick = () => this.setSeriesMenuOpen(trigger.getAttribute("aria-expanded") !== "true");
-    search.oninput = () => this.renderSeriesOptions(search.value);
-    selectAll.onclick = () => {
-      this.activeSeries = new Set(this.trendSeries.map((item) => item.key));
-      this.allSeriesSelected = true;
-      this.applySeriesSelection(search.value);
-    };
-    clear.onclick = () => {
-      this.activeSeries = new Set();
-      this.allSeriesSelected = false;
-      this.applySeriesSelection(search.value);
-    };
-    this.updateSeriesSummary();
-    this.renderSeriesOptions(search.value);
-  },
-
-  renderSeriesOptions(query = "") {
-    const options = document.getElementById("eventsSeriesOptions");
-    if (!options) return;
-    const normalizedQuery = query.trim().toLowerCase();
-    const matches = this.trendSeries.filter((item) => item.name.toLowerCase().includes(normalizedQuery));
-    options.innerHTML = matches.length
-      ? matches.map((item, index) => {
-        const seriesIndex = this.trendSeries.findIndex((series) => series.key === item.key);
-        const color = this.trendPalette[seriesIndex % this.trendPalette.length];
-        return `<label class="event-series-option">
-          <input type="checkbox" value="${this.esc(item.key)}" ${this.activeSeries.has(item.key) ? "checked" : ""}>
-          <span class="chart-series-dot" style="background:${color}"></span>
-          <span class="event-series-option-name">${this.esc(item.name)}</span>
-          <span class="event-series-option-count">${item.count}</span>
-        </label>`;
+    body.innerHTML = visible.length
+      ? visible.map((type) => {
+        const selected = this.selected.has(type.name);
+        const dimmed = this.selected.size > 0 && !selected;
+        const share = total ? (type.count / total) * 100 : 0;
+        const lastPinned = selected && type === pinned[pinned.length - 1] && matches.length > 0;
+        return `<tr data-event="${this.esc(type.name)}" class="events-breakdown-row${selected ? " is-selected" : ""}${dimmed ? " is-dimmed" : ""}${lastPinned ? " is-last-pinned" : ""}" tabindex="0" role="button" aria-pressed="${selected}">
+          <td><span class="events-breakdown-name"><span class="chart-series-dot" style="background:${this.colorFor(type.name)}"></span><span>${this.esc(type.name)}</span></span></td>
+          <td class="num">${type.count.toLocaleString()}</td>
+          <td class="num">${(type.visitors || 0).toLocaleString()}</td>
+          <td class="share"><span class="events-share"><span class="events-share-bar"><span style="width:${share.toFixed(1)}%;background:${this.colorFor(type.name)}"></span></span><span class="events-share-value">${share.toFixed(1)}%</span></span></td>
+          <td class="num">${this.deltaBadge(type.count, type.previous_count ?? null) || '<span class="event-delta">—</span>'}</td>
+        </tr>`;
       }).join("")
-      : '<p class="event-series-empty">No matching events</p>';
-    options.querySelectorAll("input[type=checkbox]").forEach((input) => input.addEventListener("change", () => {
-      if (input.checked) this.activeSeries.add(input.value);
-      else this.activeSeries.delete(input.value);
-      this.applySeriesSelection(query);
-    }));
-  },
+      : `<tr><td colspan="5" class="empty-state">${this.types.length ? "No matching events" : "No events in this period"}</td></tr>`;
 
-  applySeriesSelection(query = "") {
-    this.allSeriesSelected = this.trendSeries.length > 0
-      && this.activeSeries.size === this.trendSeries.length;
-    this.trendChart?.setData(this.trendPoints || [], [...this.activeSeries]);
-    this.updateSeriesSummary();
-    this.renderSeriesOptions(query);
-  },
-
-  updateSeriesSummary() {
-    const summary = document.getElementById("eventsSeriesSummary");
-    if (!summary) return;
-    const total = this.trendSeries?.length || 0;
-    const selected = this.activeSeries?.size || 0;
-    if (selected === total) {
-      summary.textContent = `All events (${total})`;
-    } else if (selected === 1) {
-      const selectedEvent = this.trendSeries.find((item) => this.activeSeries.has(item.key));
-      summary.textContent = selectedEvent?.name || "1 event selected";
-    } else if (selected === 0) {
-      summary.textContent = "No events selected";
-    } else {
-      summary.textContent = `${selected} events selected`;
+    const shown = Math.min(matches.length, this.breakdownLimit);
+    if (footer) {
+      footer.textContent = pinned.length
+        ? `${pinned.length} selected · showing ${shown} of ${matches.length} other events`
+        : (matches.length ? `Showing ${shown} of ${matches.length} events` : "");
     }
-  },
-
-  setSeriesMenuOpen(open) {
-    const combobox = document.getElementById("eventsSeriesCombobox");
-    const trigger = document.getElementById("eventsSeriesTrigger");
-    const menu = document.getElementById("eventsSeriesMenu");
-    const search = document.getElementById("eventsSeriesSearch");
-    if (!combobox || !trigger || !menu) return;
-    trigger.setAttribute("aria-expanded", String(open));
-    if (open) {
-      // A canvas can create its own compositing layer. Portalling the popup to
-      // <body> guarantees that it is painted above the chart, not inside it.
-      if (menu.parentElement !== document.body) document.body.appendChild(menu);
-      menu.hidden = false;
-      menu.classList.add("event-series-combobox-menu-portal");
-      this.positionSeriesMenu();
-      search?.focus();
-      return;
-    }
-
-    menu.hidden = true;
-    menu.classList.remove("event-series-combobox-menu-portal");
-    menu.style.top = "";
-    menu.style.right = "";
-    menu.style.left = "";
-    if (menu.parentElement !== combobox) combobox.appendChild(menu);
-  },
-
-  positionSeriesMenu() {
-    const trigger = document.getElementById("eventsSeriesTrigger");
-    const menu = document.getElementById("eventsSeriesMenu");
-    if (!trigger || !menu || menu.hidden || !menu.classList.contains("event-series-combobox-menu-portal")) return;
-    const triggerRect = trigger.getBoundingClientRect();
-    const margin = 12;
-    const maxAvailableWidth = Math.max(200, window.innerWidth - margin * 2);
-    const menuWidth = Math.min(330, maxAvailableWidth);
-
-    menu.style.top = `${Math.max(8, triggerRect.bottom + 7)}px`;
-    menu.style.width = `${menuWidth}px`;
-    menu.style.maxWidth = `${maxAvailableWidth}px`;
-
-    const rightOffset = Math.max(margin, window.innerWidth - triggerRect.right);
-    if (window.innerWidth - rightOffset - menuWidth < margin) {
-      const leftPos = Math.max(margin, Math.min(triggerRect.left, window.innerWidth - menuWidth - margin));
-      menu.style.left = `${leftPos}px`;
-      menu.style.right = "auto";
-    } else {
-      menu.style.right = `${rightOffset}px`;
-      menu.style.left = "auto";
-    }
+    if (more) more.hidden = shown >= matches.length;
   },
 
   renderEvents(events) {

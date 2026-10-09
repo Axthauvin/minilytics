@@ -63,9 +63,24 @@ try {
         ':end_date' => $endDateStr,
     ];
 
+    // Selected event names: a JSON array ("events") or a single "event_name".
+    $selectedEvents = json_decode((string) ($_GET['events'] ?? '[]'), true);
+    $selectedEvents = is_array($selectedEvents) ? array_values(array_filter($selectedEvents, 'is_string')) : [];
     if ($eventName !== '' && $eventName !== 'all') {
-        $where[] = "json_extract(action, '$.name') = :event_name";
-        $params[':event_name'] = $eventName;
+        $selectedEvents[] = $eventName;
+    }
+    $selectedEvents = array_slice(array_values(array_unique($selectedEvents)), 0, 200);
+    $selectionClause = '';
+    $selectionParams = [];
+    if ($selectedEvents) {
+        $placeholders = [];
+        foreach ($selectedEvents as $i => $name) {
+            $placeholders[] = ':event_' . $i;
+            $selectionParams[':event_' . $i] = $name;
+        }
+        $selectionClause = "json_extract(action, '$.name') IN (" . implode(', ', $placeholders) . ')';
+        $where[] = $selectionClause;
+        $params += $selectionParams;
     }
 
     if ($sessionId !== '') {
@@ -131,17 +146,38 @@ try {
         ];
     }
 
-    // 3. Get distinct event types for filter dropdown
-    $typesSql = "SELECT json_extract(action, '$.name') as name, COUNT(*) as count 
-                 FROM user_activity 
+    // The previous period has the same length and ends where this one starts.
+    // "All time" has nothing before it to compare with.
+    $hasPrevious = $range !== 'all';
+    $prevStartStr = gmdate('Y-m-d H:i:s', max(0, $startUnix - ($endUnix - $startUnix)));
+
+    // 3. Per-event breakdown (always every event, so any of them can be selected)
+    $typesSql = "SELECT json_extract(action, '$.name') as name, COUNT(*) as count,
+                        COUNT(DISTINCT COALESCE(visitor_id, session_id)) as visitors,
+                        COUNT(DISTINCT session_id) as sessions
+                 FROM user_activity
                  WHERE timestamp >= :start_date AND timestamp <= :end_date
                    AND {$eventOnlyClause}
-                 GROUP BY name 
+                 GROUP BY name
                  ORDER BY count DESC";
     $tStmt = $db->prepare($typesSql);
     $tStmt->bindValue(':start_date', $startDateStr, SQLITE3_TEXT);
     $tStmt->bindValue(':end_date', $endDateStr, SQLITE3_TEXT);
     $tRes = $tStmt->execute();
+
+    $previousCounts = [];
+    if ($hasPrevious) {
+        $pStmt = $db->prepare("SELECT json_extract(action, '$.name') as name, COUNT(*) as count
+                               FROM user_activity
+                               WHERE timestamp >= :start_date AND timestamp < :end_date AND {$eventOnlyClause}
+                               GROUP BY name");
+        $pStmt->bindValue(':start_date', $prevStartStr, SQLITE3_TEXT);
+        $pStmt->bindValue(':end_date', $startDateStr, SQLITE3_TEXT);
+        $pRes = $pStmt->execute();
+        while ($pr = $pRes->fetchArray(SQLITE3_ASSOC)) {
+            $previousCounts[(string) $pr['name']] = (int) $pr['count'];
+        }
+    }
 
     $types = [];
     while ($tr = $tRes->fetchArray(SQLITE3_ASSOC)) {
@@ -149,9 +185,30 @@ try {
             $types[] = [
                 'name' => $tr['name'],
                 'count' => (int) $tr['count'],
+                'visitors' => (int) $tr['visitors'],
+                'sessions' => (int) $tr['sessions'],
+                'previous_count' => $hasPrevious ? ($previousCounts[$tr['name']] ?? 0) : null,
             ];
         }
     }
+
+    // Totals for the selection (or every event). Visitors are counted once even
+    // when they triggered several selected events, so they cannot be summed per event.
+    $summarize = function (string $start, string $end, bool $endInclusive) use ($db, $where, $params): array {
+        $sql = 'SELECT COUNT(*), COUNT(DISTINCT COALESCE(visitor_id, session_id)), COUNT(DISTINCT session_id) FROM user_activity WHERE '
+            . implode(' AND ', $where);
+        if (!$endInclusive) {
+            $sql = str_replace('timestamp <= :end_date', 'timestamp < :end_date', $sql);
+        }
+        $stmt = $db->prepare($sql);
+        foreach (array_merge($params, [':start_date' => $start, ':end_date' => $end]) as $k => $v) {
+            $stmt->bindValue($k, $v, SQLITE3_TEXT);
+        }
+        $row = $stmt->execute()->fetchArray(SQLITE3_NUM) ?: [0, 0, 0];
+        return ['events' => (int) $row[0], 'visitors' => (int) $row[1], 'sessions' => (int) $row[2]];
+    };
+    $summary = $summarize($startDateStr, $endDateStr, true);
+    $summary['previous'] = $hasPrevious ? $summarize($prevStartStr, $startDateStr, false) : null;
     $series = [];
     $seriesByName = [];
     foreach ($types as $index => $type) {
@@ -264,6 +321,8 @@ try {
         'success'     => true,
         'events'      => $events,
         'types'       => $types,
+        'summary'     => $summary,
+        'selected'    => $selectedEvents,
         'series'      => $series,
         'chart_data'  => $chartData,
         'total'       => $totalCount,

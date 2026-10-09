@@ -51,6 +51,7 @@ const Api = {
     limit = 50,
     search = "",
     eventName = "",
+    events = [],
     sessionId = "",
     siteId = "",
     customDates = null,
@@ -70,6 +71,7 @@ const Api = {
     });
     if (search) params.append("search", search);
     if (eventName) params.append("event_name", eventName);
+    if (events.length) params.append("events", JSON.stringify(events));
     if (sessionId) params.append("session_id", sessionId);
     if (targetSite) params.append("site_id", targetSite);
     const dates = customDates || (window.App && window.App.customDates);

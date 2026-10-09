@@ -75,12 +75,6 @@ function loadEvents() {
         innerHTML: '',
         textContent: '',
         style: {},
-        classList: {
-          contains: (cls) => cls === 'event-series-combobox-menu-portal',
-          add() {},
-          remove() {},
-        },
-        getBoundingClientRect: () => ({ left: 20, right: 200, bottom: 100, top: 70 }),
       });
     }
     return elements.get(id);
@@ -107,36 +101,82 @@ function loadEvents() {
   return { EventsPage: context.window.EventsPage, getEl, context };
 }
 
-test('events page renders 3 metrics without Largest peak in event-insight-metric containers', () => {
+test('events key figures compare the selection with the previous period', () => {
   const { EventsPage, getEl } = loadEvents();
-  EventsPage.renderInsights(14548, [{ name: 'CV Upload', count: 1486 }]);
+  const types = [{ name: 'CV Upload', count: 120 }];
+  EventsPage.renderInsights({ events: 120, visitors: 40, sessions: 50, previous: { events: 100, visitors: 50, sessions: 50 } }, types);
   const html = getEl('eventInsightsStrip').innerHTML;
 
-  assert.ok(html.includes('Events tracked'), 'must include Events tracked');
-  assert.ok(html.includes('Event types'), 'must include Event types');
-  assert.ok(html.includes('Top event'), 'must include Top event');
-  assert.ok(!html.includes('Largest peak'), 'must not include Largest peak');
-  assert.ok(html.includes('class="event-insight-metric"'), 'must include event-insight-metric container');
-  assert.ok(html.includes('class="event-insight-detail"'), 'must include event-insight-detail class');
+  for (const label of ['Events', 'Unique visitors', 'Sessions', 'Event types']) {
+    assert.ok(html.includes(label), `must include ${label}`);
+  }
+  assert.ok(html.includes('event-delta-up" title="vs previous period">+20%'), 'events grew by 20%');
+  assert.ok(html.includes('event-delta-down" title="vs previous period">-20%'), 'visitors dropped by 20%');
+  assert.ok(html.includes('class="event-delta">0%'), 'sessions did not change');
+
+  EventsPage.selected = new Set(['CV Upload']);
+  EventsPage.renderInsights({ events: 120, visitors: 40, sessions: 50, previous: null }, types);
+  const focused = getEl('eventInsightsStrip').innerHTML;
+  assert.ok(focused.includes('Events per visitor') && focused.includes('3.0'), 'a selection shows events per visitor');
+  assert.ok(!focused.includes('event-delta'), 'all-time ranges have nothing to compare with');
 });
 
-test('events series combobox menu positions within screen boundaries on small screens', () => {
-  const { EventsPage, getEl, context } = loadEvents();
-  context.window.innerWidth = 360;
-  const trigger = getEl('eventsSeriesTrigger');
-  const menu = getEl('eventsSeriesMenu');
-  trigger.getBoundingClientRect = () => ({ left: 16, right: 180, bottom: 90, top: 60 });
-  menu.hidden = false;
+test('clicking events focuses on one, then adds and removes others', () => {
+  const { EventsPage } = loadEvents();
+  EventsPage.load = () => {};
 
-  EventsPage.positionSeriesMenu();
+  EventsPage.toggleEvent('signup');
+  assert.deepEqual([...EventsPage.selected], ['signup']);
+  EventsPage.toggleEvent('purchase');
+  assert.deepEqual([...EventsPage.selected], ['signup', 'purchase']);
+  assert.equal(EventsPage.selectionTitle(), 'signup + 1 more');
+  EventsPage.toggleEvent('signup');
+  EventsPage.toggleEvent('purchase');
+  assert.equal(EventsPage.selected.size, 0, 'deselecting the last event shows every event again');
+  assert.equal(EventsPage.selectionTitle(), 'All events');
+});
 
-  assert.ok(parseInt(menu.style.width, 10) <= 336, 'menu width should not exceed viewport');
-  if (menu.style.left) {
-    assert.ok(parseInt(menu.style.left, 10) >= 12, 'left offset must not overflow screen');
-  }
-  if (menu.style.right && menu.style.right !== 'auto') {
-    assert.ok(parseInt(menu.style.right, 10) >= 12, 'right offset must not overflow screen');
-  }
+test('events breakdown highlights the selection and computes shares', () => {
+  const { EventsPage, getEl } = loadEvents();
+  EventsPage.types = [
+    { name: 'signup', count: 75, visitors: 30, previous_count: 50 },
+    { name: 'purchase', count: 25, visitors: 10, previous_count: 0 },
+  ];
+  EventsPage.selected = new Set(['purchase']);
+  EventsPage.renderBreakdown();
+  const html = getEl('eventsBreakdownBody').innerHTML;
+
+  assert.match(html, /data-event="signup" class="events-breakdown-row is-dimmed"/);
+  assert.match(html, /data-event="purchase" class="events-breakdown-row is-selected is-last-pinned"/);
+  assert.ok(html.indexOf('"purchase"') < html.indexOf('"signup"'), 'the selected event moves above more frequent ones');
+  assert.ok(html.includes('75.0%') && html.includes('25.0%'), 'shares of all events');
+  assert.ok(html.includes('+50%') && html.includes('>New<'), 'change vs previous period');
+
+  EventsPage.selected = new Set();
+  EventsPage.breakdownQuery = 'zzz';
+  EventsPage.renderBreakdown();
+  assert.ok(getEl('eventsBreakdownBody').innerHTML.includes('No matching events'));
+});
+
+test('selected events are pinned on top, even beyond the row limit or the search', () => {
+  const { EventsPage, getEl } = loadEvents();
+  EventsPage.types = Array.from({ length: 30 }, (_, i) => ({ name: `event_${i}`, count: 100 - i, visitors: 1 }));
+  EventsPage.selected = new Set(['event_25']);
+  EventsPage.breakdownQuery = 'event_1';
+  EventsPage.renderBreakdown();
+  const rows = [...getEl('eventsBreakdownBody').innerHTML.matchAll(/data-event="([^"]+)"/g)].map((m) => m[1]);
+
+  assert.equal(rows[0], 'event_25', 'the selection comes first');
+  assert.ok(rows.slice(1).every((name) => name.startsWith('event_1')), 'then the other events matching the search');
+  assert.match(getEl('eventsBreakdownFooter').textContent, /^1 selected · showing 10 of 11 other events$/);
+});
+
+test('selected events never share a color, even when far apart in the ranking', () => {
+  const { EventsPage } = loadEvents();
+  EventsPage.types = Array.from({ length: 40 }, (_, i) => ({ name: `event_${i}`, count: 100 - i }));
+  assert.equal(EventsPage.colorFor('event_20'), EventsPage.colorFor('event_30'), 'the palette cycles every 10 events');
+  EventsPage.selected = new Set(['event_30', 'event_20']);
+  assert.notEqual(EventsPage.colorFor('event_20'), EventsPage.colorFor('event_30'));
 });
 
 test('events timeline does not use inline padding styles', () => {
@@ -158,7 +198,7 @@ test('dashboard.css includes responsive breakpoints for events', () => {
   const css = fs.readFileSync(path.join(root, 'dashboard/src/assets/css/dashboard.css'), 'utf8');
 
   assert.ok(css.includes('.event-insight-metric'), 'must define .event-insight-metric');
-  assert.ok(css.includes('grid-template-columns: repeat(3, minmax(0, 1fr))'), 'desktop must be 3 columns');
+  assert.ok(css.includes('grid-template-columns: repeat(4, minmax(0, 1fr))'), 'desktop must be 4 columns');
   assert.ok(css.includes('@media (max-width: 480px)'), 'must include 480px breakpoint');
   assert.ok(css.includes('.journey-step-meta-row'), 'must define .journey-step-meta-row');
   assert.ok(css.includes('flex-wrap: wrap'), 'must include flex-wrap');
