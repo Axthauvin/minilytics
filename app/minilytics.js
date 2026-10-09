@@ -1,356 +1,412 @@
 (function () {
-  "use strict";
-  var script = document.currentScript;
-  var siteId = script && script.getAttribute("data-site-id");
-  var siteKey = script && script.getAttribute("data-site-key");
-  var endpoint =
-    (script && script.getAttribute("data-endpoint")) ||
-    (script && script.src
-      ? new URL(script.src, location.href).origin + "/track.php"
-      : "/track.php");
-  var autoTrack = !script || script.getAttribute("data-auto-track") !== "false";
-  var debug = !!script && script.getAttribute("data-debug") === "true";
-  var privacyMode = script && script.getAttribute("data-privacy-mode") === "enriched" ? "enriched" : "strict";
-  var consentGranted = !!script && script.getAttribute("data-consent") === "granted";
-  var SESSION_KEY = "minilytics_session_v2_" + siteId;
-  var LAST_KEY = SESSION_KEY + "_last";
-  var visitorId = null,
-    pageId = null,
-    lastPath = null,
-    engaged = false,
-    configurationReported = false;
+    "use strict";
+    var script = document.currentScript;
+    var siteId = script && script.getAttribute("data-site-id");
+    var siteKey = script && script.getAttribute("data-site-key");
+    var endpoint =
+        (script && script.getAttribute("data-endpoint")) ||
+        (script && script.src
+            ? new URL(script.src, location.href).origin + "/track.php"
+            : "/track.php");
+    var autoTrack =
+        !script || script.getAttribute("data-auto-track") !== "false";
+    var debug = !!script && script.getAttribute("data-debug") === "true";
+    var privacyMode =
+        script && script.getAttribute("data-privacy-mode") === "enriched"
+            ? "enriched"
+            : "strict";
+    var consentGranted =
+        !!script && script.getAttribute("data-consent") === "granted";
+    var SESSION_KEY = "minilytics_session_v2_" + siteId;
+    var LAST_KEY = SESSION_KEY + "_last";
+    var visitorId = null,
+        pageId = null,
+        lastPath = null,
+        engaged = false,
+        configurationReported = false;
 
-  function reportError(message, details) {
-    if (window.console && window.console.error)
-      window.console.error("[Minilytics] " + message, details || "");
-  }
-  function reportDebug(message, details) {
-    if (debug && window.console && window.console.debug)
-      window.console.debug("[Minilytics] " + message, details || "");
-  }
+    function reportError(message, details) {
+        if (debug && window.console && window.console.error)
+            window.console.error("[Minilytics] " + message, details || "");
+    }
+    function reportDebug(message, details) {
+        if (debug && window.console && window.console.debug)
+            window.console.debug("[Minilytics] " + message, details || "");
+    }
 
-  function localOptOutReason() {
-    try {
-      if (localStorage.getItem("minilytics_opt_out") === "true")
-        return "local_storage";
-    } catch (_) {}
-    return null;
-  }
-  function automatedBrowserReason() {
-    if (navigator.webdriver === true) return "webdriver";
-    if (window._phantom || window.__nightmare || window.callPhantom) return "headless_globals";
-    return null;
-  }
-  function browserPrivacyReason() {
-    if (navigator.globalPrivacyControl === true) return "global_privacy_control";
-    if (navigator.doNotTrack === "1") return "do_not_track";
-    return null;
-  }
-  function optedOut() {
-    return localOptOutReason() !== null || automatedBrowserReason() !== null;
-  }
-  function id() {
-    return typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID().replace(/-/g, "")
-      : Math.random().toString(36).slice(2) + Date.now().toString(36);
-  }
-  function sessionId() {
-    // Strict mode deliberately does not use cookies, localStorage, or
-    // sessionStorage. This identifier exists only for the current document.
-    if (privacyMode === "strict") {
-      if (!pageId) pageId = id();
-      return pageId;
+    function localOptOutReason() {
+        try {
+            if (localStorage.getItem("minilytics_opt_out") === "true")
+                return "local_storage";
+        } catch (_) {}
+        return null;
     }
-    if (!consentGranted) return null;
-    try {
-      var last = Number(sessionStorage.getItem(LAST_KEY) || 0);
-      var value = sessionStorage.getItem(SESSION_KEY);
-      if (!value || Date.now() - last > 30 * 60 * 1000) {
-        value = id();
-        sessionStorage.setItem(SESSION_KEY, value);
-      }
-      sessionStorage.setItem(LAST_KEY, String(Date.now()));
-      return value;
-    } catch (_) {
-      return id();
+    function automatedBrowserReason() {
+        if (navigator.webdriver === true) return "webdriver";
+        if (window._phantom || window.__nightmare || window.callPhantom)
+            return "headless_globals";
+        return null;
     }
-  }
-  // In strict mode this is the page-only identifier above. Enriched mode may
-  // use sessionStorage only after an external consent banner has granted it.
-  function getVisitorId() {
-    if (!visitorId) visitorId = sessionId();
-    return visitorId;
-  }
-  function campaign() {
-    var p = new URLSearchParams(location.search),
-      r = {};
-    [
-      "utm_source",
-      "utm_medium",
-      "utm_campaign",
-      "utm_content",
-      "utm_term",
-    ].forEach(function (k) {
-      if (p.has(k)) r[k] = p.get(k).slice(0, 200);
-    });
-    return r;
-  }
-  function context() {
-    var screenSize =
-      window.screen && screen.width && screen.height
-        ? screen.width + "×" + screen.height
-        : null;
-    var viewport =
-      window.innerWidth && window.innerHeight
-        ? window.innerWidth + "×" + window.innerHeight
-        : null;
-    var base = {
-      tracking_mode: privacyMode,
-      path: location.pathname || "/",
-      title: document.title.slice(0, 300),
-      hostname: location.hostname,
-      referrer: document.referrer
-        ? new URL(document.referrer).hostname
-        : null,
-      language: navigator.language || null,
-      // Screen resolution is coarse, useful aggregate context and does not
-      // require browser storage. Keep it available in strict mode too.
-      screen: screenSize,
-    };
-    if (privacyMode === "enriched") {
-      base.viewport = viewport;
+    function browserPrivacyReason() {
+        if (navigator.globalPrivacyControl === true)
+            return "global_privacy_control";
+        if (navigator.doNotTrack === "1") return "do_not_track";
+        return null;
     }
-    return Object.assign(
-      base,
-      campaign(),
-    );
-  }
-  function sanitise(data) {
-    var out = {};
-    Object.keys(data || {}).forEach(function (k) {
-      if (!/password|token|secret|email|phone|address|card/i.test(k))
-        out[k] = data[k];
-    });
-    return out;
-  }
-  function send(name, data) {
-    if (!siteId || !siteKey) {
-      if (!configurationReported) {
-        configurationReported = true;
-        reportError(
-          "Tracking is not configured: both data-site-id and data-site-key are required.",
-          { endpoint: endpoint, hasSiteId: !!siteId, hasSiteKey: !!siteKey },
+    function optedOut() {
+        return (
+            localOptOutReason() !== null || automatedBrowserReason() !== null
         );
-      }
-      return false;
     }
-    var optOutReason = localOptOutReason();
-    if (optOutReason) {
-      reportDebug("Event was not sent because tracking is opted out.", {
-        event: name,
-        reason: optOutReason,
-        resolution:
-          optOutReason === "local_storage"
-            ? "For this browser profile, run minilytics.optIn() and reload the page."
-            : "Disable this browser privacy preference only if you want to test tracking.",
-      });
-      return false;
+    function id() {
+        return typeof crypto !== "undefined" && crypto.randomUUID
+            ? crypto.randomUUID().replace(/-/g, "")
+            : Math.random().toString(36).slice(2) + Date.now().toString(36);
     }
-    var automatedReason = automatedBrowserReason();
-    if (automatedReason) {
-      reportDebug("Event was not sent because an automated browser was detected.", {
-        event: name,
-        reason: automatedReason,
-      });
-      return false;
-    }
-    var privacyReason = browserPrivacyReason();
-    if (privacyMode === "enriched" && !consentGranted) { reportDebug("Event was not sent because enriched tracking requires consent.", { event: name, resolution: "Call minilytics.consent() from your cookie banner after the user accepts analytics cookies." }); return false; }
-    if (privacyMode === "enriched" && privacyReason) { reportDebug("Event was not sent because the browser privacy preference blocks enriched tracking.", { event: name, reason: privacyReason }); return false; }
-    if (privacyMode === "strict" && privacyReason) reportDebug("Browser privacy preference detected; only minimal, page-scoped analytics will be sent.", { event: name, reason: privacyReason });
-    var payload = JSON.stringify({
-      site_id: siteId,
-      site_key: siteKey,
-      session_id: sessionId(),
-      visitor_id: getVisitorId(),
-      name: name,
-      data: Object.assign(context(), sanitise(data)),
-    });
-    var metadata = { event: name, endpoint: endpoint };
-    if (typeof fetch === "function") {
-      try {
-        fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: payload,
-          keepalive: true,
-        })
-          .then(function (response) {
-            if (response.ok) {
-              reportDebug("Event accepted by the tracking endpoint.", metadata);
-              return;
+    function sessionId() {
+        // Strict mode deliberately does not use cookies, localStorage, or
+        // sessionStorage. This identifier exists only for the current document.
+        if (privacyMode === "strict") {
+            if (!pageId) pageId = id();
+            return pageId;
+        }
+        if (!consentGranted) return null;
+        try {
+            var last = Number(sessionStorage.getItem(LAST_KEY) || 0);
+            var value = sessionStorage.getItem(SESSION_KEY);
+            if (!value || Date.now() - last > 30 * 60 * 1000) {
+                value = id();
+                sessionStorage.setItem(SESSION_KEY, value);
             }
-            response
-              .text()
-              .then(function (body) {
-                reportError(
-                  "Tracking endpoint rejected an event.",
-                  Object.assign(
-                    {
-                      status: response.status,
-                      statusText: response.statusText,
-                      response: body.slice(0, 500),
-                    },
-                    metadata,
-                  ),
-                );
-              })
-              .catch(function () {
-                reportError(
-                  "Tracking endpoint rejected an event.",
-                  Object.assign(
-                    {
-                      status: response.status,
-                      statusText: response.statusText,
-                    },
-                    metadata,
-                  ),
-                );
-              });
-          })
-          .catch(function (error) {
-            reportError(
-              "Tracking request failed. Check the endpoint URL, CORS policy, and network connection.",
-              Object.assign(
-                {
-                  error: error && error.message ? error.message : String(error),
-                },
-                metadata,
-              ),
-            );
-          });
-      } catch (error) {
-        reportError(
-          "Tracking request could not be started.",
-          Object.assign(
-            { error: error && error.message ? error.message : String(error) },
-            metadata,
-          ),
-        );
-        return false;
-      }
-      return true;
-    } else if (navigator.sendBeacon) {
-      if (
-        navigator.sendBeacon(
-          endpoint,
-          new Blob([payload], { type: "application/json" }),
-        )
-      ) {
-        reportDebug(
-          "Event queued with sendBeacon; the server response cannot be inspected by this browser API.",
-          metadata,
-        );
-        return true;
-      } else {
-        reportError(
-          "Tracking request could not be queued by sendBeacon.",
-          metadata,
-        );
-        return false;
-      }
-    } else {
-      reportError(
-        "Tracking is unavailable: this browser supports neither fetch nor sendBeacon.",
-        metadata,
-      );
-      return false;
+            sessionStorage.setItem(LAST_KEY, String(Date.now()));
+            return value;
+        } catch (_) {
+            return id();
+        }
     }
-  }
-  function pageview(data) {
-    var path = location.pathname + location.search;
-    if (path !== lastPath) {
-      if (send("pageview", data)) lastPath = path;
+    // In strict mode this is the page-only identifier above. Enriched mode may
+    // use sessionStorage only after an external consent banner has granted it.
+    function getVisitorId() {
+        if (!visitorId) visitorId = sessionId();
+        return visitorId;
     }
-  }
-  window.minilytics = {
-    track: function (name, data) {
-      name === "pageview" || !name ? pageview(data) : send(name, data);
-    },
-    pageview: pageview,
-    optOut: function () {
-      try {
-        localStorage.setItem("minilytics_opt_out", "true");
-      } catch (_) {}
-    },
-    optIn: function () {
-      try {
-        localStorage.removeItem("minilytics_opt_out");
-      } catch (_) {}
-    },
-    consent: function () {
-      if (privacyMode !== "enriched") return false;
-      if (browserPrivacyReason()) { reportDebug("Enriched tracking remains disabled because of the browser privacy preference.", { reason: browserPrivacyReason() }); return false; }
-      consentGranted = true;
-      pageview();
-      return true;
-    },
-    withdrawConsent: function () { consentGranted = false; },
-    privacyMode: privacyMode,
-    sessionId: sessionId,
-    siteId: siteId,
-  };
-  if (!autoTrack || optedOut()) return;
-  if (document.readyState === "complete") pageview();
-  else addEventListener("load", pageview, { once: true });
-  ["pushState", "replaceState"].forEach(function (method) {
-    var original = history[method];
-    if (original)
-      history[method] = function () {
-        var r = original.apply(this, arguments);
-        pageview();
-        return r;
-      };
-  });
-  addEventListener("popstate", pageview);
-  addEventListener("hashchange", pageview);
-  setTimeout(function () {
-    if (!engaged && !document.hidden) {
-      engaged = true;
-      send("_ml_engaged");
-    }
-  }, 10000);
-  document.addEventListener("visibilitychange", function () {
-    if (document.hidden && !engaged) {
-      engaged = true;
-      send("_ml_engaged");
-    }
-  });
-  document.addEventListener("click", function (e) {
-    var el = e.target.closest("[data-minilytics-event]");
-    if (el) {
-      var d = {};
-      Array.prototype.forEach.call(el.attributes, function (a) {
-        if (
-          a.name.indexOf("data-minilytics-") === 0 &&
-          a.name !== "data-minilytics-event"
-        )
-          d[a.name.slice(17)] = a.value;
-      });
-      send(el.getAttribute("data-minilytics-event"), d);
-      return;
-    }
-    var link = e.target.closest("a");
-    if (!link || !link.href) return;
-    try {
-      var u = new URL(link.href, location.href);
-      if (u.hostname !== location.hostname)
-        send("outbound_click", {
-          target_host: u.hostname,
-          link_text: (link.innerText || "").trim().slice(0, 100),
+    function campaign() {
+        var p = new URLSearchParams(location.search),
+            r = {};
+        [
+            "utm_source",
+            "utm_medium",
+            "utm_campaign",
+            "utm_content",
+            "utm_term",
+        ].forEach(function (k) {
+            if (p.has(k)) r[k] = p.get(k).slice(0, 200);
         });
-      else if (/\.(pdf|zip|csv|xlsx|docx|pptx|mp3|mp4)$/i.test(u.pathname))
-        send("file_download", { file_name: u.pathname.split("/").pop() });
-    } catch (_) {}
-  });
+        return r;
+    }
+    function context() {
+        var screenSize =
+            window.screen && screen.width && screen.height
+                ? screen.width + "×" + screen.height
+                : null;
+        var viewport =
+            window.innerWidth && window.innerHeight
+                ? window.innerWidth + "×" + window.innerHeight
+                : null;
+        var base = {
+            tracking_mode: privacyMode,
+            path: location.pathname || "/",
+            title: document.title.slice(0, 300),
+            hostname: location.hostname,
+            referrer: document.referrer
+                ? new URL(document.referrer).hostname
+                : null,
+            language: navigator.language || null,
+            // Screen resolution is coarse, useful aggregate context and does not
+            // require browser storage. Keep it available in strict mode too.
+            screen: screenSize,
+        };
+        if (privacyMode === "enriched") {
+            base.viewport = viewport;
+        }
+        return Object.assign(base, campaign());
+    }
+    function sanitise(data) {
+        var out = {};
+        Object.keys(data || {}).forEach(function (k) {
+            if (!/password|token|secret|email|phone|address|card/i.test(k))
+                out[k] = data[k];
+        });
+        return out;
+    }
+    function send(name, data) {
+        if (!siteId || !siteKey) {
+            if (!configurationReported) {
+                configurationReported = true;
+                reportError(
+                    "Tracking is not configured: both data-site-id and data-site-key are required.",
+                    {
+                        endpoint: endpoint,
+                        hasSiteId: !!siteId,
+                        hasSiteKey: !!siteKey,
+                    },
+                );
+            }
+            return false;
+        }
+        var optOutReason = localOptOutReason();
+        if (optOutReason) {
+            reportDebug("Event was not sent because tracking is opted out.", {
+                event: name,
+                reason: optOutReason,
+                resolution:
+                    optOutReason === "local_storage"
+                        ? "For this browser profile, run minilytics.optIn() and reload the page."
+                        : "Disable this browser privacy preference only if you want to test tracking.",
+            });
+            return false;
+        }
+        var automatedReason = automatedBrowserReason();
+        if (automatedReason) {
+            reportDebug(
+                "Event was not sent because an automated browser was detected.",
+                {
+                    event: name,
+                    reason: automatedReason,
+                },
+            );
+            return false;
+        }
+        var privacyReason = browserPrivacyReason();
+        if (privacyMode === "enriched" && !consentGranted) {
+            reportDebug(
+                "Event was not sent because enriched tracking requires consent.",
+                {
+                    event: name,
+                    resolution:
+                        "Call minilytics.consent() from your cookie banner after the user accepts analytics cookies.",
+                },
+            );
+            return false;
+        }
+        if (privacyMode === "enriched" && privacyReason) {
+            reportDebug(
+                "Event was not sent because the browser privacy preference blocks enriched tracking.",
+                { event: name, reason: privacyReason },
+            );
+            return false;
+        }
+        if (privacyMode === "strict" && privacyReason)
+            reportDebug(
+                "Browser privacy preference detected; only minimal, page-scoped analytics will be sent.",
+                { event: name, reason: privacyReason },
+            );
+        var payload = JSON.stringify({
+            site_id: siteId,
+            site_key: siteKey,
+            session_id: sessionId(),
+            visitor_id: getVisitorId(),
+            name: name,
+            data: Object.assign(context(), sanitise(data)),
+        });
+        var metadata = { event: name, endpoint: endpoint };
+        if (typeof fetch === "function") {
+            try {
+                fetch(endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: payload,
+                    keepalive: true,
+                })
+                    .then(function (response) {
+                        if (response.ok) {
+                            reportDebug(
+                                "Event accepted by the tracking endpoint.",
+                                metadata,
+                            );
+                            return;
+                        }
+                        response
+                            .text()
+                            .then(function (body) {
+                                reportError(
+                                    "Tracking endpoint rejected an event.",
+                                    Object.assign(
+                                        {
+                                            status: response.status,
+                                            statusText: response.statusText,
+                                            response: body.slice(0, 500),
+                                        },
+                                        metadata,
+                                    ),
+                                );
+                            })
+                            .catch(function () {
+                                reportError(
+                                    "Tracking endpoint rejected an event.",
+                                    Object.assign(
+                                        {
+                                            status: response.status,
+                                            statusText: response.statusText,
+                                        },
+                                        metadata,
+                                    ),
+                                );
+                            });
+                    })
+                    .catch(function (error) {
+                        reportError(
+                            "Tracking request failed. Check the endpoint URL, CORS policy, and network connection.",
+                            Object.assign(
+                                {
+                                    error:
+                                        error && error.message
+                                            ? error.message
+                                            : String(error),
+                                },
+                                metadata,
+                            ),
+                        );
+                    });
+            } catch (error) {
+                reportError(
+                    "Tracking request could not be started.",
+                    Object.assign(
+                        {
+                            error:
+                                error && error.message
+                                    ? error.message
+                                    : String(error),
+                        },
+                        metadata,
+                    ),
+                );
+                return false;
+            }
+            return true;
+        } else if (navigator.sendBeacon) {
+            if (
+                navigator.sendBeacon(
+                    endpoint,
+                    new Blob([payload], { type: "application/json" }),
+                )
+            ) {
+                reportDebug(
+                    "Event queued with sendBeacon; the server response cannot be inspected by this browser API.",
+                    metadata,
+                );
+                return true;
+            } else {
+                reportError(
+                    "Tracking request could not be queued by sendBeacon.",
+                    metadata,
+                );
+                return false;
+            }
+        } else {
+            reportError(
+                "Tracking is unavailable: this browser supports neither fetch nor sendBeacon.",
+                metadata,
+            );
+            return false;
+        }
+    }
+    function pageview(data) {
+        var path = location.pathname + location.search;
+        if (path !== lastPath) {
+            if (send("pageview", data)) lastPath = path;
+        }
+    }
+    window.minilytics = {
+        track: function (name, data) {
+            name === "pageview" || !name ? pageview(data) : send(name, data);
+        },
+        pageview: pageview,
+        optOut: function () {
+            try {
+                localStorage.setItem("minilytics_opt_out", "true");
+            } catch (_) {}
+        },
+        optIn: function () {
+            try {
+                localStorage.removeItem("minilytics_opt_out");
+            } catch (_) {}
+        },
+        consent: function () {
+            if (privacyMode !== "enriched") return false;
+            if (browserPrivacyReason()) {
+                reportDebug(
+                    "Enriched tracking remains disabled because of the browser privacy preference.",
+                    { reason: browserPrivacyReason() },
+                );
+                return false;
+            }
+            consentGranted = true;
+            pageview();
+            return true;
+        },
+        withdrawConsent: function () {
+            consentGranted = false;
+        },
+        privacyMode: privacyMode,
+        sessionId: sessionId,
+        siteId: siteId,
+    };
+    if (!autoTrack || optedOut()) return;
+    if (document.readyState === "complete") pageview();
+    else addEventListener("load", pageview, { once: true });
+    ["pushState", "replaceState"].forEach(function (method) {
+        var original = history[method];
+        if (original)
+            history[method] = function () {
+                var r = original.apply(this, arguments);
+                pageview();
+                return r;
+            };
+    });
+    addEventListener("popstate", pageview);
+    addEventListener("hashchange", pageview);
+    setTimeout(function () {
+        if (!engaged && !document.hidden) {
+            engaged = true;
+            send("_ml_engaged");
+        }
+    }, 10000);
+    document.addEventListener("visibilitychange", function () {
+        if (document.hidden && !engaged) {
+            engaged = true;
+            send("_ml_engaged");
+        }
+    });
+    document.addEventListener("click", function (e) {
+        var el = e.target.closest("[data-minilytics-event]");
+        if (el) {
+            var d = {};
+            Array.prototype.forEach.call(el.attributes, function (a) {
+                if (
+                    a.name.indexOf("data-minilytics-") === 0 &&
+                    a.name !== "data-minilytics-event"
+                )
+                    d[a.name.slice(17)] = a.value;
+            });
+            send(el.getAttribute("data-minilytics-event"), d);
+            return;
+        }
+        var link = e.target.closest("a");
+        if (!link || !link.href) return;
+        try {
+            var u = new URL(link.href, location.href);
+            if (u.hostname !== location.hostname)
+                send("outbound_click", {
+                    target_host: u.hostname,
+                    link_text: (link.innerText || "").trim().slice(0, 100),
+                });
+            else if (
+                /\.(pdf|zip|csv|xlsx|docx|pptx|mp3|mp4)$/i.test(u.pathname)
+            )
+                send("file_download", {
+                    file_name: u.pathname.split("/").pop(),
+                });
+        } catch (_) {}
+    });
 })();

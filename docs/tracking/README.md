@@ -34,7 +34,7 @@ You can also use declarative tracking, that automatically sends events when an e
 
 ## Troubleshooting
 
-If for some reason events are not arriving, check the browser console for errors. You can also enable debug mode to see accepted events and configuration, network, or endpoint errors. Add `data-debug="true"` to the script tag:
+The tracker stays silent in the browser console by default, so it does not pollute the console of the sites that embed it (for example a development host that is not an allowed domain). If events are not arriving, enable debug mode to see accepted events and configuration, network, or endpoint errors. Add `data-debug="true"` to the script tag:
 
 ```html
 <script
