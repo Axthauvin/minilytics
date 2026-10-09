@@ -24,7 +24,7 @@ function funnelRange(): array
         $end = strtotime($_GET['to'] . ' 23:59:59 UTC') ?: $now;
     } else {
         $start = match ($range) {
-            'today' => strtotime('today midnight UTC'), '24h' => $now - 86400, '30d' => $now - 30 * 86400, '90d' => $now - 90 * 86400, 'all' => 0, default => $now - 7 * 86400,
+            'today' => strtotime('today midnight UTC'), '24h' => $now - 86400, '30d' => $now - 30 * 86400, '90d' => $now - 90 * 86400, '6m', '180d' => $now - 180 * 86400, 'all' => 0, default => $now - 7 * 86400,
         };
         $end = $now;
     }

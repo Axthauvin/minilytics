@@ -13,12 +13,19 @@ try {
     $db = Database::getConnection($site);
     $range = $_GET['range'] ?? '7d';
     $now = time();
-    $days = ['today' => 0,'7d' => 7,'30d' => 30,'90d' => 90,'6m' => 180];
     if ($range === 'custom' && !empty($_GET['from']) && !empty($_GET['to'])) {
         $start = strtotime($_GET['from'] . ' 00:00:00 UTC');
         $end = strtotime($_GET['to'] . ' 23:59:59 UTC');
     } else {
-        $start = $range === 'all' ? 0 : $now - (($days[$range] ?? 7) * 86400);
+        $start = match ($range) {
+            'today' => strtotime('today midnight UTC'),
+            '24h' => $now - 86400,
+            '30d' => $now - 30 * 86400,
+            '90d' => $now - 90 * 86400,
+            '6m', '180d' => $now - 180 * 86400,
+            'all' => 0,
+            default => $now - 7 * 86400,
+        };
         $end = $now;
     }
     $startText = gmdate('Y-m-d H:i:s', $start);
