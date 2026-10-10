@@ -8,4 +8,6 @@ parameters:
         - src
         - index.php
         - mcp.php
+        - oauth
+        - .well-known
         - track.php

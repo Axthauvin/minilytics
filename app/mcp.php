@@ -7,13 +7,15 @@ use Minilytics\Auth\BearerTokens;
 use Minilytics\Http\Http;
 use Minilytics\Mcp\AnalyticsTools;
 use Minilytics\Mcp\McpServer;
+use Minilytics\OAuth\OAuthServer;
 
 /**
  * MCP endpoint giving AI assistants read-only access to the analytics.
  *
  * Streamable HTTP transport, answering every request with a single JSON
- * response (no SSE stream). Requests carry an access token from
- * Settings > AI assistants: `Authorization: Bearer <token>`.
+ * response (no SSE stream). Requests carry `Authorization: Bearer <token>`:
+ * either an OAuth token obtained through the consent screen (Claude, ChatGPT,
+ * Cursor… sign in by themselves), or an access token from Settings > AI assistants.
  */
 require_once __DIR__ . '/vendor/autoload.php';
 Http::allowCors('POST');
@@ -27,11 +29,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
 }
 
 $token = BearerTokens::fromRequest();
-$user = $token === null ? null : McpTokens::authenticate($token);
+$user = $token === null ? null : (OAuthServer::authenticate($token) ?? McpTokens::authenticate($token));
 if ($user === null) {
+    // The 401 points clients to the OAuth metadata, which starts the sign-in flow.
     http_response_code(401);
-    header('WWW-Authenticate: Bearer' . ($token === null ? '' : ' error="invalid_token"'));
-    echo json_encode(['error' => 'Send an access token: Authorization: Bearer <token>.']);
+    header('WWW-Authenticate: Bearer resource_metadata="' . OAuthServer::resourceMetadataUrl() . '", scope="' . OAuthServer::SCOPE . '"' . ($token === null ? '' : ', error="invalid_token"'));
+    echo json_encode(['error' => 'Sign in to Minilytics, or send an access token: Authorization: Bearer <token>.']);
     exit;
 }
 

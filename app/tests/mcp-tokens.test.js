@@ -104,6 +104,8 @@ test('a token never opens the dashboard endpoints, writes or administration', { 
     ['sites.php?action=config&id=private_site', { headers: bearer() }],
     ['database.php', { headers: bearer() }],
     ['import.php', { headers: bearer() }],
+    ['tokens.php', { headers: bearer() }],
+    ['tokens.php', { method: 'POST', headers: json, body: JSON.stringify({ name: 'escalation' }) }],
   ];
   for (const [endpoint, init] of attempts) {
     const res = await api(endpoint, init);
