@@ -1,0 +1,4 @@
+website_id,session_id,event_id,created_at,url_path,url_query,referrer_path,referrer_query,referrer_domain,page_title,event_type,event_name,hostname,browser,os,device,screen,language,country,utm_source
+w1,sess-a,ev-1,2026-01-05 10:00:00,/,,\N,\N,google.com,Home,1,\N,blog.example.com,chrome,Mac OS,desktop,1920x1080,fr-FR,FR,newsletter
+w1,sess-a,ev-2,2026-01-05 10:01:00,/pricing,plan=pro,\N,\N,\N,Pricing,1,\N,blog.example.com,chrome,Mac OS,desktop,1920x1080,fr-FR,FR,\N
+w1,sess-b,ev-3,2026-01-06 09:30:00,/pricing,,\N,\N,\N,Pricing,2,signup,blog.example.com,ios,iOS,mobile,390x844,en-US,US,\N
