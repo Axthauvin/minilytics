@@ -4,12 +4,19 @@ As Minilytics wants to be a plug and play solution, it does not require any conf
 
 ## Tracking modes
 
-Minilytics supports two tracking modes :
+Minilytics has two tracking modes.
 
-- `strict` is the default mode. It creates no cookies, local storage, or session storage. It records the coarse screen resolution but removes URL query strings and fragments, and does not store raw IP addresses or user agents. The server derives a site-scoped visitor key from those values, a private secret, and a salt that rotates monthly.
+The **`strict` mode (used by default)** doesn't need a consent banner. Minilytics stores nothing in the visitor's browser. The server recognizes visitors with an anonymous hash that changes every month, and never stores IPs or user agents. It works well, but if the visitor's IP changes (for example when they switch from Wi-Fi to mobile data), Minilytics counts them as a new visitor.
 
-- `enriched` is optional. It requires explicit visitor consent and may use `sessionStorage` to maintain a session. It remains disabled when the browser signals Global Privacy Control or Do Not Track.
-  To activate this mode, add `data-privacy-mode="enriched"` to the tracking snippet and call `minilytics.consent()` after consent is granted. Call `minilytics.withdrawConsent()` when consent is withdrawn.
+The **`enriched` mode (opt-in)** only starts once the visitor accepts analytics in your consent banner (you call `minilytics.consent()`). Nothing is sent before that. Instead of relying on the IP, it keeps a random session ID in the browser's `sessionStorage`, so a visit stays tracked as one session even if the IP changes. It also records the viewport size. The ID is deleted when the tab is closed or after 30 minutes of inactivity, so it can't follow anyone long-term. This also means a visitor who comes back later counts as a new visitor. It's turned off automatically if the browser sends Do Not Track or Global Privacy Control.
+
+So use `strict` if you don't want a consent banner, and `enriched` if you already have one and want more accurate sessions.
+
+In both modes, URL query strings and fragments are removed (campaign parameters like `utm_source` are kept).
+
+### Enabling enriched mode
+
+Add `data-privacy-mode="enriched"` to the tracking snippet and call `minilytics.consent()` once the visitor accepts. Call `minilytics.withdrawConsent()` if they change their mind. If your page already knows consent was granted when it loads, you can add `data-consent="granted"` to the snippet instead.
 
 Example snippet for enriched mode:
 
@@ -34,7 +41,7 @@ Your consent banner remains responsible for storing the consent choice. Minilyti
 
 ## Visitor choice
 
-Visitors can opt out and opt back in for their browser profile:
+Visitors can opt out and opt back in for their browser profile. Opting out saves a `minilytics_opt_out` flag in `localStorage`, which is the only thing strict mode ever writes to the browser, and only when the visitor asks for it.
 
 ```js
 minilytics.optOut();
