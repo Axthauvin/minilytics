@@ -59,7 +59,7 @@ final class OAuthServer
             'scopes_supported' => [self::SCOPE],
             'bearer_methods_supported' => ['header'],
             'resource_name' => 'Minilytics',
-            'resource_documentation' => 'https://github.com/axthauvin/minilytics/tree/main/docs/api',
+            'resource_documentation' => 'https://github.com/axthauvin/minilytics/tree/main/docs/mcp',
         ];
     }
 
@@ -78,7 +78,7 @@ final class OAuthServer
             'token_endpoint_auth_methods_supported' => ['none'],
             'scopes_supported' => [self::SCOPE, 'offline_access'],
             'authorization_response_iss_parameter_supported' => true,
-            'service_documentation' => 'https://github.com/axthauvin/minilytics/tree/main/docs/api',
+            'service_documentation' => 'https://github.com/axthauvin/minilytics/tree/main/docs/mcp',
         ];
     }
 

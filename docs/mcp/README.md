@@ -1,8 +1,10 @@
 # AI assistants (MCP)
 
-Minilytics includes an [MCP](https://modelcontextprotocol.io) server, so an AI assistant can answer questions such as "Where did last week's visitors come from?" from your own data. Assistants sign in with your Minilytics account and get read-only access: you never copy a password or a token into them.
+Minilytics includes an [MCP](https://modelcontextprotocol.io) server, so an AI assistant can answer questions such as "Where did last week's visitors come from?" from your own data. Assistants sign in with your Minilytics account and get read-only access.
 
-**Settings → AI assistants** walks you through it: pick your assistant to get its setup steps, with one-click buttons for Claude, Cursor and VS Code, and a prompt that lets any other agent configure itself. The **Authorized access** list there shows every assistant that can read your analytics.
+## How to connect an assistant
+
+**Settings → AI assistants** allows you to connect your assistant. Pick your assistant from the list to get its setup steps, with one-click buttons for Claude, Cursor and VS Code, and a prompt that lets any other agent configure itself. The **Authorized access** list there shows every assistant that can read your analytics.
 
 ![Settings → AI assistants, with the steps to connect Claude](../assets/ai-assistants.png)
 
@@ -64,13 +66,13 @@ The Codex app, CLI and IDE extension share this configuration.
 
 1. Click **Add to Cursor** in **Settings → AI assistants**, or add the server to `~/.cursor/mcp.json`:
 
-   ```json
-   {
-     "mcpServers": {
-       "minilytics": { "url": "https://analytics.example.com/mcp.php" }
-     }
-   }
-   ```
+    ```json
+    {
+        "mcpServers": {
+            "minilytics": { "url": "https://analytics.example.com/mcp.php" }
+        }
+    }
+    ```
 
 2. In Cursor's MCP settings, click **Connect** next to minilytics, then allow access in Minilytics.
 
@@ -78,9 +80,9 @@ The Codex app, CLI and IDE extension share this configuration.
 
 1. Click **Add to VS Code** in **Settings → AI assistants**, or run:
 
-   ```bash
-   code --add-mcp '{"name":"minilytics","type":"http","url":"https://analytics.example.com/mcp.php"}'
-   ```
+    ```bash
+    code --add-mcp '{"name":"minilytics","type":"http","url":"https://analytics.example.com/mcp.php"}'
+    ```
 
 2. When VS Code starts the server, sign in to Minilytics and allow access.
 
@@ -106,19 +108,19 @@ A new version of Minilytics can add or change tools. Assistants keep the list of
 
 ## Tools
 
-| Tool | Returns |
-| --- | --- |
-| `list_sites` | The tracked websites and their `site_id`. |
-| `get_overview` | Visitors, visits, pageviews, events, bounce rate, average visit duration, live visitors, and the change since the previous period. |
-| `get_timeseries` | Traffic per hour, day or week. |
-| `get_top_pages` | Most viewed pages, optionally those whose path contains a `search` text. |
-| `get_top_referrers` | Websites sending traffic. |
-| `get_top_events` | Custom events, optionally those whose name contains a `search` text. |
-| `get_event_details` | One event in detail: occurrences, visitors, evolution, the pages where it fires and the values of its own properties. |
-| `get_funnel` | Conversion through ordered steps (pages or events), or through a funnel saved in the dashboard. |
-| `get_countries` | Visitors per country. |
-| `get_environment` | Visitors per browser, operating system or device. |
-| `get_acquisition` | Visits per channel, source, UTM parameter, landing page or exit page. |
+| Tool                | Returns                                                                                                                            |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `list_sites`        | The tracked websites and their `site_id`.                                                                                          |
+| `get_overview`      | Visitors, visits, pageviews, events, bounce rate, average visit duration, live visitors, and the change since the previous period. |
+| `get_timeseries`    | Traffic per hour, day or week.                                                                                                     |
+| `get_top_pages`     | Most viewed pages, optionally those whose path contains a `search` text.                                                           |
+| `get_top_referrers` | Websites sending traffic.                                                                                                          |
+| `get_top_events`    | Custom events, optionally those whose name contains a `search` text.                                                               |
+| `get_event_details` | One event in detail: occurrences, visitors, evolution, the pages where it fires and the values of its own properties.              |
+| `get_funnel`        | Conversion through ordered steps (pages or events), or through a funnel saved in the dashboard.                                    |
+| `get_countries`     | Visitors per country.                                                                                                              |
+| `get_environment`   | Visitors per browser, operating system or device.                                                                                  |
+| `get_acquisition`   | Visits per channel, source, UTM parameter, landing page or exit page.                                                              |
 
 Every tool except `list_sites` accepts:
 
@@ -136,13 +138,13 @@ Send the token in an `Authorization: Bearer` header, with a remote server config
 
 ```json
 {
-  "mcpServers": {
-    "minilytics": {
-      "type": "http",
-      "url": "https://analytics.example.com/mcp.php",
-      "headers": { "Authorization": "Bearer mlt_your_token" }
+    "mcpServers": {
+        "minilytics": {
+            "type": "http",
+            "url": "https://analytics.example.com/mcp.php",
+            "headers": { "Authorization": "Bearer mlt_your_token" }
+        }
     }
-  }
 }
 ```
 

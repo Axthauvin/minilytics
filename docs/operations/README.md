@@ -22,7 +22,7 @@ The release archive ships an `.htaccess` file, so **Apache** and **LiteSpeed** n
 - serve `index.html` (the landing page, when deployed) before `index.php` at the site root;
 - make browsers revalidate `minilytics.js`, so sites always run the current tracker;
 - allow uploads of up to 128 MB for data imports;
-- pass the `Authorization` header to PHP and run the PHP files under `/.well-known/`, for [AI assistants](../api/README.md) (Nginx and Caddy already pass the header).
+- pass the `Authorization` header to PHP and run the PHP files under `/.well-known/`, for [AI assistants](../mcp/README.md) (Nginx and Caddy already pass the header).
 
 Administrators see a warning in the dashboard when these rules are missing (it checks whether `/composer.json` is publicly readable).
 
