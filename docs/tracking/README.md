@@ -47,4 +47,12 @@ The tracker stays silent in the browser console by default, so it does not pollu
 ></script>
 ```
 
+Without debug mode, rejected events still explain what to fix in the response to the `track.php` request, in the browser's network panel. For example, a page served from a domain that is not allowed answers `403` with:
+
+```json
+{"error": "blog.example.com is not an allowed domain for this website. Add it in Settings → Tracking → Allowed domains."}
+```
+
+To test the snippet on your computer, enable **Accept events from localhost** in **Settings → Tracking** instead of adding `localhost` to the allowed domains, and turn it off once the website is live: anyone can run a local page with your script key.
+
 See also: [privacy](../privacy/README.md), [operations](../operations/README.md), [documentation index](../README.md).

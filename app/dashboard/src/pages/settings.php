@@ -59,6 +59,7 @@
                     </div>
                     <small>Add one domain at a time. Only these domains can send events for this website.</small>
                 </div>
+                <label class="tracking-checkbox"><input id="trackingAllowLocalhost" type="checkbox"><span><strong>Accept events from localhost</strong><small>To test the snippet on your computer. Anyone can run a local page with your script key, so turn it off once the website is live.</small></span></label>
                 <div class="tracking-field">
                     <label for="trackingInternalIpsInput">Internal IP addresses to ignore</label>
                     <div class="tracking-tag-editor" id="trackingInternalIpsEditor">

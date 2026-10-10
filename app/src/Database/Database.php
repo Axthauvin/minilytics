@@ -320,7 +320,7 @@ class Database
     /** Strips tracking secrets and private configuration before exposing a site to guests. */
     public static function guestSiteView(array $site): array
     {
-        return array_diff_key($site, array_flip(['write_key', 'allowed_domains', 'internal_ips', 'retention_days']));
+        return array_diff_key($site, array_flip(['write_key', 'allowed_domains', 'allow_localhost', 'internal_ips', 'retention_days']));
     }
 
     public static function trackingSnippet(array $site, string $scriptUrl): string
@@ -349,6 +349,9 @@ class Database
             }
             if (array_key_exists('retention_days', $input)) {
                 $site['retention_days'] = max(1, min(760, (int) $input['retention_days']));
+            }
+            if (array_key_exists('allow_localhost', $input)) {
+                $site['allow_localhost'] = filter_var($input['allow_localhost'], FILTER_VALIDATE_BOOLEAN);
             }
             if (array_key_exists('is_public', $input)) {
                 $site['is_public'] = filter_var($input['is_public'], FILTER_VALIDATE_BOOLEAN);
