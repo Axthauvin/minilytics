@@ -36,16 +36,16 @@ _Note: The `zip` extension is only needed if you import historical data from ext
 
 ### Production Installation
 
-Download the latest production archive from [GitHub Releases](https://github.com/axthauvin/minilytics/releases/latest) and extract it into your website root directory:
+**Minilytics is easy to install**. Download the latest production archive from [GitHub Releases](https://github.com/axthauvin/minilytics/releases/latest) and extract it into your website root directory:
 
 ```bash
 curl -LO https://github.com/axthauvin/minilytics/releases/latest/download/minilytics.tar.gz
 tar -xzf minilytics.tar.gz && rm minilytics.tar.gz
 ```
 
-1. Ensure your web server can write to `../minilytics-data/` (created automatically if the parent is writable), or point `MINILYTICS_DATA_DIR` to another folder **outside** the web root.
-2. Navigate to `https://your-domain.com/dashboard/` to create the initial administrator account.
-3. Add your website in the dashboard and paste the tracking snippet into your website's `<head>`.
+Thats it!
+
+Once its installed, navigate to `https://your-domain.com/dashboard/` to create the initial administrator account.
 
 ### How do we store analytics data?
 
