@@ -1,7 +1,5 @@
 <div align="center">
-  <img src="app/favicon.svg" alt="Minilytics logo" width="160" />
-  <h1>Minilytics</h1>
-  <p><strong>Minimal, self-hosted web analytics powered by PHP with SQLite, MySQL, or MariaDB.</strong></p>
+  <img src="docs/assets/icon-rectangle.png" alt="Minilytics logo" width="100%" />
 
   <p>
     <a href="#quick-start">Quick Start</a> &bull;
@@ -13,9 +11,10 @@
   </p>
 </div>
 
-Minilytics is a lightweight web analytics platform built for simplicity, performance, and privacy.
+Minilytics is a lightweight, privacy-friendly web analytics tool written in PHP. Most analytics tools need Node.js, Docker or a separate database server. **Minilytics doesn't**.
 
-It was built because today's most modern analytics tools require heavy Node.js runtimes, complex Docker setups, or dedicated database servers. Minilytics is **minimal by design**. It's designed to run anywhere standard PHP is available, consumes negligible server resources, while trying to provide a clean and modern user experience.
+- **Runs on a cheap Apache hosting plan, no VPS needed.** It stores data in SQLite by default, and MySQL and MariaDB are also supported. Installation takes [three steps](#production-installation). Just upload the archive and you are done.
+- **Bring your history with you.** You can import your [Umami](docs/importing/README.md) data from the dashboard or the command line. Importers for Google Analytics, Plausible, Matomo and Simple Analytics are planned.
 
 ![Screenshot of the Minilytics dashboard](docs/assets/dashboard.png)
 
