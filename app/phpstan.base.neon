@@ -7,4 +7,5 @@ parameters:
         - dashboard
         - src
         - index.php
+        - mcp.php
         - track.php

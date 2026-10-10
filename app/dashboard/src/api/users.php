@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Delight\Auth\Role;
+use Minilytics\Auth\McpTokens;
 use Minilytics\Auth\Auth;
 
 header('Content-Type: application/json; charset=utf-8');
@@ -90,6 +91,7 @@ try {
         $cleanInvites = $db->prepare('UPDATE invitations SET created_by = NULL WHERE created_by = :id');
         $cleanInvites->bindValue(':id', $userId, SQLITE3_INTEGER);
         $cleanInvites->execute();
+        McpTokens::revokeAllForUser($userId);
 
         // Delete the user record
         Auth::engine()->admin()->deleteUserById($userId);
