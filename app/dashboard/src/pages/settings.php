@@ -10,6 +10,7 @@
         <button class="settings-tab" type="button" role="tab" aria-selected="false" aria-controls="settingsTrackingPanel" id="settingsTrackingTab" data-settings-tab="tracking">Tracking</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" aria-controls="settingsDatabasePanel" id="settingsDatabaseTab" data-settings-tab="database">Database</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" aria-controls="settingsAssistantsPanel" id="settingsAssistantsTab" data-settings-tab="assistants">AI assistants</button>
+        <button class="settings-tab" type="button" role="tab" aria-selected="false" aria-controls="settingsUpdatesPanel" id="settingsUpdatesTab" data-settings-tab="updates">Updates<span class="update-dot update-dot--tab" data-update-dot title="A new Minilytics version is available" hidden></span></button>
     </div>
     <div class="settings-panel" id="settingsAccessPanel" role="tabpanel" aria-labelledby="settingsAccessTab" data-settings-panel="access">
         <section class="settings-card" id="inviteUserCard">
@@ -140,6 +141,25 @@
             </div>
             <p class="settings-feedback" id="mcpAccessFeedback" role="status"></p>
             <div id="mcpAccessList" class="mcp-access-list"></div>
+        </section>
+    </div>
+    <div class="settings-panel" id="settingsUpdatesPanel" role="tabpanel" aria-labelledby="settingsUpdatesTab" data-settings-panel="updates" hidden>
+        <section class="settings-card" id="updatesCard">
+            <div class="settings-card-heading">
+                <div>
+                    <h3>Minilytics version</h3>
+                    <p>Your server asks GitHub for the latest release at most twice a day, and only while an administrator uses the dashboard.</p>
+                </div>
+            </div>
+            <dl class="update-versions">
+                <div><dt>Installed</dt><dd id="updateInstalled">…</dd></div>
+                <div id="updateLatestRow" hidden><dt>Latest release</dt><dd id="updateLatest">…</dd></div>
+            </dl>
+            <p class="settings-feedback" id="updateStatus" role="status"></p>
+            <div class="update-actions">
+                <a class="btn-primary" id="updateReleaseLink" href="https://github.com/axthauvin/minilytics/releases" target="_blank" rel="noopener" hidden>See what's new ↗</a>
+                <button type="button" class="btn-outline" id="updateCheckNow" hidden>Check now</button>
+            </div>
         </section>
     </div>
 </div>

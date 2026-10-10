@@ -68,6 +68,7 @@ if ($path === '/dashboard') {
     <script>
         window.MINILYTICS_GUEST = <?php echo $isGuest ? 'true' : 'false'; ?>;
         window.MINILYTICS_EMBED = <?php echo $isEmbed ? 'true' : 'false'; ?>;
+        window.MINILYTICS_ADMIN = <?php echo ($authUser['role'] ?? '') === 'admin' ? 'true' : 'false'; ?>;
         window.MINILYTICS_PUBLIC_SITE = <?php echo $isGuest ? json_encode($publicSite['id']) : 'null'; ?>;
     </script>
     <script>

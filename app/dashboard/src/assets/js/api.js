@@ -294,6 +294,11 @@ const Api = {
     if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
   },
 
+  async getVersion(refresh = false) {
+    const res = await apiFetch(`${this.base}/version.php${refresh ? "?refresh=1" : ""}`); const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
+  },
+
   async getUsers() {
     const res = await apiFetch(`${this.base}/users.php`);
     const data = await res.json().catch(() => ({}));

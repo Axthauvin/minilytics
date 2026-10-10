@@ -46,11 +46,13 @@ const SettingsPage = {
     if (saveDatabase) saveDatabase.addEventListener('click', () => this.saveDatabase());
     document.querySelectorAll('#databaseSettingsForm input').forEach((input) => input.addEventListener('input', () => this.invalidateDatabaseTest()));
     document.getElementById('settingsAssistantsPanel')?.addEventListener('click', (event) => this.handleAssistantsClick(event));
+    document.getElementById('updateCheckNow')?.addEventListener('click', () => this.loadVersion(true));
   },
 
   async load() {
     this.init();
     this.loadApi();
+    this.loadVersion();
     const list = document.getElementById('usersList');
     if (!list) return;
 
@@ -177,6 +179,29 @@ const SettingsPage = {
     const select = document.getElementById('trackingSiteSelect'); const data = await Api.getSites();
     select.innerHTML = (data.sites || []).map(s => `<option value="${this.escapeHtml(s.id)}">${this.escapeHtml(s.name || s.id)}</option>`).join('');
     await Promise.all([this.loadTrackingConfig(), this.loadTrackingServer()]);
+  },
+
+  async loadVersion(refresh = false) {
+    const status = document.getElementById('updateStatus'); if (!status) return;
+    const button = document.getElementById('updateCheckNow'); const link = document.getElementById('updateReleaseLink');
+    if (refresh) { button.disabled = true; status.className = 'settings-feedback'; status.textContent = 'Checking GitHub…'; }
+    try {
+      const data = await Api.getVersion(refresh);
+      document.getElementById('updateInstalled').textContent = data.installed || 'Development version';
+      const isAdmin = 'latest' in data;
+      document.getElementById('updateLatestRow').hidden = !isAdmin; button.hidden = !isAdmin;
+      document.getElementById('updateLatest').textContent = data.latest ? data.latest.version : 'Unknown';
+      link.href = data.latest ? data.latest.url : data.releases_url; link.hidden = !data.update_available;
+      App.showUpdateDots(Boolean(data.update_available));
+      let message = '';
+      if (isAdmin && !data.latest) message = 'GitHub could not be reached. Try again later.';
+      else if (data.update_available) message = `Version ${data.latest.version} is available.`;
+      else if (!data.installed) message = 'This copy runs from the source code, so it is not compared with releases.';
+      else if (isAdmin) message = 'You are using the latest version.';
+      status.className = 'settings-feedback' + (data.update_available ? ' settings-success' : '');
+      status.textContent = message;
+    } catch (e) { status.className = 'settings-feedback settings-error'; status.textContent = e.message; }
+    finally { if (button) button.disabled = false; }
   },
 
   selectTab(name) {

@@ -30,6 +30,16 @@ const App = {
       .catch(() => {});
   },
 
+  /** Marks the Settings link and the Updates tab when a newer Minilytics release is available (administrators only). */
+  checkForUpdate() {
+    if (this.isGuest || window.MINILYTICS_ADMIN !== true) return;
+    Api.getVersion().then((data) => this.showUpdateDots(data.update_available)).catch(() => {});
+  },
+
+  showUpdateDots(visible) {
+    document.querySelectorAll("[data-update-dot]").forEach((dot) => { dot.hidden = !visible; });
+  },
+
   init() {
     // Read URL search parameter (?site=... or ?site_id=...)
     const urlParams = new URLSearchParams(window.location.search);
@@ -40,6 +50,7 @@ const App = {
     if (this.isGuest) this.currentSiteId = this.guestSiteId;
 
     this.checkServerConfig();
+    this.checkForUpdate();
     this.bindNavigation();
     this.bindHeaderActions();
     this.restoreDateRangePreference();

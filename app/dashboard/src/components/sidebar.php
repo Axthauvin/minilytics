@@ -140,6 +140,7 @@
                 <circle cx="12" cy="12" r="3" />
             </svg>
             <span>Settings</span>
+            <span class="update-dot" data-update-dot title="A new Minilytics version is available" hidden></span>
         </a>
 
         <div class="sidebar-user-row">

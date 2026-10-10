@@ -79,6 +79,13 @@ else
     rm -f "${STAGING_DIR}/data"/*.db "${STAGING_DIR}/data"/*.db-wal "${STAGING_DIR}/data"/*.db-shm "${STAGING_DIR}/data/sites.json" "${STAGING_DIR}/data/database.json" "${STAGING_DIR}/data/.tracking-secret" 2>/dev/null || true
 fi
 
+# Record the release tag, so the dashboard can show the installed version and
+# tell administrators about newer releases (src/ is not publicly served).
+if [ -n "${MINILYTICS_VERSION:-}" ]; then
+    printf '%s
+' "${MINILYTICS_VERSION}" > "${STAGING_DIR}/src/VERSION"
+fi
+
 # Ensure data/ directory exists and contains data/.htaccess
 mkdir -p "${STAGING_DIR}/data"
 if [ ! -f "${STAGING_DIR}/data/.htaccess" ] && [ -f "${APP_DIR}/data/.htaccess" ]; then
