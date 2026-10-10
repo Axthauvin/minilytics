@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Minilytics\Auth\Auth;
+use Minilytics\Auth\Csrf;
 use Minilytics\Database\Database;
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -13,6 +14,11 @@ if (Auth::hasDatabase() && $step !== 'database') {
     exit;
 }
 $error = '';
+$isPost = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
+if ($isPost && !Csrf::isValid()) {
+    $error = 'This page expired. Please try again.';
+    $isPost = false;
+}
 if ($step === 'database') {
     $user = Auth::user();
     if (!$user || ($user['role'] ?? '') !== 'admin') {
@@ -20,7 +26,7 @@ if ($step === 'database') {
         exit;
     }
 }
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $step === 'account') {
+if ($isPost && $step === 'account') {
     $email = trim(strtolower($_POST['email'] ?? ''));
     $password = (string) ($_POST['password'] ?? '');
     if (!Auth::validEmail($email)) {
@@ -33,7 +39,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $step === 'account') {
         exit;
     }
 }
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $step === 'database') {
+if ($isPost && $step === 'database') {
     try {
         Database::saveDatabaseConfig([
             'driver' => $_POST['driver'] ?? 'sqlite',
@@ -85,6 +91,7 @@ $databaseStage = $error !== '' && $databaseDriver !== 'sqlite' ? 'config' : 'cho
             if ($error): ?><div class="auth-error"><?= htmlspecialchars($error) ?></div>
             <?php endif; ?>
             <form method="post">
+                <?= Csrf::field() ?>
                 <label>Email address
                     <input required type="email" name="email" autocomplete="email">
                 </label>
@@ -104,6 +111,7 @@ $databaseStage = $error !== '' && $databaseDriver !== 'sqlite' ? 'config' : 'cho
             <span class="eyebrow">Step 3 of 3</span>
             <?php if ($error): ?><div class="auth-error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
             <form method="post" class="database-onboarding-form" id="databaseOnboardingForm" data-initial-stage="<?= $databaseStage ?>">
+                <?= Csrf::field() ?>
                 <input type="hidden" name="driver" value="<?= htmlspecialchars($databaseDriver) ?>" id="databaseDriver">
                 <section id="storageChoiceStage" <?= $databaseStage === 'config' ? ' hidden' : '' ?>>
                     <h1>Choose your analytics storage</h1>

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Minilytics\Auth\Auth;
+use Minilytics\Auth\Csrf;
 use Minilytics\OAuth\OAuthException;
 use Minilytics\OAuth\OAuthServer;
 
@@ -43,10 +44,9 @@ if ($request !== null && $user === null) {
 }
 
 if ($request !== null && $isPost) {
-    if (!is_string($_POST['csrf'] ?? null) || !hash_equals((string) ($_SESSION['oauth_csrf'] ?? ''), $_POST['csrf'])) {
+    if (!Csrf::isValid()) {
         $error = 'This page expired. Go back to your assistant and connect again.';
     } else {
-        unset($_SESSION['oauth_csrf']);
         if (($_POST['decision'] ?? '') === 'allow') {
             $code = OAuthServer::createAuthorizationCode($request, (int) $user['id']);
             $redirect(OAuthServer::redirectWith($request['redirect_uri'], ['code' => $code, 'state' => $request['state']]));
@@ -54,7 +54,6 @@ if ($request !== null && $isPost) {
         $redirect(OAuthServer::redirectWith($request['redirect_uri'], ['error' => 'access_denied', 'error_description' => 'Access was denied.', 'state' => $request['state']]));
     }
 }
-$_SESSION['oauth_csrf'] ??= bin2hex(random_bytes(16));
 
 $h = static fn(?string $value): string => htmlspecialchars((string) $value, ENT_QUOTES);
 $clientName = $request['client']['client_name'] ?? '';
@@ -82,7 +81,7 @@ $isLocalApp = $request !== null && OAuthServer::redirectsToLocalApp($request['re
 <?php foreach ($params as $name => $value): ?>
     <input type="hidden" name="<?= $h((string) $name) ?>" value="<?= $h(is_string($value) ? $value : '') ?>">
 <?php endforeach; ?>
-    <input type="hidden" name="csrf" value="<?= $h($_SESSION['oauth_csrf']) ?>">
+    <?= Csrf::field() ?>
     <button type="submit" name="decision" value="deny" class="oauth-deny">Cancel</button>
     <button type="submit" name="decision" value="allow">Allow access</button>
 </form>

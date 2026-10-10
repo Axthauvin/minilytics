@@ -1,6 +1,7 @@
 <?php
 
 use Minilytics\Auth\Auth;
+use Minilytics\Auth\Csrf;
 use Minilytics\Database\Database;
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -49,6 +50,7 @@ if ($path === '/dashboard') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/dashboard/">
+    <meta name="csrf-token" content="<?= Csrf::token() ?>">
     <title>Minilytics | Privacy-Friendly Web Analytics</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -110,6 +112,13 @@ if ($path === '/dashboard') {
             <div class="server-config-banner" id="serverConfigWarning" role="alert" hidden>
                 <span><strong>Your web server is not applying the Minilytics access rules:</strong> application files such as <code>composer.json</code> are publicly readable.</span>
                 <a href="https://github.com/axthauvin/minilytics/blob/main/docs/operations/README.md#web-server-configuration" target="_blank" rel="noopener">Nginx &amp; Caddy setup ↗</a>
+            </div>
+            <?php endif; ?>
+            <?php if (!$isGuest): ?>
+            <!-- Shown by the API client when the session ends or the page's CSRF token is stale -->
+            <div class="session-banner" id="sessionBanner" role="alert" hidden>
+                <span></span>
+                <a href="/dashboard/login.php"></a>
             </div>
             <?php endif; ?>
             <!-- Top Header with Live Visitors & Controls -->
