@@ -77,6 +77,7 @@ Want to contribute? Read the [contributing guide](CONTRIBUTING.md) for the codin
 - [Privacy and data protection](docs/privacy/README.md)
 - [Operations, backups and storage](docs/operations/README.md)
 - [Importing data from other services](docs/importing/README.md)
+- [AI assistants (MCP)](docs/api/README.md)
 
 ---
 

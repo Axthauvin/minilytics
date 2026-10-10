@@ -10,5 +10,6 @@ You can use these guides after completing the [quick start](../README.md#quick-s
 - [Privacy and data protection](privacy/README.md): choose a tracking mode and configure safeguards.
 - [Operations and storage](operations/README.md): manage access, data retention, and backups.
 - [Importing Umami data](importing/README.md): migrate historical analytics.
+- [AI assistants (MCP)](api/README.md): ask Claude, ChatGPT, Cursor and other assistants about your analytics.
 
 See also: [README](../README.md), [tracking](tracking/README.md), [operations](operations/README.md).
