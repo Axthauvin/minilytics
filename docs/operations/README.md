@@ -104,6 +104,20 @@ max_execution_time = 300
 max_input_time = 300
 ```
 
+### Behind Cloudflare
+
+This is about the domain Minilytics itself runs on: browsers send events straight to it, so whether your tracked websites use Cloudflare does not matter.
+
+Behind Cloudflare, every request reaches your server from a Cloudflare address, so all visitors would share one IP: one rate limit, the same visitor key and no internal traffic filtering. Turn on **Minilytics is behind Cloudflare** in **Settings → Tracking** so Minilytics reads the visitor's address from the `CF-Connecting-IP` header instead. The dashboard suggests it when it detects that your own requests come through Cloudflare.
+
+You can also set `MINILYTICS_TRUST_CLOUDFLARE=1` in the server environment; it then overrides the dashboard setting:
+
+- Apache or LiteSpeed: add `SetEnv MINILYTICS_TRUST_CLOUDFLARE 1` to `.htaccess`;
+- Nginx with PHP-FPM: add `fastcgi_param MINILYTICS_TRUST_CLOUDFLARE 1;` next to the other `fastcgi_param` lines;
+- Caddy: add `env MINILYTICS_TRUST_CLOUDFLARE 1` inside the `php_fastcgi` block.
+
+Leave it unset otherwise: anyone can send this header, and Minilytics would then trust a forged address. For the same reason, if you enable it, make sure your server only accepts traffic from Cloudflare.
+
 ## MySQL and MariaDB checklist
 
 - Enable the PHP `pdo_mysql` extension.
