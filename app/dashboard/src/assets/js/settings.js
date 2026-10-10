@@ -45,10 +45,12 @@ const SettingsPage = {
     const saveDatabase = document.getElementById('saveDatabaseConnector');
     if (saveDatabase) saveDatabase.addEventListener('click', () => this.saveDatabase());
     document.querySelectorAll('#databaseSettingsForm input').forEach((input) => input.addEventListener('input', () => this.invalidateDatabaseTest()));
+    document.getElementById('settingsAssistantsPanel')?.addEventListener('click', (event) => this.handleAssistantsClick(event));
   },
 
   async load() {
     this.init();
+    this.loadApi();
     const list = document.getElementById('usersList');
     if (!list) return;
 
@@ -351,6 +353,188 @@ const SettingsPage = {
       this.setFeedback(error.message, 'error');
     }
   },
+
+  mcpUrl: '',
+  mcpClient: 'claude',
+
+  /**
+   * How to connect each assistant, one tile each. They all sign in with
+   * OAuth, so these instructions never contain a secret.
+   */
+  mcpClients() {
+    const url = this.mcpUrl;
+    const name = 'minilytics';
+    const vscode = JSON.stringify({ name, type: 'http', url });
+    const steps = (items) => `<ol class="mcp-steps">${items.map((item) => `<li>${item}</li>`).join('')}</ol>`;
+    const note = (html) => `<p class="mcp-note">${html}</p>`;
+    const install = (href, label, brand, newTab = false) => `<a class="mcp-install" href="${this.escapeHtml(href)}"${newTab ? ' target="_blank" rel="noopener"' : ''}><span class="mcp-install-logo mcp-install-${brand}">${Icons.brand(brand, { size: 18 })}</span>${label}<span class="mcp-install-arrow">${Icons.get('arrow-up-right', { size: 16 })}</span></a>`;
+    const byHand = (label, text) => `<details class="mcp-more"><summary>${label}</summary>${this.mcpCode(text)}</details>`;
+    return [
+      // claude.ai opens its "Add custom connector" dialog with these fields filled in.
+      // A connector added on claude.ai also reaches Claude Code when it is signed in with a Claude account.
+      { id: 'claude', label: 'Claude', detail: 'App, desktop, mobile and Claude Code', icon: { brand: 'claude' }, guide: () => steps([
+        `Open Claude with the connector ready to add: ${install(`https://claude.ai/customize/connectors?${new URLSearchParams({ modal: 'add-custom-connector', connectorName: 'Minilytics', connectorUrl: url })}`, 'Add to Claude', 'claude', true)}`,
+        'Click <strong>Add</strong>, then <strong>Connect</strong>, and allow access in Minilytics.',
+      ]) + note('Minilytics then works in every Claude app on your account, including Claude Code signed in with your Claude account. Claude connects from the internet, so your Minilytics must be reachable over HTTPS. On Team and Enterprise plans, an Owner adds the connector in <strong>Organization settings → Connectors</strong>.')
+        + byHand('Add it by hand: Customize → Connectors → Add custom connector, with this URL', url)
+        + byHand('Using Claude Code with an API key? Run this, then /mcp → Authenticate', `claude mcp add --transport http ${name} ${url}`) },
+      { id: 'chatgpt', label: 'ChatGPT', detail: 'Paid plans', icon: { brand: 'openai' }, guide: () => steps([
+        'In <strong>Settings → Apps → Advanced settings</strong>, turn on <strong>Developer mode</strong>.',
+        `Click <strong>Create app</strong>, name it <strong>Minilytics</strong>, choose <strong>OAuth</strong> and paste this URL:${this.mcpCode(url)}`,
+        'Click <strong>Create</strong>, then allow access in Minilytics.',
+      ]) + note('In a chat, turn the app on from the <strong>+</strong> menu.') },
+      { id: 'codex', label: 'Codex', detail: 'App, CLI and IDE extension', icon: { brand: 'openai' }, guide: () => steps([
+        'In Codex, open <strong>Settings → MCP</strong> and add a custom MCP server.',
+        `Name it <strong>minilytics</strong>, choose <strong>Streamable HTTP</strong> and paste this URL:${this.mcpCode(url)}`,
+        'Click <strong>Save</strong>, then <strong>Authenticate</strong>, and allow access in Minilytics.',
+      ]) + byHand('Using the Codex CLI? Run these commands', `codex mcp add ${name} --url ${url}\ncodex mcp login ${name}`)
+        + note('The Codex app, CLI and IDE extension share this configuration.') },
+      { id: 'cursor', label: 'Cursor', detail: 'Editor', icon: { brand: 'cursor' }, guide: () => steps([
+        `Add the server to Cursor: ${install(`cursor://anysphere.cursor-deeplink/mcp/install?name=${name}&config=${encodeURIComponent(btoa(JSON.stringify({ url })))}`, 'Add to Cursor', 'cursor')}`,
+        'In Cursor’s MCP settings, click <strong>Connect</strong> next to minilytics, then allow access in Minilytics.',
+      ]) + byHand('Add it by hand to ~/.cursor/mcp.json', JSON.stringify({ mcpServers: { [name]: { url } } }, null, 2)) },
+      { id: 'vscode', label: 'VS Code', detail: 'GitHub Copilot', icon: { brand: 'vscode' }, guide: () => steps([
+        `Add the server to VS Code: ${install(`vscode:mcp/install?${encodeURIComponent(vscode)}`, 'Add to VS Code', 'vscode')}`,
+        'When VS Code starts the server, sign in to Minilytics and allow access.',
+      ]) + byHand('Add it from the command line', `code --add-mcp '${vscode}'`) },
+      { id: 'other', label: 'Other tools', detail: 'Your agent sets itself up', icon: { lucide: 'layout-grid' }, guide: () => this.otherToolsGuide(url) },
+    ];
+  },
+
+  /**
+   * Any other MCP client: the agent configures itself from a prompt, the URL
+   * works for manual setups, and an access token covers clients that cannot sign in.
+   */
+  otherToolsGuide(url) {
+    return `
+      <div class="mcp-prompt">
+        <div class="mcp-tool-name"><strong>Let your agent set itself up</strong></div>
+        <p>Paste this into Gemini CLI, Windsurf, Antigravity or any agent that can edit its own configuration. It adds Minilytics and tells you how to sign in.</p>
+        ${this.mcpCode(this.agentPrompt(url))}
+      </div>
+      <p class="mcp-lead">Or add this URL to your assistant’s MCP settings yourself:</p>
+      ${this.mcpCode(url)}
+      <div class="mcp-token">
+        <div class="mcp-tool-name">${Icons.get('key-round', { size: 16 })}<strong>Assistant can’t sign in?</strong></div>
+        <p>Create an access token and send it in an <code>Authorization: Bearer</code> header. It works until you revoke it below.</p>
+        <div class="mcp-token-form">
+          <input id="mcpTokenName" maxlength="80" placeholder="What will use it? e.g. Antigravity" autocomplete="off">
+          <button type="button" class="btn-outline btn-sm" data-create-token>Create access token</button>
+        </div>
+        <div id="mcpTokenResult"></div>
+      </div>`;
+  },
+
+  agentPrompt(url) {
+    return [
+      'Add the Minilytics MCP server to your MCP configuration:',
+      '- Name: minilytics',
+      `- URL: ${url}`,
+      '- Transport: Streamable HTTP',
+      '- Authentication: OAuth. Do not add an API key or an Authorization header: the server asks me to sign in to Minilytics the first time it is used.',
+      'Use the command or configuration file of the tool you are running in (Claude Code, Codex, Gemini CLI, Cursor, VS Code, Windsurf, Antigravity…), then tell me how to complete the sign-in.',
+      'If your tool cannot sign in to remote MCP servers with OAuth, or still gets "Unauthorized" after signing in, ask me for an access token (Minilytics, Settings → AI assistants → Other tools) and send it as an "Authorization: Bearer <token>" header instead. Do not write your own OAuth client.',
+    ].join('\n');
+  },
+
+  mcpIcon(icon, size = 20) {
+    return icon.brand ? Icons.brand(icon.brand, { size }) : Icons.get(icon.lucide, { size });
+  },
+
+  mcpCode(text) {
+    const value = this.escapeHtml(text);
+    // escapeHtml leaves quotes alone, which would end the attribute early.
+    return `<div class="mcp-code"><pre>${value}</pre><button type="button" class="mcp-copy" data-copy="${value.replace(/"/g, '&quot;')}">Copy</button></div>`;
+  },
+
+  renderMcpTiles() {
+    const tiles = document.getElementById('mcpClientTiles'); if (!tiles) return;
+    tiles.innerHTML = this.mcpClients().map((client) => `
+      <button type="button" role="tab" class="mcp-tile" data-mcp-client="${client.id}">
+        <span class="mcp-tile-icon mcp-icon-${client.id}">${this.mcpIcon(client.icon, 22)}</span>
+        <span class="mcp-tile-text"><strong>${client.label}</strong><small>${client.detail}</small></span>
+      </button>`).join('');
+    this.selectMcpClient(this.mcpClient);
+  },
+
+  selectMcpClient(id) {
+    const client = this.mcpClients().find((c) => c.id === id); if (!client) return;
+    this.mcpClient = id;
+    document.querySelectorAll('[data-mcp-client]').forEach((tile) => { const selected = tile.dataset.mcpClient === id; tile.classList.toggle('is-active', selected); tile.setAttribute('aria-selected', String(selected)); });
+    document.getElementById('mcpClientGuide').innerHTML = client.guide();
+  },
+
+  /** One listener for the whole tab: tiles, copy buttons, token creation and revocation. */
+  handleAssistantsClick(event) {
+    const target = event.target.closest('[data-mcp-client], [data-copy], [data-create-token], [data-revoke-app], [data-revoke-token]');
+    if (!target) return;
+    const data = target.dataset;
+    if (data.mcpClient) this.selectMcpClient(data.mcpClient);
+    else if (data.copy !== undefined) ClipboardHelper.copy(data.copy, target);
+    else if (data.createToken !== undefined) this.createToken(target);
+    else if (data.revokeApp) this.revokeAccess({ app: data.revokeApp });
+    else if (data.revokeToken) this.revokeAccess({ id: Number(data.revokeToken) });
+  },
+
+  /** Icon of a connected assistant, recognised from the name it registered with. */
+  assistantIcon(name) {
+    const known = [[/claude/i, { brand: 'claude' }], [/cursor/i, { brand: 'cursor' }], [/windsurf|codeium/i, { brand: 'windsurf' }], [/gemini/i, { brand: 'gemini' }], [/chatgpt|openai/i, { brand: 'openai' }], [/visual studio|vs ?code/i, { brand: 'vscode' }]];
+    return (known.find(([pattern]) => pattern.test(name)) || [null, { lucide: 'plug' }])[1];
+  },
+
+  async loadApi() {
+    const list = document.getElementById('mcpAccessList'); if (!list) return;
+    try {
+      const data = await Api.accessTokens();
+      if (this.mcpUrl !== data.mcp_url) {
+        this.mcpUrl = data.mcp_url;
+        this.renderMcpTiles();
+      }
+      const date = (value) => new Date(value.replace(' ', 'T') + 'Z').toLocaleDateString();
+      const used = (value) => (value ? `last used ${date(value)}` : 'never used');
+      const row = (icon, title, meta, action) => `
+        <div class="mcp-access-row">
+          <span class="mcp-access-icon">${this.mcpIcon(icon, 18)}</span>
+          <div class="mcp-access-text"><div class="mcp-access-title">${title}</div><span>${meta}</span></div>
+          ${action}
+        </div>`;
+      const rows = [
+        ...data.apps.map((app) => row(this.assistantIcon(app.name), this.escapeHtml(app.name), `Connected ${date(app.connected_at)} · ${used(app.last_used_at)}`,
+          `<button type="button" class="btn-outline btn-sm" data-revoke-app="${this.escapeHtml(app.client_id)}">Disconnect</button>`)),
+        ...data.tokens.map((token) => row({ lucide: 'key-round' }, `${this.escapeHtml(token.name)} <code>${this.escapeHtml(token.hint)}</code>`, `Access token · created ${date(token.created_at)} · ${used(token.last_used_at)}`,
+          `<button type="button" class="btn-outline btn-sm" data-revoke-token="${Number(token.id)}">Revoke</button>`)),
+      ];
+      list.innerHTML = rows.length ? rows.join('') : '<p class="mcp-empty">No assistant has access yet. Connect one above.</p>';
+    } catch (error) { list.innerHTML = `<p class="settings-error">${this.escapeHtml(error.message)}</p>`; }
+  },
+
+  async createToken(button) {
+    const input = document.getElementById('mcpTokenName');
+    const result = document.getElementById('mcpTokenResult');
+    button.disabled = true;
+    try {
+      const { token } = await Api.accessTokens('POST', { name: input.value.trim() || 'Access token' });
+      input.value = '';
+      const config = JSON.stringify({ mcpServers: { minilytics: { type: 'http', url: this.mcpUrl, headers: { Authorization: `Bearer ${token.token}` } } } }, null, 2);
+      result.innerHTML = `
+        <div class="mcp-token-result">
+          <strong>Copy your token now: it will not be shown again.</strong>
+          ${this.mcpCode(token.token)}
+          <p>Configuration for assistants that accept a URL and headers (Windsurf and Antigravity name the field <code>serverUrl</code>):</p>
+          ${this.mcpCode(config)}
+        </div>`;
+      await this.loadApi();
+    } catch (error) { result.innerHTML = `<p class="settings-error">${this.escapeHtml(error.message)}</p>`; }
+    button.disabled = false;
+  },
+
+  async revokeAccess(body) {
+    if (!confirm('Revoke this access? The assistant will not be able to read your analytics anymore.')) return;
+    try { await Api.accessTokens('DELETE', body); this.setApiFeedback('Access revoked.', 'success'); await this.loadApi(); }
+    catch (error) { this.setApiFeedback(error.message, 'error'); }
+  },
+
+  setApiFeedback(message, type = '') { const el = document.getElementById('mcpAccessFeedback'); if (!el) return; el.textContent = message; el.className = 'settings-feedback'; if (type) el.classList.add(type === 'error' ? 'settings-error' : 'settings-success'); },
 
   setFeedback(message, type = '') {
     const fb = document.getElementById('usersListFeedback');
