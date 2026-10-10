@@ -47,6 +47,11 @@ final class TrackEndpointTest extends TestCase
         }
     }
 
+    protected function tearDown(): void
+    {
+        Database::updateSiteConfig('test_site', ['allowed_domains' => ['example.com'], 'allow_localhost' => false]);
+    }
+
     protected function setUp(): void
     {
         $db = Database::getConnection('test_site');
@@ -74,6 +79,46 @@ final class TrackEndpointTest extends TestCase
     {
         $this->assertSame(403, $this->track($this->event(), ['Origin: https://evil.example'])['status']);
         $this->assertSame([], $this->storedEvents());
+    }
+
+    public function testExplainsARejectedOriginToTheInstallingPage(): void
+    {
+        $response = $this->track($this->event(), ['Origin: https://www.example.org']);
+
+        $this->assertSame('https://www.example.org', $response['headers']['access-control-allow-origin'] ?? null);
+        $this->assertStringContainsString('www.example.org is not an allowed domain', $response['body']['error']);
+        $this->assertStringContainsString('Settings → Tracking → Allowed domains', $response['body']['error']);
+        $this->assertStringNotContainsString('example.com', $response['body']['error'], 'The allowed domains must stay private.');
+    }
+
+    public function testLocalhostIsRejectedByDefaultWithAHint(): void
+    {
+        $response = $this->track($this->event(), ['Origin: http://localhost:3000']);
+
+        $this->assertSame(403, $response['status']);
+        $this->assertStringContainsString('Accept events from localhost', $response['body']['error']);
+    }
+
+    public function testLocalhostIsAcceptedOnceEnabled(): void
+    {
+        Database::updateSiteConfig('test_site', ['allow_localhost' => true]);
+
+        foreach (['http://localhost:3000', 'http://127.0.0.1:8080', 'http://blog.localhost'] as $origin) {
+            $this->assertSame(200, $this->track($this->event(), ["Origin: {$origin}"])['status'], $origin);
+        }
+        $this->assertSame(403, $this->track($this->event(), ['Origin: https://evil.example'])['status']);
+    }
+
+    public function testLocalhostListedAsAnAllowedDomainKeepsWorking(): void
+    {
+        Database::updateSiteConfig('test_site', ['allowed_domains' => ['example.com', 'localhost']]);
+
+        $this->assertSame(200, $this->track($this->event(), ['Origin: http://localhost:3000'])['status']);
+    }
+
+    public function testRejectsARequestWithoutOrigin(): void
+    {
+        $this->assertSame(403, $this->track($this->event(), ['Origin: '])['status']);
     }
 
     public function testRejectsAWrongTrackingKey(): void
@@ -175,7 +220,7 @@ final class TrackEndpointTest extends TestCase
 
     /**
      * @param list<string> $headers replace the defaults sharing their name
-     * @return array{status: int, body: mixed}
+     * @return array{status: int, body: mixed, headers: array<string, string>}
      */
     private function track(array $payload, array $headers = []): array
     {
@@ -183,12 +228,14 @@ final class TrackEndpointTest extends TestCase
         foreach ($headers as $header) {
             $defaults[strstr($header, ':', true)] = $header;
         }
+        // "Origin: " with no value means the request carries no Origin header.
+        $defaults = array_filter($defaults, static fn(string $header): bool => trim((string) substr(strstr($header, ':'), 1)) !== '');
         return $this->request('POST', (string) json_encode($payload), array_values($defaults));
     }
 
     /**
      * @param list<string> $headers
-     * @return array{status: int, body: mixed}
+     * @return array{status: int, body: mixed, headers: array<string, string>}
      */
     private function request(string $method, string $body = '', array $headers = []): array
     {
@@ -200,7 +247,12 @@ final class TrackEndpointTest extends TestCase
         ]]);
         $response = file_get_contents(self::$baseUrl . '/track.php', false, $context);
         preg_match('/^HTTP\/\S+ (\d{3})/', $http_response_header[0] ?? '', $match);
-        return ['status' => (int) ($match[1] ?? 0), 'body' => json_decode((string) $response, true)];
+        $responseHeaders = [];
+        foreach (array_slice($http_response_header, 1) as $line) {
+            [$name, $value] = array_pad(explode(':', $line, 2), 2, '');
+            $responseHeaders[strtolower(trim($name))] = trim($value);
+        }
+        return ['status' => (int) ($match[1] ?? 0), 'body' => json_decode((string) $response, true), 'headers' => $responseHeaders];
     }
 
     /** @return list<array{session_id: string, visitor_id: string, action: array<string, mixed>}> */

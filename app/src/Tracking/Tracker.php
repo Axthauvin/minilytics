@@ -16,17 +16,13 @@ final class Tracker
     /** @param array<string, mixed> $server the request's $_SERVER */
     public static function handle(array $server, string $body): TrackingResponse
     {
-        $allowOrigin = null;
         try {
             $payload = TrackingPayload::fromJson($body);
             $origin = (string) ($server['HTTP_ORIGIN'] ?? $server['HTTP_REFERER'] ?? '');
             $site = TrackingAccess::authorize($payload, $origin);
-            if (!empty($server['HTTP_ORIGIN'])) {
-                $allowOrigin = (string) $server['HTTP_ORIGIN'];
-            }
-            return new TrackingResponse(200, self::track($site, $payload, $server, TrackingAccess::host($origin)), $allowOrigin);
+            return new TrackingResponse(200, self::track($site, $payload, $server, TrackingAccess::host($origin)));
         } catch (TrackingException $e) {
-            return new TrackingResponse($e->status, ['error' => $e->getMessage()], $allowOrigin);
+            return new TrackingResponse($e->status, ['error' => $e->getMessage()]);
         }
     }
 

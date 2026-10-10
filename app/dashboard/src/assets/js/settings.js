@@ -245,13 +245,14 @@ const SettingsPage = {
     try { const data = await Api.getTrackingConfig(select.value); const site = data.site;
       this.setTrackingTags('domains', site.allowed_domains || []);
       this.setTrackingTags('internalIps', site.internal_ips || []);
+      document.getElementById('trackingAllowLocalhost').checked = site.allow_localhost === true;
       document.getElementById('trackingRetention').value = site.retention_days || 395;
     } catch (e) { this.setTrackingFeedback(e.message, 'error'); }
   },
 
   async saveTracking(event) {
     event.preventDefault(); const select = document.getElementById('trackingSiteSelect');
-    try { const data = await Api.updateSiteConfig({ id: select.value, allowed_domains: this.trackingTags.domains, internal_ips: this.trackingTags.internalIps, retention_days: document.getElementById('trackingRetention').value, rotate_key: document.getElementById('trackingRotateKey').checked });
+    try { const data = await Api.updateSiteConfig({ id: select.value, allowed_domains: this.trackingTags.domains, allow_localhost: document.getElementById('trackingAllowLocalhost').checked, internal_ips: this.trackingTags.internalIps, retention_days: document.getElementById('trackingRetention').value, rotate_key: document.getElementById('trackingRotateKey').checked });
       this.setTrackingTags('domains', data.site.allowed_domains || []); this.setTrackingTags('internalIps', data.site.internal_ips || []);
       document.getElementById('trackingRotateKey').checked = false; document.getElementById('trackingSnippet').value = data.snippet; document.getElementById('trackingSnippetResult').hidden = false; this.setTrackingFeedback('Tracking settings saved.', 'success');
     } catch (e) { this.setTrackingFeedback(e.message, 'error'); }
