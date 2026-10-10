@@ -44,6 +44,7 @@ EXCLUDES=(
     "umami-import"
     "bin/seed-demo.php"
     "phpstan*.neon"
+    "phpunit.xml"
     "*.tar.gz"
     "*.zip"
     "*.log"

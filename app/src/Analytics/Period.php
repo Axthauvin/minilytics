@@ -33,6 +33,10 @@ final class Period
     {
         $now ??= time();
         if ($range === 'custom' || (!empty($from) && !empty($to))) {
+            // Swap reversed dates first, so both days stay whole.
+            if (!empty($from) && !empty($to) && strtotime($from) > strtotime($to)) {
+                [$from, $to] = [$to, $from];
+            }
             $start = !empty($from) ? (strtotime($from . ' 00:00:00 UTC') ?: $now - 30 * 86400) : $now - 30 * 86400;
             $end = !empty($to) ? (strtotime($to . ' 23:59:59 UTC') ?: $now) : $now;
             return new self('custom', min($start, $end), max($start, $end), $now);

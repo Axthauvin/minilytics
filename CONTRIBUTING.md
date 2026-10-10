@@ -30,7 +30,7 @@ Local data (`auth.db`, `sites.json`, analytics databases) is written to `minilyt
 | `app/dashboard/`    | Dashboard pages, API endpoints (`src/api/`) and front-end assets   |
 | `app/track.php`     | Tracking endpoint                                                  |
 | `app/minilytics.js` | Tracking script embedded on websites                               |
-| `app/tests/`        | JavaScript unit and smoke tests                                    |
+| `app/tests/`        | JavaScript unit and smoke tests, PHPUnit tests in `app/tests/php/` |
 | `landing/`          | Marketing site and install guide                                   |
 | `docs/`             | User documentation                                                 |
 | `scripts/`          | Development router, release and deployment scripts                 |
@@ -52,9 +52,12 @@ Run these before opening a pull request. PHP commands run from `app/`:
 composer cs:check   # report coding standard violations
 composer cs:fix     # fix them automatically
 composer analyse    # static analysis with PHPStan
+composer test       # PHP tests with PHPUnit
 ```
 
 PHPStan runs at the level set in `app/phpstan.base.neon`. Errors that existed when it was introduced are listed in `app/phpstan-baseline.neon`: new code must not add to it. Run `composer analyse:all` to see every error including the baselined ones, and when you fix one, regenerate the baseline with `composer analyse:baseline`.
+
+PHPUnit tests run against a temporary data directory with a single `test_site` website, so they never touch your local install. Test what a class returns for given data rather than how it computes it, so the tests keep passing through refactors.
 
 JavaScript tests run from the repository root:
 
