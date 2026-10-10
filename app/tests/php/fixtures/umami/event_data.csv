@@ -1,0 +1,4 @@
+website_id,event_id,data_key,string_value,number_value,date_value,data_type,created_at
+w1,ev-3,plan,pro,\N,\N,1,2026-01-06 09:30:00
+w1,ev-3,seats,\N,5,\N,2,2026-01-06 09:30:00
+w1,ev-3,trial,true,\N,\N,3,2026-01-06 09:30:00

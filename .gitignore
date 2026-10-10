@@ -21,3 +21,4 @@ minilytics-data/
 # Composer dependencies (installed with `composer install`, bundled in release archives)
 /app/vendor/
 .php-cs-fixer.cache
+/app/.phpunit.cache/
