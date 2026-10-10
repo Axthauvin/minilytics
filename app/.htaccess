@@ -16,6 +16,11 @@ DirectoryIndex index.html index.php
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # PHP running as CGI/FastCGI does not receive the Authorization header,
+    # which carries the tokens of the MCP endpoint.
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
     # Application code and Composer files are never meant to be requested directly.
     RewriteRule ^(vendor|src|bin|tests)(/|$) - [F,L]
     RewriteRule ^composer\.(json|lock)$ - [F,L]

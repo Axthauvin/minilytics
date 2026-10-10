@@ -437,3 +437,37 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* OAuth consent screen (oauth/authorize.php). */
+.oauth-scopes {
+  margin: 0 0 20px;
+  padding-left: 18px;
+  color: #334155;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.oauth-scopes li + li {
+  margin-top: 8px;
+}
+
+.auth-card .oauth-redirect {
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.oauth-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.auth-card .oauth-actions button {
+  flex: 1;
+}
+
+.auth-card .oauth-actions .oauth-deny {
+  background: #fff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}

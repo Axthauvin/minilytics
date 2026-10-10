@@ -9,6 +9,7 @@
         <button class="settings-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="settingsAccessPanel" id="settingsAccessTab" data-settings-tab="access">Access</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" aria-controls="settingsTrackingPanel" id="settingsTrackingTab" data-settings-tab="tracking">Tracking</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" aria-controls="settingsDatabasePanel" id="settingsDatabaseTab" data-settings-tab="database">Database</button>
+        <button class="settings-tab" type="button" role="tab" aria-selected="false" aria-controls="settingsAssistantsPanel" id="settingsAssistantsTab" data-settings-tab="assistants">AI assistants</button>
     </div>
     <div class="settings-panel" id="settingsAccessPanel" role="tabpanel" aria-labelledby="settingsAccessTab" data-settings-panel="access">
         <section class="settings-card" id="inviteUserCard">
@@ -106,6 +107,28 @@
             <div class="database-actions database-save-action"><button class="btn-primary" id="saveDatabaseConnector" type="button">Save database connector</button></div>
             <p class="settings-feedback" id="databaseFeedback" role="status"></p>
             <p class="settings-muted database-note">Changing connector does not migrate existing SQLite data automatically. Keep a backup of <code>data/</code> before switching.</p>
+        </section>
+    </div>
+    <div class="settings-panel" id="settingsAssistantsPanel" role="tabpanel" aria-labelledby="settingsAssistantsTab" data-settings-panel="assistants" hidden>
+        <section class="settings-card" id="mcpConnectCard">
+            <div class="settings-card-heading">
+                <div>
+                    <h3>Connect an AI assistant</h3>
+                    <p>Ask Claude, ChatGPT, Cursor and others about your traffic. They sign in with your Minilytics account and can only read your analytics.</p>
+                </div>
+            </div>
+            <div class="mcp-tiles" id="mcpClientTiles" role="tablist" aria-label="Assistants"></div>
+            <div class="mcp-guide" id="mcpClientGuide" role="tabpanel" aria-live="polite"></div>
+        </section>
+        <section class="settings-card">
+            <div class="settings-card-heading">
+                <div>
+                    <h3>Authorized access</h3>
+                    <p>Assistants and access tokens that can read your analytics. Revoking one cuts its access immediately.</p>
+                </div>
+            </div>
+            <p class="settings-feedback" id="mcpAccessFeedback" role="status"></p>
+            <div id="mcpAccessList" class="mcp-access-list"></div>
         </section>
     </div>
 </div>

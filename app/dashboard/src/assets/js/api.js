@@ -251,6 +251,12 @@ const Api = {
     return data;
   },
 
+  async accessTokens(method = "GET", body = null) {
+    const init = body ? { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : { method };
+    const res = await fetch(`${this.base}/tokens.php`, init); const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
+  },
+
   async getUsers() {
     const res = await fetch(`${this.base}/users.php`);
     const data = await res.json().catch(() => ({}));

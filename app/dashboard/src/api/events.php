@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Minilytics\Analytics\Period;
 use Minilytics\Auth\Auth;
 use Minilytics\Database\Database;
 
@@ -20,37 +21,17 @@ try {
     $search = trim($_GET['search'] ?? '');
     $eventName = trim($_GET['event_name'] ?? '');
     $sessionId = trim($_GET['session_id'] ?? '');
-    $range = $_GET['range'] ?? '7d';
     $limit = max(1, min(100, (int) ($_GET['limit'] ?? 50)));
     $page = max(1, (int) ($_GET['page'] ?? 1));
     $offset = ($page - 1) * $limit;
 
-    $now = time();
-    $from = $_GET['from'] ?? $_GET['start'] ?? $_GET['start_date'] ?? null;
-    $to = $_GET['to'] ?? $_GET['end'] ?? $_GET['end_date'] ?? null;
-
-    if ($range === 'custom' || (!empty($from) && !empty($to))) {
-        $range = 'custom';
-        $startUnix = !empty($from) ? (strtotime($from . ' 00:00:00 UTC') ?: ($now - 30 * 86400)) : ($now - 30 * 86400);
-        $endUnix = !empty($to) ? (strtotime($to . ' 23:59:59 UTC') ?: $now) : $now;
-        if ($startUnix > $endUnix) {
-            [$startUnix, $endUnix] = [$endUnix, $startUnix];
-        }
-    } else {
-        $endUnix = $now;
-        $startUnix = match ($range) {
-            'today' => strtotime('today midnight'),
-            '24h' => $now - 86400,
-            '7d' => $now - (7 * 86400),
-            '30d' => $now - (30 * 86400),
-            '90d' => $now - (90 * 86400),
-            '6m', '180d' => $now - (180 * 86400),
-            'all' => 0,
-            default => $now - (7 * 86400),
-        };
-    }
-    $startDateStr = gmdate('Y-m-d H:i:s', $startUnix);
-    $endDateStr = gmdate('Y-m-d H:i:s', $endUnix);
+    $period = Period::fromRequest($_GET);
+    $range = $period->range;
+    $now = $period->now;
+    $startUnix = $period->start;
+    $endUnix = $period->end;
+    $startDateStr = $period->startText();
+    $endDateStr = $period->endText();
     // The Events Explorer is reserved for product/custom events. Pageviews
     // belong to the traffic overview and would otherwise flatten every other
     // series on this multi-event chart.
@@ -253,30 +234,30 @@ try {
     }
 
     if ($range === 'today' || $range === '24h') {
-        $effectiveStart = ($range === 'today') ? strtotime('today midnight') : floor(($now - 86400) / 3600) * 3600;
+        $effectiveStart = ($range === 'today') ? strtotime('today midnight UTC') : floor(($now - 86400) / 3600) * 3600;
         $endStep = ceil($now / 3600) * 3600;
     } elseif ($range === '7d') {
-        $effectiveStart = strtotime('6 days ago midnight');
-        $endStep = strtotime('today midnight');
+        $effectiveStart = strtotime('6 days ago midnight UTC');
+        $endStep = strtotime('today midnight UTC');
     } elseif ($range === '30d') {
-        $effectiveStart = strtotime('29 days ago midnight');
-        $endStep = strtotime('today midnight');
+        $effectiveStart = strtotime('29 days ago midnight UTC');
+        $endStep = strtotime('today midnight UTC');
     } elseif ($range === '90d') {
-        $effectiveStart = strtotime('89 days ago midnight');
-        $endStep = strtotime('today midnight');
+        $effectiveStart = strtotime('89 days ago midnight UTC');
+        $endStep = strtotime('today midnight UTC');
     } elseif ($range === '6m' || $range === '180d') {
-        $effectiveStart = strtotime('179 days ago midnight');
-        $endStep = strtotime('today midnight');
+        $effectiveStart = strtotime('179 days ago midnight UTC');
+        $endStep = strtotime('today midnight UTC');
     } elseif ($range === 'custom') {
         $effectiveStart = strtotime(gmdate('Y-m-d', $startUnix) . ' 00:00:00 UTC');
         $endStep = strtotime(gmdate('Y-m-d', $endUnix) . ' 00:00:00 UTC');
     } elseif ($range === 'all') {
         $minDbTime = $db->querySingle("SELECT MIN(timestamp) FROM user_activity WHERE timestamp IS NOT NULL");
-        $effectiveStart = $minDbTime ? strtotime(substr((string) $minDbTime, 0, 10) . ' 00:00:00 UTC') : strtotime('6 days ago midnight');
-        $endStep = strtotime('today midnight');
+        $effectiveStart = $minDbTime ? strtotime(substr((string) $minDbTime, 0, 10) . ' 00:00:00 UTC') : strtotime('6 days ago midnight UTC');
+        $endStep = strtotime('today midnight UTC');
     } else {
-        $effectiveStart = strtotime('6 days ago midnight');
-        $endStep = strtotime('today midnight');
+        $effectiveStart = strtotime('6 days ago midnight UTC');
+        $endStep = strtotime('today midnight UTC');
     }
     $stepSeconds = $intervalHours * 3600;
 

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Minilytics\Analytics\AnalyticsFilters;
+use Minilytics\Analytics\Period;
 use Minilytics\Auth\Auth;
 use Minilytics\Database\Database;
 
@@ -206,7 +207,6 @@ try {
     }
 
     // 2. Listing sessions with aggregations
-    $range = $_GET['range'] ?? '7d';
     $search = trim($_GET['search'] ?? '');
     $day = trim($_GET['day'] ?? $_GET['date'] ?? '');
     $eventName = trim($_GET['event_name'] ?? $_GET['event'] ?? '');
@@ -214,36 +214,13 @@ try {
     $page = max(1, (int) ($_GET['page'] ?? 1));
     $offset = ($page - 1) * $limit;
 
-    $now = time();
-    $from = $_GET['from'] ?? $_GET['start'] ?? $_GET['start_date'] ?? null;
-    $to = $_GET['to'] ?? $_GET['end'] ?? $_GET['end_date'] ?? null;
-
     if ($day !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $day)) {
         $startDateStr = $day . ' 00:00:00';
         $endDateStr = $day . ' 23:59:59';
-    } elseif ($range === 'custom' || (!empty($from) && !empty($to))) {
-        $range = 'custom';
-        $startUnix = !empty($from) ? (strtotime($from . ' 00:00:00 UTC') ?: ($now - 30 * 86400)) : ($now - 30 * 86400);
-        $endUnix = !empty($to) ? (strtotime($to . ' 23:59:59 UTC') ?: $now) : $now;
-        if ($startUnix > $endUnix) {
-            [$startUnix, $endUnix] = [$endUnix, $startUnix];
-        }
-        $startDateStr = gmdate('Y-m-d H:i:s', $startUnix);
-        $endDateStr = gmdate('Y-m-d H:i:s', $endUnix);
     } else {
-        $endUnix = $now;
-        $startUnix = match ($range) {
-            'today' => strtotime('today midnight'),
-            '24h' => $now - 86400,
-            '7d' => $now - (7 * 86400),
-            '30d' => $now - (30 * 86400),
-            '90d' => $now - (90 * 86400),
-            '6m', '180d' => $now - (180 * 86400),
-            'all' => 0,
-            default => $now - (7 * 86400),
-        };
-        $startDateStr = gmdate('Y-m-d H:i:s', $startUnix);
-        $endDateStr = gmdate('Y-m-d H:i:s', $endUnix);
+        $period = Period::fromRequest($_GET);
+        $startDateStr = $period->startText();
+        $endDateStr = $period->endText();
     }
 
     $where = ["timestamp >= :start_date AND timestamp <= :end_date"];
