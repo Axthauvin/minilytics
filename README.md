@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/assets/icon-rectangle.png" alt="Minilytics logo" width="100%" />
+  <img src="docs/assets/banner.png" alt="Minilytics logo" width="100%" />
 
   <p>
     <a href="#quick-start">Quick Start</a> &bull;
@@ -17,6 +17,8 @@ Minilytics is a lightweight, privacy-friendly web analytics tool written in PHP.
 - **Bring your history with you.** You can import your [Umami](docs/importing/README.md) data from the dashboard or the command line. Importers for Google Analytics, Plausible, Matomo and Simple Analytics are planned.
 
 ![Screenshot of the Minilytics dashboard](docs/assets/dashboard.png)
+
+> This is what the dashboard looks like. It is not because its lightweight that it can not be beautiful and functional
 
 ---
 
