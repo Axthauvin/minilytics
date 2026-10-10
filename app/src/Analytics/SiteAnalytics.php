@@ -18,6 +18,16 @@ final class SiteAnalytics
 {
     public const ENVIRONMENT_FIELDS = ['browser', 'os', 'device'];
 
+    /** Fields every event carries (see minilytics.js and track.php): the other `data` fields are the event's own properties. */
+    private const CONTEXT_FIELDS = [
+        'tracking_mode', '_ml_tracking_mode', 'path', 'title', 'hostname', 'referrer', 'language', 'screen', 'viewport',
+        'utm', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term',
+        'browser', 'os', 'device', 'country', 'country_code', 'region', 'city',
+    ];
+
+    /** Occurrences read to break an event down by property. */
+    private const EVENT_SAMPLE = 5000;
+
     private ?string $condition = null;
     private ?array $summary = null;
 
@@ -251,10 +261,14 @@ final class SiteAnalytics
         return $timeseries;
     }
 
-    /** Most viewed pages, with their share of all pageviews. */
-    public function topPages(int $limit = 100): array
+    /**
+     * Most viewed pages, with their share of all pageviews. `$search` keeps the
+     * pages whose path contains it (case-insensitive).
+     */
+    public function topPages(int $limit = 100, ?string $search = null): array
     {
         $totalPageviews = $this->summary()['pageviews'];
+        [$searchSql, $searchParams] = self::search("COALESCE(json_extract(action, '$.data.path'), '/')", $search);
         $pages = [];
         foreach ($this->periodRows("
             SELECT
@@ -265,11 +279,12 @@ final class SiteAnalytics
             FROM user_activity
             WHERE timestamp >= :start_date AND timestamp <= :end_date
               AND json_extract(action, '$.name') = 'pageview'
+              {$searchSql}
               {$this->condition()}
             GROUP BY path
             ORDER BY views DESC
             LIMIT 100
-        ") as $row) {
+        ", $searchParams) as $row) {
             $views = (int) $row['views'];
             $pages[] = [
                 'path' => $row['path'] ?: '/',
@@ -334,9 +349,13 @@ final class SiteAnalytics
         return array_slice($referrers, 0, $limit);
     }
 
-    /** Custom events (everything but pageviews), with their share of the 100 most frequent ones. */
-    public function topEvents(int $limit = 100): array
+    /**
+     * Custom events (everything but pageviews), with their share of the 100
+     * most frequent ones. `$search` keeps the events whose name contains it.
+     */
+    public function topEvents(int $limit = 100, ?string $search = null): array
     {
+        [$searchSql, $searchParams] = self::search("json_extract(action, '$.name')", $search);
         $rows = $this->periodRows("
             SELECT
                 json_extract(action, '$.name') as event_name,
@@ -344,11 +363,12 @@ final class SiteAnalytics
             FROM user_activity
             WHERE timestamp >= :start_date AND timestamp <= :end_date
               AND json_extract(action, '$.name') != 'pageview'
+              {$searchSql}
               {$this->condition()}
             GROUP BY event_name
             ORDER BY count DESC
             LIMIT 100
-        ");
+        ", $searchParams);
         $total = array_sum(array_map(static fn(array $row): int => (int) $row['count'], $rows));
         $events = [];
         foreach ($rows as $row) {
@@ -360,6 +380,120 @@ final class SiteAnalytics
             ];
         }
         return array_slice($events, 0, $limit);
+    }
+
+    /**
+     * One custom event in detail: how often it fired, how it evolved, on which
+     * pages, and the values of its own properties (the `data` fields the site
+     * sent, without the context every event carries). Properties are read
+     * from the most recent occurrences only, to keep the report fast.
+     */
+    public function eventDetails(string $event, ?string $property = null, int $limit = 10): array
+    {
+        $where = "timestamp >= :start_date AND timestamp <= :end_date AND json_extract(action, '$.name') = :event" . $this->condition();
+        $params = [':event' => $event];
+        $totals = $this->periodRows("SELECT COUNT(*) AS occurrences, COUNT(DISTINCT COALESCE(visitor_id, session_id)) AS visitors, COUNT(DISTINCT session_id) AS sessions FROM user_activity WHERE {$where}", $params)[0] ?? [];
+        $occurrences = (int) ($totals['occurrences'] ?? 0);
+        $details = ['event' => $event, 'occurrences' => $occurrences, 'visitors' => (int) ($totals['visitors'] ?? 0), 'sessions' => (int) ($totals['sessions'] ?? 0)];
+        if ($occurrences === 0) {
+            return $details;
+        }
+
+        $slot = $this->period->end - $this->period->start <= 2 * 86400 ? '%Y-%m-%d %H:00:00' : '%Y-%m-%d';
+        $details['trend'] = array_map(
+            static fn(array $row): array => ['date' => (string) $row['slot'], 'occurrences' => (int) $row['occurrences']],
+            $this->periodRows("SELECT strftime('{$slot}', timestamp) AS slot, COUNT(*) AS occurrences FROM user_activity WHERE {$where} GROUP BY slot ORDER BY slot", $params),
+        );
+        $details['pages'] = array_map(
+            static fn(array $row): array => ['path' => (string) $row['path'], 'occurrences' => (int) $row['occurrences']],
+            $this->periodRows("SELECT COALESCE(json_extract(action, '$.data.path'), '/') AS path, COUNT(*) AS occurrences FROM user_activity WHERE {$where} GROUP BY path ORDER BY occurrences DESC LIMIT " . max(1, $limit), $params),
+        );
+
+        $samples = $this->periodRows("SELECT action FROM user_activity WHERE {$where} ORDER BY timestamp DESC LIMIT " . self::EVENT_SAMPLE, $params);
+        $counts = [];
+        foreach ($samples as $row) {
+            $data = json_decode((string) $row['action'], true)['data'] ?? null;
+            foreach (is_array($data) ? $data : [] as $key => $value) {
+                if (in_array($key, self::CONTEXT_FIELDS, true) || ($property !== null && $key !== $property)) {
+                    continue;
+                }
+                $label = is_string($value) ? $value : (string) json_encode($value);
+                $label = substr($label, 0, 200);
+                $counts[$key][$label] = ($counts[$key][$label] ?? 0) + 1;
+            }
+        }
+        $details['properties'] = [];
+        foreach ($counts as $key => $values) {
+            arsort($values);
+            $details['properties'][$key] = array_map(
+                static fn($value, int $count): array => ['value' => (string) $value, 'count' => $count],
+                array_keys(array_slice($values, 0, $limit, true)),
+                array_values(array_slice($values, 0, $limit, true)),
+            );
+        }
+        $details['properties_based_on'] = count($samples);
+        return $details;
+    }
+
+    /**
+     * How many visits reached each step of a funnel, in order. A step is a page
+     * (`pageview`) or a custom event; a visit counts for a step once it went
+     * through every previous step first.
+     *
+     * @param list<array{type: string, value: string}> $steps
+     * @return list<int>
+     */
+    public function funnelProgress(array $steps): array
+    {
+        $result = $this->db->prepare('SELECT session_id, action FROM user_activity WHERE timestamp >= :start AND timestamp <= :end' . $this->condition() . ' ORDER BY session_id, timestamp, id');
+        $result->bindValue(':start', $this->period->startText(), SQLITE3_TEXT);
+        $result->bindValue(':end', $this->period->endText(), SQLITE3_TEXT);
+        $rows = $result->execute();
+        // Number of consecutive steps each session has reached so far.
+        $reached = [];
+        while ($rows && ($row = $rows->fetchArray(SQLITE3_ASSOC))) {
+            $session = $row['session_id'];
+            $at = $reached[$session] ?? 0;
+            if ($at >= count($steps)) {
+                continue;
+            }
+            $action = json_decode($row['action'], true) ?: [];
+            $name = (string) ($action['name'] ?? '');
+            $path = (string) ($action['data']['path'] ?? '');
+            $wanted = $steps[$at];
+            $matches = $wanted['type'] === 'pageview' ? ($name === 'pageview' && $path === $wanted['value']) : ($name === $wanted['value']);
+            if ($matches) {
+                $reached[$session] = $at + 1;
+            }
+        }
+        $progress = array_fill(0, count($steps), 0);
+        foreach ($reached as $at) {
+            for ($i = 0; $i < $at; $i++) {
+                $progress[$i]++;
+            }
+        }
+        return $progress;
+    }
+
+    /**
+     * Funnels, goals and journeys saved in the dashboard.
+     *
+     * @return list<array{id: int, name: string, kind: string, steps: list<array{type: string, value: string, label?: string}>}>
+     */
+    public function savedFunnels(): array
+    {
+        // The table only exists once someone opened the funnels page: SQLite then
+        // warns and returns false, PDO (MySQL) throws.
+        try {
+            $result = @$this->db->query('SELECT id, name, kind, steps FROM funnels ORDER BY created_at DESC, id DESC');
+        } catch (Throwable) {
+            return [];
+        }
+        $funnels = [];
+        while ($result && ($row = $result->fetchArray(SQLITE3_ASSOC))) {
+            $funnels[] = ['id' => (int) $row['id'], 'name' => (string) $row['name'], 'kind' => (string) ($row['kind'] ?: 'funnel'), 'steps' => json_decode((string) $row['steps'], true) ?: []];
+        }
+        return $funnels;
     }
 
     /**
@@ -634,10 +768,26 @@ final class SiteAnalytics
         return "0{$suffix}";
     }
 
-    /** Runs a query bound to the current period (`:start_date` / `:end_date`). */
-    private function periodRows(string $sql): array
+    /**
+     * Runs a query bound to the current period (`:start_date` / `:end_date`).
+     *
+     * @param array<string, string> $params other placeholders of the query
+     */
+    private function periodRows(string $sql, array $params = []): array
     {
-        return $this->rows($sql, [':start_date' => $this->period->startText(), ':end_date' => $this->period->endText()]);
+        return $this->rows($sql, [':start_date' => $this->period->startText(), ':end_date' => $this->period->endText()] + $params);
+    }
+
+    /**
+     * Case-insensitive "contains" condition on an SQL expression, or nothing
+     * without a search. instr() avoids escaping LIKE wildcards.
+     *
+     * @return array{0: string, 1: array<string, string>}
+     */
+    private static function search(string $expression, ?string $search): array
+    {
+        $search = trim((string) $search);
+        return $search === '' ? ['', []] : ["AND instr(lower({$expression}), lower(:search)) > 0", [':search' => $search]];
     }
 
     /**

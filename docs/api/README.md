@@ -96,6 +96,14 @@ Some Antigravity versions finish signing in but still call the server without th
 
 **Settings → AI assistants → Authorized access** lists the assistants you connected and your access tokens, with when each was connected or created and last used. Revoking one cuts its access immediately; the assistant has to be connected again to read your analytics.
 
+## After updating Minilytics
+
+A new version of Minilytics can add or change tools. Assistants keep the list of tools they loaded when they connected, so refresh it after an update. There is no need to reconnect or sign in again:
+
+- **Claude**: in **Customize → Connectors**, open Minilytics and choose **Update**, then start a new conversation;
+- **Claude Code**: start a new session, or reconnect the server from `/mcp`;
+- **other assistants**: restart them, or reconnect the server from their MCP settings.
+
 ## Tools
 
 | Tool | Returns |
@@ -103,9 +111,11 @@ Some Antigravity versions finish signing in but still call the server without th
 | `list_sites` | The tracked websites and their `site_id`. |
 | `get_overview` | Visitors, visits, pageviews, events, bounce rate, average visit duration, live visitors, and the change since the previous period. |
 | `get_timeseries` | Traffic per hour, day or week. |
-| `get_top_pages` | Most viewed pages. |
+| `get_top_pages` | Most viewed pages, optionally those whose path contains a `search` text. |
 | `get_top_referrers` | Websites sending traffic. |
-| `get_top_events` | Custom events. |
+| `get_top_events` | Custom events, optionally those whose name contains a `search` text. |
+| `get_event_details` | One event in detail: occurrences, visitors, evolution, the pages where it fires and the values of its own properties. |
+| `get_funnel` | Conversion through ordered steps (pages or events), or through a funnel saved in the dashboard. |
 | `get_countries` | Visitors per country. |
 | `get_environment` | Visitors per browser, operating system or device. |
 | `get_acquisition` | Visits per channel, source, UTM parameter, landing page or exit page. |
@@ -114,7 +124,9 @@ Every tool except `list_sites` accepts:
 
 - `site_id`, optional when the instance tracks a single website;
 - `range`: `today`, `24h`, `7d` (default), `30d`, `90d`, `6m`, `all`, or `custom` with `from` and `to` (`YYYY-MM-DD`, UTC);
-- `filters`: the dashboard filters, as lists of values per dimension (`page`, `referrer`, `browser`, `os`, `device`, `country`). For example, `{"page": ["/pricing"]}` only counts visits that viewed `/pricing`.
+- `filters`: the dashboard filters, as lists of values per dimension (`page`, `referrer`, `browser`, `os`, `device`, `country`), plus `event` for the visits that triggered an event. For example, `{"page": ["/pricing"]}` only counts visits that viewed `/pricing`, and `{"event": ["Signup"]}` only the visits that signed up.
+
+Assistants only get aggregated numbers: no tool returns individual visits or visitors.
 
 ## Access tokens
 

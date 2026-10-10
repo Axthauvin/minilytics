@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Minilytics\Analytics\Period;
+use Minilytics\Analytics\SiteAnalytics;
 use Minilytics\Auth\Auth;
 use Minilytics\Database\Database;
 use Minilytics\Database\DatabaseConnection;
@@ -50,37 +51,6 @@ function cleanSteps(mixed $steps): array
         $out[] = ['type' => $type, 'value' => mb_substr($value, 0, 180), 'label' => mb_substr($label ?: $value, 0, 80)];
     }
     return $out;
-}
-function analyzeFunnel(DatabaseConnection $db, array $steps, string $start, string $end): array
-{
-    $stmt = $db->prepare("SELECT session_id, action FROM user_activity WHERE timestamp >= :start AND timestamp <= :end ORDER BY session_id, timestamp, id");
-    $stmt->bindValue(':start', $start, SQLITE3_TEXT);
-    $stmt->bindValue(':end', $end, SQLITE3_TEXT);
-    $res = $stmt->execute();
-    // Number of consecutive steps each session has reached so far.
-    $reached = [];
-    while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
-        $session = $row['session_id'];
-        $at = $reached[$session] ?? 0;
-        if ($at >= count($steps)) {
-            continue;
-        }
-        $action = json_decode($row['action'], true) ?: [];
-        $name = (string) ($action['name'] ?? '');
-        $path = (string) ($action['data']['path'] ?? '');
-        $wanted = $steps[$at];
-        $matches = $wanted['type'] === 'pageview' ? ($name === 'pageview' && $path === $wanted['value']) : ($name === $wanted['value']);
-        if ($matches) {
-            $reached[$session] = $at + 1;
-        }
-    }
-    $progress = array_fill(0, count($steps), 0);
-    foreach ($reached as $at) {
-        for ($i = 0; $i < $at; $i++) {
-            $progress[$i]++;
-        }
-    }
-    return $progress;
 }
 /** Adds one completed journey to the tree, counting each step along its branch. */
 function addJourneyPath(array &$tree, array $branchPath): void
@@ -161,7 +131,8 @@ function analyzeJourneySources(DatabaseConnection $db, array $steps, string $sta
 try {
     $payload = json_decode(file_get_contents('php://input'), true) ?: [];
     $siteId = $_GET['site_id'] ?? $payload['site_id'] ?? null;
-    $db = Database::getConnection(Database::sanitizeSiteId($siteId));
+    $site = Database::sanitizeSiteId($siteId);
+    $db = Database::getConnection($site);
     setupFunnels($db);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $name = trim((string) ($payload['name'] ?? ''));
@@ -202,12 +173,13 @@ try {
     }
     $period = Period::fromRequest($_GET);
     [$start, $end] = [$period->startText(), $period->endText()];
+    $analytics = new SiteAnalytics($db, $site, $period);
     $items = [];
     $result = $db->query('SELECT * FROM funnels ORDER BY created_at DESC, id DESC');
     while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
         $steps = json_decode($row['steps'], true) ?: [];
         $kind = $row['kind'] ?: 'funnel';
-        $item = ['id' => (int) $row['id'], 'name' => $row['name'], 'kind' => $kind, 'steps' => $steps, 'progress' => analyzeFunnel($db, $steps, $start, $end)];
+        $item = ['id' => (int) $row['id'], 'name' => $row['name'], 'kind' => $kind, 'steps' => $steps, 'progress' => $analytics->funnelProgress($steps)];
         if ($kind === 'journey') {
             $item['journey'] = analyzeJourneySources($db, $steps, $start, $end);
             if (($item['journey']['completed'] ?? 0) === 0) {

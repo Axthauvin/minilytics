@@ -10,8 +10,8 @@ use Minilytics\Database\DatabaseConnection;
  * Shared dashboard filters (Overview + Sessions).
  *
  * Filters are applied at the SESSION level: a session matches when at least one
- * of its pageviews matches. Values of the same dimension are combined with OR,
- * different dimensions are combined with AND.
+ * of its pageviews matches (for `event`, one of its events). Values of the same
+ * dimension are combined with OR, different dimensions are combined with AND.
  *
  *   ?filter_page[]=/pricing&filter_page[]=/blog&filter_referrer[]=google.com
  *   => sessions that viewed (/pricing OR /blog) AND came from google.com
@@ -26,7 +26,11 @@ final class AnalyticsFilters
         'os'       => "COALESCE(json_extract(action, '$.data.os'), 'Unknown')",
         'device'   => "COALESCE(json_extract(action, '$.data.device'), 'Unknown')",
         'country'  => "COALESCE(json_extract(action, '$.data.country'), 'Unknown')",
+        'event'    => "json_extract(action, '$.name')",
     ];
+
+    /** Dimensions matched against every event of a session, not only its pageviews. */
+    private const ANY_EVENT = ['event'];
 
     private const MAX_VALUES_PER_DIMENSION = 50;
 
@@ -105,9 +109,10 @@ final class AnalyticsFilters
                 $placeholders[] = $name;
                 $params[$name] = $value;
             }
+            $pageviewsOnly = in_array($dimension, self::ANY_EVENT, true) ? '' : "AND json_extract(action, '$.name') = 'pageview'";
             $selects[] = "SELECT session_id FROM user_activity
                           WHERE timestamp >= :f_start AND timestamp <= :f_end
-                            AND json_extract(action, '$.name') = 'pageview'
+                            {$pageviewsOnly}
                             AND {$expression} IN (" . implode(', ', $placeholders) . ")";
         }
 

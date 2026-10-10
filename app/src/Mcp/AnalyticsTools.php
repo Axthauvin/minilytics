@@ -21,7 +21,7 @@ use Minilytics\Database\Database;
 final class AnalyticsTools
 {
     private const ACQUISITION_REPORTS = ['channels', 'sources', 'mediums', 'campaigns', 'contents', 'terms', 'landing_pages', 'exit_pages'];
-    private const FILTER_DIMENSIONS = ['page', 'referrer', 'browser', 'os', 'device', 'country'];
+    private const FILTER_DIMENSIONS = ['page', 'referrer', 'browser', 'os', 'device', 'country', 'event'];
 
     /** @return list<Tool> */
     public static function all(): array
@@ -59,9 +59,9 @@ final class AnalyticsTools
             self::report(
                 'get_top_pages',
                 'Top pages',
-                'Most viewed pages with their views, unique visitors and share of all pageviews.',
-                static fn(SiteAnalytics $analytics, array $args): array => ['pages' => $analytics->topPages(self::limit($args))],
-                $limit,
+                'Most viewed pages with their views, unique visitors and share of all pageviews. Use search to find pages beyond the top ones, such as every page under /blog.',
+                static fn(SiteAnalytics $analytics, array $args): array => ['pages' => $analytics->topPages(self::limit($args), self::text($args, 'search'))],
+                ['search' => ['type' => 'string', 'description' => 'Only pages whose path contains this text, case-insensitive (e.g. "/blog").']] + $limit,
             ),
             self::report(
                 'get_top_referrers',
@@ -73,9 +73,39 @@ final class AnalyticsTools
             self::report(
                 'get_top_events',
                 'Top custom events',
-                'Custom events (everything except pageviews) by number of occurrences.',
-                static fn(SiteAnalytics $analytics, array $args): array => ['events' => $analytics->topEvents(self::limit($args))],
-                $limit,
+                'Custom events (everything except pageviews) by number of occurrences. Use search to find events by name, such as every event containing "error". Then call get_event_details for one event.',
+                static fn(SiteAnalytics $analytics, array $args): array => ['events' => $analytics->topEvents(self::limit($args), self::text($args, 'search'))],
+                ['search' => ['type' => 'string', 'description' => 'Only events whose name contains this text, case-insensitive (e.g. "error").']] + $limit,
+            ),
+            self::report(
+                'get_event_details',
+                'Event details',
+                'One custom event in detail: occurrences, unique visitors and visits, its evolution over the period, the pages where it fires, and the most frequent values of its own properties (the data the website sent with it, such as an error reason or a plan name). Use the exact event name from get_top_events.',
+                static function (SiteAnalytics $analytics, array $args): array {
+                    $event = self::text($args, 'event') ?? throw new InvalidArgumentException('event is required: use a name from get_top_events.');
+                    return $analytics->eventDetails($event, self::text($args, 'property'), self::limit($args));
+                },
+                [
+                    'event' => ['type' => 'string', 'description' => 'Exact event name.'],
+                    'property' => ['type' => 'string', 'description' => 'Only break down this property.'],
+                ] + $limit,
+                ['event'],
+            ),
+            self::report(
+                'get_funnel',
+                'Funnel conversion',
+                'How many visits go through ordered steps (pages or custom events), and the conversion between them. Pass steps for any funnel, or the name of a funnel saved in the dashboard. Without either, lists the saved funnels.',
+                static fn(SiteAnalytics $analytics, array $args): array => self::funnel($analytics, $args),
+                [
+                    'steps' => [
+                        'type' => 'array',
+                        'minItems' => 1,
+                        'maxItems' => 12,
+                        'description' => 'Steps in order, each a page path or an exact event name, e.g. [{"page": "/pricing"}, {"event": "Signup"}].',
+                        'items' => ['type' => 'object', 'properties' => ['page' => ['type' => 'string'], 'event' => ['type' => 'string']], 'additionalProperties' => false],
+                    ],
+                    'funnel' => ['type' => 'string', 'description' => 'Name of a funnel saved in the dashboard.'],
+                ],
             ),
             self::report(
                 'get_countries',
@@ -138,7 +168,7 @@ final class AnalyticsTools
             'to' => ['type' => 'string', 'format' => 'date', 'description' => 'Last day (YYYY-MM-DD, UTC) of a custom period, included.'],
             'filters' => [
                 'type' => 'object',
-                'description' => 'Only count visits that viewed a matching page. Values of one dimension are combined with OR, dimensions with AND. Referrers are domains such as "google.com" or "direct".',
+                'description' => 'Only count visits that viewed a matching page, or for "event" that triggered one of these events (exact names). Values of one dimension are combined with OR, dimensions with AND. Referrers are domains such as "google.com" or "direct".',
                 'properties' => array_fill_keys(self::FILTER_DIMENSIONS, $values),
                 'additionalProperties' => false,
             ],
@@ -190,6 +220,70 @@ final class AnalyticsTools
     private static function limit(array $args): int
     {
         return max(1, min(100, (int) ($args['limit'] ?? 10)));
+    }
+
+    /** A non-empty string argument, or null. */
+    private static function text(array $args, string $key): ?string
+    {
+        $value = $args[$key] ?? null;
+        return is_string($value) && trim($value) !== '' ? trim($value) : null;
+    }
+
+    /** Conversion through ad-hoc or saved funnel steps; the saved funnels when neither is given. */
+    private static function funnel(SiteAnalytics $analytics, array $args): array
+    {
+        $saved = $analytics->savedFunnels();
+        $name = self::text($args, 'funnel');
+        if ($name !== null) {
+            $match = array_values(array_filter($saved, static fn(array $funnel): bool => strcasecmp($funnel['name'], $name) === 0));
+            if ($match === []) {
+                throw new InvalidArgumentException('No saved funnel is named "' . $name . '". Saved funnels: ' . (implode(', ', array_column($saved, 'name')) ?: 'none') . '.');
+            }
+            $steps = $match[0]['steps'];
+        } elseif (isset($args['steps'])) {
+            $steps = self::funnelSteps($args['steps']);
+        } else {
+            return ['saved_funnels' => array_map(static fn(array $funnel): array => [
+                'name' => $funnel['name'],
+                'kind' => $funnel['kind'],
+                'steps' => array_map(static fn(array $step): string => self::describeStep($step), $funnel['steps']),
+            ], $saved)];
+        }
+
+        $progress = $analytics->funnelProgress($steps);
+        $first = $progress[0] ?? 0;
+        $rows = [];
+        foreach ($steps as $i => $step) {
+            $previous = $i === 0 ? $first : $progress[$i - 1];
+            $rows[] = [
+                'step' => self::describeStep($step),
+                'visits' => $progress[$i],
+                'conversion_from_previous' => $previous > 0 ? round($progress[$i] / $previous * 100, 1) : 0,
+                'conversion_from_first' => $first > 0 ? round($progress[$i] / $first * 100, 1) : 0,
+            ];
+        }
+        return ['steps' => $rows];
+    }
+
+    /** @return list<array{type: string, value: string}> */
+    private static function funnelSteps(mixed $steps): array
+    {
+        if (!is_array($steps) || $steps === [] || count($steps) > 12) {
+            throw new InvalidArgumentException('steps must list between 1 and 12 steps, e.g. [{"page": "/pricing"}, {"event": "Signup"}].');
+        }
+        return array_map(static function (mixed $step): array {
+            $page = is_array($step) ? self::text($step, 'page') : null;
+            $event = is_array($step) ? self::text($step, 'event') : null;
+            if (($page === null) === ($event === null)) {
+                throw new InvalidArgumentException('Each step needs either a page or an event, e.g. {"page": "/pricing"} or {"event": "Signup"}.');
+            }
+            return $page !== null ? ['type' => 'pageview', 'value' => $page] : ['type' => 'event', 'value' => (string) $event];
+        }, array_values($steps));
+    }
+
+    private static function describeStep(array $step): string
+    {
+        return ($step['type'] ?? '') === 'pageview' ? 'Page ' . ($step['value'] ?? '') : 'Event ' . ($step['value'] ?? '');
     }
 
     /** @param list<string> $allowed */

@@ -31,11 +31,31 @@ function prepareInstall() {
     allowed_domains: ['localhost'], internal_ips: [], retention_days: 395,
   });
   fs.writeFileSync(path.join(data, 'sites.json'), JSON.stringify([site('private_site'), site('other_site')]));
+  // One visitor, two visits: s1 converts (pricing then signup), s2 reads the blog and hits upload errors.
+  fs.writeFileSync(path.join(workdir, 'activity.json'), JSON.stringify([
+    ['s1', 'pageview', { path: '/pricing' }],
+    ['s1', 'Signup', { path: '/pricing', plan: 'pro' }],
+    ['s2', 'pageview', { path: '/pricing' }],
+    ['s2', 'pageview', { path: '/blog/first-post' }],
+    ['s2', 'Upload Error', { path: '/upload', reason: 'too big', browser: 'Chrome' }],
+    ['s2', 'Upload Error', { path: '/upload', reason: 'too big' }],
+    ['s2', 'Upload Error', { path: '/upload', reason: 'wrong type' }],
+  ]));
+  const dir = workdir.replace(/\\/g, '/');
   const setup = spawnSync('php', ['-r', `
-    require '${workdir.replace(/\\/g, '/')}/vendor/autoload.php';
+    require '${dir}/vendor/autoload.php';
     Minilytics\\Auth\\Auth::db()->exec("INSERT INTO users (email, password, verified, roles_mask, registered) VALUES ('a@b.c', 'x', 1, 1, 0)");
     $db = Minilytics\\Database\\Database::getConnection('private_site');
-    $db->exec("INSERT INTO user_activity (session_id, visitor_id, action) VALUES ('s1', 'v1', '{\\"name\\":\\"pageview\\",\\"data\\":{\\"path\\":\\"/pricing\\"}}')");
+    $insert = $db->prepare("INSERT INTO user_activity (session_id, visitor_id, action) VALUES (:session, 'v1', :action)");
+    foreach (json_decode(file_get_contents('${dir}/activity.json'), true) as [$session, $name, $data]) {
+      $insert->bindValue(':session', $session);
+      $insert->bindValue(':action', json_encode(['name' => $name, 'data' => $data]));
+      $insert->execute();
+    }
+    $db->exec("CREATE TABLE funnels (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'funnel', steps TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)");
+    $funnel = $db->prepare("INSERT INTO funnels (name, steps) VALUES ('Pricing to signup', :steps)");
+    $funnel->bindValue(':steps', json_encode([['type' => 'pageview', 'value' => '/pricing', 'label' => '/pricing'], ['type' => 'event', 'value' => 'Signup', 'label' => 'Signup']]));
+    $funnel->execute();
     $revoked = Minilytics\\Auth\\McpTokens::create(1, 'revoked');
     Minilytics\\Auth\\McpTokens::revoke(1, $revoked['id']);
     echo json_encode([Minilytics\\Auth\\McpTokens::create(1, 'test')['token'], $revoked['token']]);
@@ -139,7 +159,7 @@ test('MCP initialize negotiates the protocol and notifications get 202', { skip:
 test('MCP lists read-only tools with their input schema', { skip: !hasPhp }, async () => {
   const { body } = await mcp('tools/list', {});
   const names = body.result.tools.map((tool) => tool.name);
-  for (const name of ['list_sites', 'get_overview', 'get_timeseries', 'get_top_pages', 'get_top_referrers', 'get_top_events', 'get_countries', 'get_environment', 'get_acquisition']) {
+  for (const name of ['list_sites', 'get_overview', 'get_timeseries', 'get_top_pages', 'get_top_referrers', 'get_top_events', 'get_countries', 'get_environment', 'get_acquisition', 'get_event_details', 'get_funnel']) {
     assert.ok(names.includes(name), `missing ${name}`);
   }
   for (const tool of body.result.tools) {
@@ -168,6 +188,58 @@ test('MCP tools return the site analytics', { skip: !hasPhp }, async () => {
 
   const channels = await callTool('get_acquisition', { site_id: 'private_site', report: 'channels' });
   assert.equal(channels.data.values[0].name, 'Direct');
+});
+
+test('MCP searches pages and events by name', { skip: !hasPhp }, async () => {
+  const pages = await callTool('get_top_pages', { site_id: 'private_site', search: 'BLOG' });
+  assert.deepEqual(pages.data.pages.map((page) => page.path), ['/blog/first-post']);
+
+  const events = await callTool('get_top_events', { site_id: 'private_site', search: 'error' });
+  assert.deepEqual(events.data.events.map((event) => [event.name, event.count]), [['Upload Error', 3]]);
+});
+
+test('MCP details one event and its own properties', { skip: !hasPhp }, async () => {
+  const { data } = await callTool('get_event_details', { site_id: 'private_site', event: 'Upload Error' });
+  assert.equal(data.occurrences, 3);
+  assert.equal(data.sessions, 1);
+  assert.deepEqual(data.pages, [{ path: '/upload', occurrences: 3 }]);
+  assert.equal(data.trend.reduce((sum, slot) => sum + slot.occurrences, 0), 3);
+  assert.deepEqual(data.properties.reason, [{ value: 'too big', count: 2 }, { value: 'wrong type', count: 1 }]);
+  // Context every event carries is not one of its properties.
+  assert.equal(data.properties.browser, undefined);
+  assert.equal(data.properties.path, undefined);
+
+  const focused = await callTool('get_event_details', { site_id: 'private_site', event: 'Upload Error', property: 'reason', limit: 1 });
+  assert.deepEqual(Object.keys(focused.data.properties), ['reason']);
+  assert.equal(focused.data.properties.reason.length, 1);
+
+  assert.equal((await callTool('get_event_details', { site_id: 'private_site', event: 'Nothing' })).data.occurrences, 0);
+  assert.match((await callTool('get_event_details', { site_id: 'private_site' })).text, /event is required/);
+});
+
+test('MCP computes funnels from steps or saved funnels', { skip: !hasPhp }, async () => {
+  const expected = [['Page /pricing', 2, 100, 100], ['Event Signup', 1, 50, 50]];
+  const summary = (data) => data.steps.map((step) => [step.step, step.visits, step.conversion_from_previous, step.conversion_from_first]);
+
+  const adHoc = await callTool('get_funnel', { site_id: 'private_site', steps: [{ page: '/pricing' }, { event: 'Signup' }] });
+  assert.deepEqual(summary(adHoc.data), expected);
+
+  const saved = await callTool('get_funnel', { site_id: 'private_site', funnel: 'pricing to SIGNUP' });
+  assert.deepEqual(summary(saved.data), expected);
+
+  const listed = await callTool('get_funnel', { site_id: 'private_site' });
+  assert.deepEqual(listed.data.saved_funnels, [{ name: 'Pricing to signup', kind: 'funnel', steps: ['Page /pricing', 'Event Signup'] }]);
+
+  assert.match((await callTool('get_funnel', { site_id: 'private_site', funnel: 'Nope' })).text, /No saved funnel/);
+  assert.match((await callTool('get_funnel', { site_id: 'private_site', steps: [{ page: '/a', event: 'b' }] })).text, /either a page or an event/);
+});
+
+test('MCP filters visits by the events they triggered', { skip: !hasPhp }, async () => {
+  const converted = await callTool('get_overview', { site_id: 'private_site', filters: { event: ['Signup'] } });
+  assert.equal(converted.data.summary.sessions, 1);
+
+  const failed = await callTool('get_top_pages', { site_id: 'private_site', filters: { event: ['Upload Error'] } });
+  assert.deepEqual(failed.data.pages.map((page) => page.path).sort(), ['/blog/first-post', '/pricing']);
 });
 
 test('MCP reports invalid tool arguments to the model', { skip: !hasPhp }, async () => {
