@@ -108,6 +108,20 @@ final class TrackEndpointTest extends TestCase
         }
     }
 
+    public function testEventNamesKeepSpacesButLoseControlCharacters(): void
+    {
+        $this->track($this->event(['name' => 'Add to cart']));
+        $this->track($this->event(['name' => "Sign\x01up"]));
+
+        $this->assertSame(['Add to cart', 'Signup'], array_map(static fn(array $e): string => $e['action']['name'], $this->storedEvents()));
+    }
+
+    public function testRejectsAnEmptyEventName(): void
+    {
+        $this->assertSame(400, $this->track($this->event(['name' => " \x02 "]))['status']);
+        $this->assertSame([], $this->storedEvents());
+    }
+
     public function testUsesTheCountryFromTheProxyHeader(): void
     {
         $this->track($this->event(), ['CF-IPCountry: FR']);

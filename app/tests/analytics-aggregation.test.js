@@ -40,15 +40,6 @@ test('overview treats MySQL JSON null referrers as direct traffic', () => {
   assert.match(db, /NULLIF\(NULLIF\(REPLACE\(SUBSTRING_INDEX/);
 });
 
-test('tracker accepts country codes from supported server-side geo providers', () => {
-  const tracker = read('track.php');
-  for (const header of ['HTTP_CF_IPCOUNTRY', 'HTTP_CF_REGION_CODE', 'HTTP_CF_IPCITY', 'HTTP_X_VERCEL_IP_COUNTRY', 'HTTP_CLOUDFRONT_VIEWER_COUNTRY', 'HTTP_FASTLY_CLIENT_COUNTRY_CODE', 'GEOIP_COUNTRY_CODE']) {
-    assert.match(tracker, new RegExp(`'${header}'`));
-  }
-  assert.match(tracker, /GeoLocation::lookup\(\$ip\)/);
-  assert.match(tracker, /GeoIP enrichment failed/);
-});
-
 test('local GeoIP database is refreshed without an API key or visitor lookup', () => {
   const geo = read('src/Geo/GeoLocation.php');
 
