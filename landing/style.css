@@ -1433,3 +1433,81 @@ h3 {
         width: 100%;
     }
 }
+
+/* Documentation card on the main page, and guide shortcuts shared with install.html */
+.docs-callout {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    margin-bottom: 84px;
+    padding: 36px 44px;
+    border: 1px solid #dbeafe;
+    border-radius: 16px;
+    background: #f5f9ff;
+}
+.docs-callout-icon {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: #dbeafe;
+    color: #2563eb;
+}
+.docs-callout-icon svg {
+    width: 24px;
+    height: 24px;
+}
+.docs-callout-copy {
+    flex: 1;
+}
+.docs-callout h2 {
+    margin: 0 0 6px;
+    color: var(--ink);
+    font-size: 28px;
+    line-height: 1.15;
+    letter-spacing: -0.035em;
+}
+.docs-callout h2 em {
+    color: #3b82f6;
+    font-style: normal;
+}
+.docs-callout p {
+    max-width: 560px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.6;
+}
+.docs-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
+.docs-links a {
+    padding: 5px 12px;
+    border: 1px solid #dbeafe;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition:
+        border-color 0.15s,
+        background 0.15s;
+}
+.docs-links a:hover {
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+@media (max-width: 800px) {
+    .docs-callout {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 18px;
+        padding: 30px;
+    }
+}

@@ -1,30 +1,26 @@
 # Operations and storage
 
-## Dashboard access
+## Accounts
 
-On the first dashboard visit, create the initial administrator account. Unauthenticated visitors are redirected to the login page.
+The first time you open the dashboard, you create the administrator account. Nobody else can sign up on their own.
 
-Administrators can create a single-use invitation link for a collaborator. It expires after seven days. Public registration is not available.
+To give someone access, open **Settings → Access** and click **Create invitation link**. Each link works once and expires after seven days.
 
-## Data
+![Settings → Access, where you invite someone by email](../assets/settings-access.png)
 
-Minilytics stores its local configuration in a data directory outside the web root: `MINILYTICS_DATA_DIR` if set, otherwise `minilytics-data/` next to the web root.
+## Where your data is stored
 
-By default, each website has its own SQLite database. You can switch the analytics store in **Settings → Database** to MySQL or MariaDB; Minilytics then creates isolated tables per website in the configured database. `sites.json` stores the website registry, `database.json` stores the selected connector (including its password, protected with file permissions), and `auth.db` continues to store dashboard accounts and invitations. Because the directory is not served by the web server, no `.htaccess` or Nginx rule is needed to protect it.
+Minilytics keeps its data in a `minilytics-data` folder next to your website's folder, out of reach from the web. To use another folder, set the `MINILYTICS_DATA_DIR` environment variable on your server.
 
-Retention runs when a site's database is opened. The default is 395 days; each site can use a value from 1 to 760 days.
+By default, each website gets its own small database file, with nothing to install. You can also store your analytics in a MySQL or MariaDB database, as explained [below](#using-mysql-or-mariadb).
+
+Visits are kept for 13 months by default. You can choose another duration for each website in **Settings → Tracking**.
 
 ## Web server configuration
 
-The release archive ships an `.htaccess` file, so **Apache** and **LiteSpeed** need no extra configuration. Other web servers ignore `.htaccess`: apply the equivalent rules yourself. They:
+On Apache and LiteSpeed, which most shared hosting providers use, there is nothing to set up. Minilytics comes with the right rules.
 
-- deny direct access to `vendor/`, `src/`, `bin/`, `tests/`, Composer files and any `.db`, `.json` or `.lock` file;
-- serve `index.html` (the landing page, when deployed) before `index.php` at the site root;
-- make browsers revalidate `minilytics.js`, so sites always run the current tracker;
-- allow uploads of up to 128 MB for data imports;
-- pass the `Authorization` header to PHP and run the PHP files under `/.well-known/`, for [AI assistants](../mcp/README.md) (Nginx and Caddy already pass the header).
-
-Administrators see a warning in the dashboard when these rules are missing (it checks whether `/composer.json` is publicly readable).
+Nginx and Caddy need a few lines of configuration to keep the private files of Minilytics hidden and to accept large imports. When these rules are missing, the dashboard shows a warning to administrators.
 
 ### Nginx
 
@@ -60,7 +56,7 @@ server {
 }
 ```
 
-Adjust `fastcgi_pass` to your PHP-FPM socket or address. The deny rules must stay above the `\.php$` block: Nginx uses the first matching regular expression location.
+Replace the `fastcgi_pass` address with the one of your PHP service, and keep the `return 403` lines above the `\.php$` block.
 
 ### Caddy
 
@@ -70,7 +66,7 @@ analytics.example.com {
     encode gzip
 
     # Application code, Composer files, databases and dotfiles are never served.
-    # /.well-known/ stays reachable: it serves the sign-in metadata of the MCP server.
+    # /.well-known/ stays reachable for AI assistants to sign in.
     @blocked {
         path_regexp ^/(vendor|src|bin|tests)(/|$)|\.(db|db-wal|db-shm|json|lock)$|/\.
         not path /.well-known/*
@@ -92,9 +88,9 @@ analytics.example.com {
 }
 ```
 
-### PHP limits
+### Large imports
 
-With PHP-FPM, the `php_value` lines of `.htaccess` are not applied either. To import large exports, set these in `php.ini` or your FPM pool configuration:
+To import large exports with Nginx or Caddy, also raise these limits in your PHP settings (`php.ini`).
 
 ```ini
 upload_max_filesize = 128M
@@ -106,38 +102,49 @@ max_input_time = 300
 
 ### Behind Cloudflare
 
-This is about the domain Minilytics itself runs on: browsers send events straight to it, so whether your tracked websites use Cloudflare does not matter.
+If the domain where Minilytics runs goes through Cloudflare, turn on **Minilytics is behind Cloudflare** in **Settings → Tracking**. Without it, all your visitors seem to come from the same place, which mixes up visitors and countries. The dashboard suggests it when it notices Cloudflare.
 
-Behind Cloudflare, every request reaches your server from a Cloudflare address, so all visitors would share one IP: one rate limit, the same visitor key and no internal traffic filtering. Turn on **Minilytics is behind Cloudflare** in **Settings → Tracking** so Minilytics reads the visitor's address from the `CF-Connecting-IP` header instead. The dashboard suggests it when it detects that your own requests come through Cloudflare.
+![The Minilytics is behind Cloudflare option in Settings → Tracking](../assets/settings-cloudflare.png)
 
-You can also set `MINILYTICS_TRUST_CLOUDFLARE=1` in the server environment; it then overrides the dashboard setting:
+Only the domain of Minilytics matters here. Whether the websites you track use Cloudflare makes no difference.
 
-- Apache or LiteSpeed: add `SetEnv MINILYTICS_TRUST_CLOUDFLARE 1` to `.htaccess`;
-- Nginx with PHP-FPM: add `fastcgi_param MINILYTICS_TRUST_CLOUDFLARE 1;` next to the other `fastcgi_param` lines;
-- Caddy: add `env MINILYTICS_TRUST_CLOUDFLARE 1` inside the `php_fastcgi` block.
+Leave this option off if you do not use Cloudflare, and when it is on, make sure your server only accepts traffic coming through Cloudflare.
 
-Leave it unset otherwise: anyone can send this header, and Minilytics would then trust a forged address. For the same reason, if you enable it, make sure your server only accepts traffic from Cloudflare.
+## Using MySQL or MariaDB
 
-## MySQL and MariaDB checklist
+The default storage suits most websites. To use MySQL or MariaDB instead, follow these steps.
 
-- Enable the PHP `pdo_mysql` extension.
-- Create a dedicated user; grant it `CREATE`, `ALTER`, `INDEX`, `SELECT`, `INSERT`, `UPDATE` and `DELETE`. The connector can create the named database during its connection test when “Create the database if it is missing” is enabled.
-- In Hostinger hPanel, use the values displayed in **Databases → Management**. Usually, a site running under the same hosting account uses `localhost` and port `3306`; do not assume this for remote hosting.
-- Test the connector in **Settings → Database** before saving it. The application creates tables lazily as each website receives or reads data.
-- Export or back up the `*.db` files of the data directory before switching. Migration is deliberately not automatic so an incorrect connection can never overwrite local analytics.
+1. At your hosting provider, create a database and a user for Minilytics.
+2. In Minilytics, go to **Settings → Database**, choose MySQL or MariaDB and enter these details.
+3. Click **Test connection**, then **Save database connector**.
+
+![Settings → Database, filled in for a MySQL database](../assets/settings-database.png)
+
+Your PHP installation needs the `pdo_mysql` extension, which most hosting providers enable. Analytics already collected are not moved to the new database, so [back them up](#backups) before switching.
 
 ## Updates
 
-**Settings → Updates** shows the installed version. For administrators, your server asks GitHub for the latest release (at most twice a day, only while an administrator uses the dashboard; no analytics data is sent) and marks the Settings link when a newer one is available. A copy installed from Git instead of a release archive is shown as a development version and is not compared.
+**Settings → Updates** shows the version you use and tells you when a new one is available. A small dot also appears next to **Settings** when it is time to update.
+
+![Settings → Updates, showing that a new version is available](../assets/settings-updates.png)
+
+Updating from the dashboard is not possible yet. To update, download the latest archive and extract it over your current installation, just like when you installed Minilytics. Run these commands in the folder where Minilytics is installed.
+
+```bash
+curl -LO https://github.com/axthauvin/minilytics/releases/latest/download/minilytics.tar.gz
+tar -xzf minilytics.tar.gz && rm minilytics.tar.gz
+```
+
+Without a terminal, download `minilytics.tar.gz` from the [latest release](https://github.com/axthauvin/minilytics/releases/latest), extract it on your computer, and upload its files over the old ones with your hosting provider's file manager or FTP.
+
+Your analytics, accounts and settings are kept, because they live in the data folder, outside the files you replace. If you edited the `.htaccess` file, save your changes first, since the archive replaces it.
 
 ## Backups
 
-Run this command from a scheduled task to copy the SQLite databases:
+To back up your analytics regularly, schedule this command on your server.
 
 ```bash
 php bin/backup.php --destination /secure/backups/minilytics
 ```
 
-The destination directory is created with restrictive permissions when it does not already exist. Choose a destination on another disk or machine than the data directory, otherwise a lost disk or an accidental `rm -rf` takes the backups with it.
-
-See also: [privacy](../privacy/README.md), [importing Umami data](../importing/README.md), [documentation index](../README.md).
+Keep the backups on another disk or machine, so that a disk failure does not take them with your data. If you use MySQL or MariaDB, use the database backups of your hosting provider instead.

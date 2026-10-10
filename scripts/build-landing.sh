@@ -22,6 +22,9 @@ echo "==> Packaging landing page from: ${LANDING_DIR}"
 echo "==> Target archive: ${OUTPUT_ARCHIVE}"
 
 mkdir -p "${DIST_DIR}"
+
+# The documentation pages are generated from docs/ into landing/docs/.
+php "${SCRIPT_DIR}/build-docs.php" "${LANDING_DIR}/docs"
 tar -czf "${OUTPUT_ARCHIVE}" --exclude ".DS_Store" -C "${LANDING_DIR}" .
 
 if command -v sha256sum >/dev/null 2>&1; then
