@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Minilytics\Analytics\Period;
 use Minilytics\Auth\Auth;
 use Minilytics\Database\Database;
 use Minilytics\Database\DatabaseConnection;
@@ -15,21 +16,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
     Auth::requireLogin();
 }
 
-function funnelRange(): array
-{
-    $range = $_GET['range'] ?? '7d';
-    $now = time();
-    if (($range === 'custom') && !empty($_GET['from']) && !empty($_GET['to'])) {
-        $start = strtotime($_GET['from'] . ' 00:00:00 UTC') ?: $now - 30 * 86400;
-        $end = strtotime($_GET['to'] . ' 23:59:59 UTC') ?: $now;
-    } else {
-        $start = match ($range) {
-            'today' => strtotime('today midnight UTC'), '24h' => $now - 86400, '30d' => $now - 30 * 86400, '90d' => $now - 90 * 86400, '6m', '180d' => $now - 180 * 86400, 'all' => 0, default => $now - 7 * 86400,
-        };
-        $end = $now;
-    }
-    return [gmdate('Y-m-d H:i:s', $start), gmdate('Y-m-d H:i:s', $end)];
-}
 function setupFunnels(DatabaseConnection $db): void
 {
     if ($db->isMysql()) {
@@ -214,7 +200,8 @@ try {
         echo json_encode(['success' => true]);
         exit;
     }
-    [$start, $end] = funnelRange();
+    $period = Period::fromRequest($_GET);
+    [$start, $end] = [$period->startText(), $period->endText()];
     $items = [];
     $result = $db->query('SELECT * FROM funnels ORDER BY created_at DESC, id DESC');
     while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
