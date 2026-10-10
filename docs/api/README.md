@@ -4,6 +4,8 @@ Minilytics includes an [MCP](https://modelcontextprotocol.io) server, so an AI a
 
 **Settings → AI assistants** walks you through it: pick your assistant to get its setup steps, with one-click buttons for Claude, Cursor and VS Code, and a prompt that lets any other agent configure itself. The **Authorized access** list there shows every assistant that can read your analytics.
 
+![Settings → AI assistants, with the steps to connect Claude](../assets/ai-assistants.png)
+
 ## Server URL
 
 The MCP server is `https://<your-instance>/mcp.php`, for example `https://analytics.example.com/mcp.php`. It uses the Streamable HTTP transport. Assistants reach it from the internet, so the instance must be served over HTTPS.
