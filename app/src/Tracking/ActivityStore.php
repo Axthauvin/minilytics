@@ -1,0 +1,47 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Minilytics\Tracking;
+
+use Minilytics\Database\DatabaseConnection;
+
+/** Writes tracked and ignored events to a website's database. */
+final class ActivityStore
+{
+    /** A visit ends after 30 minutes without an event. */
+    private const SESSION_TIMEOUT = 1800;
+
+    public function __construct(private readonly DatabaseConnection $db) {}
+
+    /** The visitor's current session, if they sent an event in the last 30 minutes. */
+    public function activeSessionId(string $visitorId): ?string
+    {
+        $stmt = $this->db->prepare('SELECT session_id FROM user_activity WHERE visitor_id = :visitor AND timestamp >= :cutoff ORDER BY timestamp DESC, id DESC LIMIT 1');
+        $stmt->bindValue(':visitor', $visitorId, SQLITE3_TEXT);
+        $stmt->bindValue(':cutoff', gmdate('Y-m-d H:i:s', time() - self::SESSION_TIMEOUT), SQLITE3_TEXT);
+        $row = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
+        return is_array($row) && !empty($row['session_id']) ? (string) $row['session_id'] : null;
+    }
+
+    /** @param array<string, mixed> $action */
+    public function record(string $sessionId, string $visitorId, array $action): void
+    {
+        $stmt = $this->db->prepare('INSERT INTO user_activity (session_id, visitor_id, action) VALUES (:session,:visitor,:action)');
+        $stmt->bindValue(':session', $sessionId, SQLITE3_TEXT);
+        $stmt->bindValue(':visitor', $visitorId, SQLITE3_TEXT);
+        $stmt->bindValue(':action', json_encode($action, JSON_UNESCAPED_SLASHES), SQLITE3_TEXT);
+        $stmt->execute();
+    }
+
+    /** Logs a request kept out of the analytics (bot, internal traffic). Only a hash of the IP is stored. */
+    public function recordIgnored(string $reason, string $userAgent, string $origin, string $ip): void
+    {
+        $stmt = $this->db->prepare('INSERT INTO bot_activity (reason, user_agent, origin, ip_hash) VALUES (:reason,:ua,:origin,:ip)');
+        $stmt->bindValue(':reason', $reason, SQLITE3_TEXT);
+        $stmt->bindValue(':ua', substr($userAgent, 0, 500), SQLITE3_TEXT);
+        $stmt->bindValue(':origin', substr($origin, 0, 255), SQLITE3_TEXT);
+        $stmt->bindValue(':ip', hash('sha256', $ip), SQLITE3_TEXT);
+        $stmt->execute();
+    }
+}
