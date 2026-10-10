@@ -104,6 +104,8 @@ final class Auth
             http_response_code(401);
             self::jsonError('Authentication required.');
         }
+        // Every state-changing dashboard API call goes through here.
+        Csrf::requireValid();
     }
     /**
      * Read access to a website's analytics: members see every site, anonymous

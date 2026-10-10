@@ -49,6 +49,11 @@ async function browser(url, init = {}) {
   }
   return res;
 }
+/** The CSRF token a page hands to its forms (hidden field) or its API client (meta tag). */
+async function csrfToken(path) {
+  const html = await (await browser(path)).text();
+  return html.match(/name="csrf(?:-token)?" (?:value|content)="([^"]+)"/)[1];
+}
 const form = (data) => ({ method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(data).toString() });
 const json = (data) => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
 const pkce = () => {
@@ -135,7 +140,8 @@ test('the consent screen requires signing in, then returns to the request', { sk
   const next = login.searchParams.get('next');
   assert.ok(next.startsWith('/oauth/authorize.php?'));
 
-  const signedIn = await browser(`/dashboard/login.php?next=${encodeURIComponent(next)}`, form({ email: EMAIL, password: PASSWORD }));
+  const loginUrl = `/dashboard/login.php?next=${encodeURIComponent(next)}`;
+  const signedIn = await browser(loginUrl, form({ email: EMAIL, password: PASSWORD, csrf: await csrfToken(loginUrl) }));
   assert.equal(signedIn.status, 302);
   assert.equal(signedIn.headers.get('location'), next);
 });
@@ -240,9 +246,25 @@ test('disconnecting an assistant revokes its tokens', { skip: !hasPhp }, async (
   assert.equal(list.mcp_url, MCP_URL);
   assert.ok(list.apps.some((app) => app.client_id === clientId && app.name === 'Claude'));
 
-  const res = await browser('/dashboard/src/api/tokens.php', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app: clientId }) });
+  const csrf = await csrfToken('/dashboard/');
+  const res = await browser('/dashboard/src/api/tokens.php', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf }, body: JSON.stringify({ app: clientId }) });
   assert.equal(res.status, 200);
   assert.equal((await mcp(tokens.access_token)).status, 401);
+});
+
+test('signing in requires the form CSRF token', { skip: !hasPhp }, async () => {
+  const res = await fetch(`${BASE}/dashboard/login.php`, { redirect: 'manual', ...form({ email: EMAIL, password: PASSWORD }) });
+  assert.equal(res.status, 200);
+  assert.match(await res.text(), /This page expired/);
+});
+
+test('dashboard API writes require the session CSRF token', { skip: !hasPhp }, async () => {
+  const create = (headers) => browser('/dashboard/src/api/tokens.php', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ name: 'csrf' }) });
+  const missing = await create({});
+  assert.equal(missing.status, 403);
+  assert.equal(missing.headers.get('x-minilytics-error'), 'csrf');
+  assert.equal((await create({ 'X-CSRF-Token': 'forged' })).status, 403);
+  assert.equal((await create({ 'X-CSRF-Token': await csrfToken('/dashboard/') })).status, 200);
 });
 
 test('OAuth endpoints answer CORS preflights', { skip: !hasPhp }, async () => {

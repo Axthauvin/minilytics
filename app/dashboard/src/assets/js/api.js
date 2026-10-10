@@ -2,16 +2,47 @@
  * Minilytics API Client Helper
  */
 
+// Session token the API requires on every state-changing request (see Csrf.php).
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || "";
+
+async function apiFetch(url, init = {}) {
+  const method = (init.method || "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD") {
+    const headers = new Headers(init.headers);
+    headers.set("X-CSRF-Token", csrfToken);
+    init = { ...init, headers };
+  }
+  const res = await fetch(url, init);
+  if (res.status === 401) showSessionBanner("signed-out");
+  else if (res.status === 403 && res.headers.get("X-Minilytics-Error") === "csrf") showSessionBanner("stale");
+  return res;
+}
+
+/** Tells the user why their action failed: the session ended, or the page holds an outdated token. */
+function showSessionBanner(reason) {
+  const banner = document.getElementById("sessionBanner");
+  if (!banner) return;
+  const signedOut = reason === "signed-out";
+  const link = banner.querySelector("a");
+  banner.querySelector("span").textContent = signedOut
+    ? "You have been signed out. Sign in again to keep working."
+    : "This page is out of date, so your last change was not saved. Reload the page and try again.";
+  link.textContent = signedOut ? "Sign in again" : "Reload page";
+  link.href = signedOut ? `/dashboard/login.php?next=${encodeURIComponent(location.pathname + location.search + location.hash)}` : location.href;
+  link.onclick = signedOut ? null : (event) => { event.preventDefault(); location.reload(); };
+  banner.hidden = false;
+}
+
 const Api = {
   base: "/dashboard/src/api",
 
   async getDatabaseConfig() {
-    const res = await fetch(`${this.base}/database.php`); const data = await res.json();
+    const res = await apiFetch(`${this.base}/database.php`); const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
   },
 
   async databaseConnector(action, config) {
-    const res = await fetch(`${this.base}/database.php`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, ...config }) });
+    const res = await apiFetch(`${this.base}/database.php`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, ...config }) });
     const data = await res.json(); if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
   },
 
@@ -32,7 +63,7 @@ const Api = {
       if (dates.to) params.append("to", dates.to);
     }
     window.Filters?.appendTo(params);
-    const res = await fetch(`${this.base}/stats.php?${params.toString()}`);
+    const res = await apiFetch(`${this.base}/stats.php?${params.toString()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   },
@@ -41,7 +72,7 @@ const Api = {
     const params = new URLSearchParams({ range, site_id: siteId || window.App?.currentSiteId || "" });
     const dates = customDates || window.App?.customDates;
     if (range === "custom" && dates?.from && dates?.to) { params.append("from", dates.from); params.append("to", dates.to); }
-    const res = await fetch(`${this.base}/acquisition.php?${params}`); const data = await res.json();
+    const res = await apiFetch(`${this.base}/acquisition.php?${params}`); const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
   },
 
@@ -80,7 +111,7 @@ const Api = {
       if (dates.to) params.append("to", dates.to);
     }
 
-    const res = await fetch(`${this.base}/events.php?${params.toString()}`);
+    const res = await apiFetch(`${this.base}/events.php?${params.toString()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   },
@@ -119,7 +150,7 @@ const Api = {
     }
     window.Filters?.appendTo(params);
 
-    const res = await fetch(`${this.base}/sessions.php?${params.toString()}`);
+    const res = await apiFetch(`${this.base}/sessions.php?${params.toString()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   },
@@ -127,13 +158,13 @@ const Api = {
   async getSessionDetails(sessionId, siteId = "") {
     const params = new URLSearchParams({ session_id: sessionId });
     if (siteId) params.append("site_id", siteId);
-    const res = await fetch(`${this.base}/sessions.php?${params.toString()}`);
+    const res = await apiFetch(`${this.base}/sessions.php?${params.toString()}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   },
 
   async deleteSession(sessionId, siteId = "") {
-    const res = await fetch(`${this.base}/sessions.php`, {
+    const res = await apiFetch(`${this.base}/sessions.php`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ session_id: sessionId, site_id: siteId || window.App?.currentSiteId || "" }),
@@ -151,13 +182,13 @@ const Api = {
     if (range === "custom" && dates?.from && dates?.to) {
       params.append("from", dates.from); params.append("to", dates.to);
     }
-    const res = await fetch(`${this.base}/funnels.php?${params}`);
+    const res = await apiFetch(`${this.base}/funnels.php?${params}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
   },
 
   async saveFunnel(funnel, siteId = "") {
-    const res = await fetch(`${this.base}/funnels.php`, {
+    const res = await apiFetch(`${this.base}/funnels.php`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ site_id: siteId || window.App?.currentSiteId, ...funnel }),
     });
@@ -168,14 +199,14 @@ const Api = {
 
   async deleteFunnel(id, siteId = "") {
     const params = new URLSearchParams({ id, site_id: siteId || window.App?.currentSiteId });
-    const res = await fetch(`${this.base}/funnels.php?${params}`, { method: "DELETE" });
+    const res = await apiFetch(`${this.base}/funnels.php?${params}`, { method: "DELETE" });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
     return data;
   },
 
   async getSites() {
-    const res = await fetch(`${this.base}/sites.php`);
+    const res = await apiFetch(`${this.base}/sites.php`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   },
@@ -183,17 +214,17 @@ const Api = {
   async getTrackingConfig(id) {
     // Tracking secrets are admin-only; skip the request entirely in the live demo.
     if (window.MINILYTICS_GUEST) throw new Error("Not available in demo mode.");
-    const res = await fetch(`${this.base}/sites.php?action=tracking-config&id=${encodeURIComponent(id)}`); const data = await res.json();
+    const res = await apiFetch(`${this.base}/sites.php?action=tracking-config&id=${encodeURIComponent(id)}`); const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
   },
 
   async updateSiteConfig(config) {
-    const res = await fetch(`${this.base}/sites.php`, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(config)}); const data=await res.json();
+    const res = await apiFetch(`${this.base}/sites.php`, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(config)}); const data=await res.json();
     if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
   },
 
   async createSite({ id, name, domain }) {
-    const res = await fetch(`${this.base}/sites.php`, {
+    const res = await apiFetch(`${this.base}/sites.php`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, name, domain }),
@@ -206,7 +237,7 @@ const Api = {
   },
 
   async deleteSite(id) {
-    const res = await fetch(
+    const res = await apiFetch(
       `${this.base}/sites.php?id=${encodeURIComponent(id)}`,
       {
         method: "DELETE",
@@ -222,13 +253,13 @@ const Api = {
   },
 
   async getImportProviders() {
-    const res = await fetch(`${this.base}/import.php?action=providers`);
+    const res = await apiFetch(`${this.base}/import.php?action=providers`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   },
 
   async inspectImport(formData) {
-    const res = await fetch(`${this.base}/import.php?action=inspect`, {
+    const res = await apiFetch(`${this.base}/import.php?action=inspect`, {
       method: "POST",
       body: formData,
     });
@@ -240,7 +271,7 @@ const Api = {
   },
 
   async submitImport(formData) {
-    const res = await fetch(`${this.base}/import.php`, {
+    const res = await apiFetch(`${this.base}/import.php`, {
       method: "POST",
       body: formData,
     });
@@ -253,12 +284,12 @@ const Api = {
 
   async accessTokens(method = "GET", body = null) {
     const init = body ? { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : { method };
-    const res = await fetch(`${this.base}/tokens.php`, init); const data = await res.json().catch(() => ({}));
+    const res = await apiFetch(`${this.base}/tokens.php`, init); const data = await res.json().catch(() => ({}));
     if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
   },
 
   async getUsers() {
-    const res = await fetch(`${this.base}/users.php`);
+    const res = await apiFetch(`${this.base}/users.php`);
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.error) {
       throw new Error(data.error || `HTTP ${res.status}`);
@@ -267,7 +298,7 @@ const Api = {
   },
 
   async inviteUser(email) {
-    const res = await fetch(`${this.base}/users.php`, {
+    const res = await apiFetch(`${this.base}/users.php`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
@@ -280,7 +311,7 @@ const Api = {
   },
 
   async updateUserRole(id, role) {
-    const res = await fetch(`${this.base}/users.php`, {
+    const res = await apiFetch(`${this.base}/users.php`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "update_role", id, role }),
@@ -293,7 +324,7 @@ const Api = {
   },
 
   async deleteUser(id) {
-    const res = await fetch(`${this.base}/users.php`, {
+    const res = await apiFetch(`${this.base}/users.php`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "delete", id }),
