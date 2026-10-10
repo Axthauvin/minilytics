@@ -5,51 +5,38 @@ declare(strict_types=1);
 namespace Minilytics\Tests\Tracking;
 
 use Minilytics\Database\Database;
+use Minilytics\Tracking\CloudflareTrust;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 /**
  * Sends real HTTP requests to track.php through PHP's built-in server, so
  * these tests keep passing however the endpoint is organised internally.
+ *
+ * The default server is a direct install; the "cloudflare" one sets
+ * MINILYTICS_TRUST_CLOUDFLARE, like an install behind Cloudflare.
  */
 final class TrackEndpointTest extends TestCase
 {
     private const ORIGIN = 'https://example.com';
     private const BROWSER = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36';
 
-    /** @var resource|null */
-    private static $server = null;
-    private static string $baseUrl = '';
-
-    public static function setUpBeforeClass(): void
-    {
-        $port = self::freePort();
-        $command = [PHP_BINARY, '-S', "127.0.0.1:{$port}", '-t', dirname(__DIR__, 3)];
-        $env = getenv() + ['MINILYTICS_DATA_DIR' => getenv('MINILYTICS_DATA_DIR')];
-        $null = PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
-        self::$server = proc_open($command, [['file', $null, 'r'], ['file', $null, 'w'], ['file', $null, 'w']], $pipes, null, $env) ?: null;
-        self::$baseUrl = "http://127.0.0.1:{$port}";
-        for ($i = 0; $i < 50; $i++) {
-            if ($socket = @fsockopen('127.0.0.1', $port)) {
-                fclose($socket);
-                return;
-            }
-            usleep(100_000);
-        }
-        throw new RuntimeException('The PHP built-in server did not start.');
-    }
+    /** @var array<string, array{process: resource, url: string}> */
+    private static array $servers = [];
 
     public static function tearDownAfterClass(): void
     {
-        if (self::$server !== null) {
-            proc_terminate(self::$server);
-            proc_close(self::$server);
+        foreach (self::$servers as $server) {
+            proc_terminate($server['process']);
+            proc_close($server['process']);
         }
+        self::$servers = [];
     }
 
     protected function tearDown(): void
     {
-        Database::updateSiteConfig('test_site', ['allowed_domains' => ['example.com'], 'allow_localhost' => false]);
+        Database::updateSiteConfig('test_site', ['allowed_domains' => ['example.com'], 'allow_localhost' => false, 'internal_ips' => ['10.0.0.99']]);
+        CloudflareTrust::save(false);
     }
 
     protected function setUp(): void
@@ -206,10 +193,44 @@ final class TrackEndpointTest extends TestCase
 
     public function testInternalTrafficIsIgnored(): void
     {
-        $response = $this->track($this->event(), ['CF-Connecting-IP: 10.0.0.99']);
+        Database::updateSiteConfig('test_site', ['internal_ips' => ['127.0.0.1']]);
+
+        $response = $this->track($this->event());
 
         $this->assertSame(['ignored' => 'internal'], $response['body']);
         $this->assertSame([], $this->storedEvents());
+    }
+
+    public function testACloudflareIpHeaderIsIgnoredByDefault(): void
+    {
+        $response = $this->track($this->event(), ['CF-Connecting-IP: 10.0.0.99']);
+
+        $this->assertSame(['success' => true], $response['body'], 'A forged header must not pass for internal traffic.');
+    }
+
+    public function testForgedIpHeadersDoNotCreateNewVisitors(): void
+    {
+        $this->track($this->event(), ['CF-Connecting-IP: 203.0.113.1']);
+        $this->track($this->event(), ['CF-Connecting-IP: 203.0.113.2']);
+
+        [$first, $second] = $this->storedEvents();
+        $this->assertSame($first['visitor_id'], $second['visitor_id']);
+    }
+
+    public function testBehindCloudflareTheVisitorIpComesFromItsHeader(): void
+    {
+        $response = $this->track($this->event(), ['CF-Connecting-IP: 10.0.0.99'], 'cloudflare');
+
+        $this->assertSame(['ignored' => 'internal'], $response['body']);
+    }
+
+    public function testTheDashboardSettingTrustsCloudflareToo(): void
+    {
+        CloudflareTrust::save(true);
+
+        $response = $this->track($this->event(), ['CF-Connecting-IP: 10.0.0.99']);
+
+        $this->assertSame(['ignored' => 'internal'], $response['body']);
     }
 
     /** @param array<string, mixed> $overrides */
@@ -222,22 +243,22 @@ final class TrackEndpointTest extends TestCase
      * @param list<string> $headers replace the defaults sharing their name
      * @return array{status: int, body: mixed, headers: array<string, string>}
      */
-    private function track(array $payload, array $headers = []): array
+    private function track(array $payload, array $headers = [], string $server = 'default'): array
     {
-        $defaults = ['Origin' => 'Origin: ' . self::ORIGIN, 'User-Agent' => 'User-Agent: ' . self::BROWSER, 'CF-Connecting-IP' => 'CF-Connecting-IP: 192.168.1.20'];
+        $defaults = ['Origin' => 'Origin: ' . self::ORIGIN, 'User-Agent' => 'User-Agent: ' . self::BROWSER];
         foreach ($headers as $header) {
             $defaults[strstr($header, ':', true)] = $header;
         }
         // "Origin: " with no value means the request carries no Origin header.
         $defaults = array_filter($defaults, static fn(string $header): bool => trim((string) substr(strstr($header, ':'), 1)) !== '');
-        return $this->request('POST', (string) json_encode($payload), array_values($defaults));
+        return $this->request('POST', (string) json_encode($payload), array_values($defaults), $server);
     }
 
     /**
      * @param list<string> $headers
      * @return array{status: int, body: mixed, headers: array<string, string>}
      */
-    private function request(string $method, string $body = '', array $headers = []): array
+    private function request(string $method, string $body = '', array $headers = [], string $server = 'default'): array
     {
         $context = stream_context_create(['http' => [
             'method' => $method,
@@ -245,7 +266,7 @@ final class TrackEndpointTest extends TestCase
             'content' => $body,
             'ignore_errors' => true,
         ]]);
-        $response = file_get_contents(self::$baseUrl . '/track.php', false, $context);
+        $response = file_get_contents(self::serverUrl($server) . '/track.php', false, $context);
         preg_match('/^HTTP\/\S+ (\d{3})/', $http_response_header[0] ?? '', $match);
         $responseHeaders = [];
         foreach (array_slice($http_response_header, 1) as $line) {
@@ -264,6 +285,34 @@ final class TrackEndpointTest extends TestCase
             $events[] = ['session_id' => $row['session_id'], 'visitor_id' => $row['visitor_id'], 'action' => json_decode($row['action'], true)];
         }
         return $events;
+    }
+
+    /** Starts the named server on first use. */
+    private static function serverUrl(string $name): string
+    {
+        if (isset(self::$servers[$name])) {
+            return self::$servers[$name]['url'];
+        }
+        $env = getenv();
+        unset($env['MINILYTICS_TRUST_CLOUDFLARE']);
+        if ($name === 'cloudflare') {
+            $env['MINILYTICS_TRUST_CLOUDFLARE'] = '1';
+        }
+        $port = self::freePort();
+        $null = PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
+        $process = proc_open([PHP_BINARY, '-S', "127.0.0.1:{$port}", '-t', dirname(__DIR__, 3)], [['file', $null, 'r'], ['file', $null, 'w'], ['file', $null, 'w']], $pipes, null, $env);
+        if ($process === false) {
+            throw new RuntimeException('Could not start the PHP built-in server.');
+        }
+        self::$servers[$name] = ['process' => $process, 'url' => "http://127.0.0.1:{$port}"];
+        for ($i = 0; $i < 50; $i++) {
+            if ($socket = @fsockopen('127.0.0.1', $port)) {
+                fclose($socket);
+                return self::$servers[$name]['url'];
+            }
+            usleep(100_000);
+        }
+        throw new RuntimeException('The PHP built-in server did not start.');
     }
 
     private static function freePort(): int

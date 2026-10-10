@@ -176,7 +176,7 @@ const SettingsPage = {
     card.hidden = !isAdmin; if (!isAdmin) return;
     const select = document.getElementById('trackingSiteSelect'); const data = await Api.getSites();
     select.innerHTML = (data.sites || []).map(s => `<option value="${this.escapeHtml(s.id)}">${this.escapeHtml(s.name || s.id)}</option>`).join('');
-    await this.loadTrackingConfig();
+    await Promise.all([this.loadTrackingConfig(), this.loadTrackingServer()]);
   },
 
   selectTab(name) {
@@ -239,6 +239,23 @@ const SettingsPage = {
   },
 
   setDatabaseFeedback(message, type = '') { const el = document.getElementById('databaseFeedback'); if (!el) return; el.textContent = message; el.className = 'settings-feedback'; if (type) el.classList.add(type === 'error' ? 'settings-error' : 'settings-success'); },
+
+  async loadTrackingServer(body = null) {
+    const card = document.getElementById('trackingServerCard'); const checkbox = document.getElementById('trackingTrustCloudflare');
+    if (!card || !checkbox) return;
+    const feedback = document.getElementById('trackingServerFeedback');
+    try {
+      const data = await Api.trackingServerSettings(body);
+      card.hidden = false;
+      checkbox.checked = data.trust_cloudflare; checkbox.disabled = data.forced_by_environment;
+      let message = body ? 'Saved.' : '';
+      if (data.forced_by_environment) message = 'Turned on by the MINILYTICS_TRUST_CLOUDFLARE environment variable.';
+      else if (data.request_via_cloudflare && !data.trust_cloudflare) message = 'This dashboard is reaching you through Cloudflare: turn this on.';
+      feedback.className = message === 'Saved.' ? 'settings-feedback settings-success' : 'settings-feedback';
+      feedback.textContent = message;
+    } catch (e) { feedback.className = 'settings-feedback settings-error'; feedback.textContent = e.message; }
+    if (!checkbox.dataset.bound) { checkbox.dataset.bound = '1'; checkbox.addEventListener('change', () => this.loadTrackingServer({ trust_cloudflare: checkbox.checked })); }
+  },
 
   async loadTrackingConfig() {
     const select = document.getElementById('trackingSiteSelect'); if (!select || !select.value) return;

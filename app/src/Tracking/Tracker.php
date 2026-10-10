@@ -73,9 +73,18 @@ final class Tracker
         return ['success' => true];
     }
 
-    /** @param array<string, mixed> $server */
+    /**
+     * The visitor's IP address. Behind Cloudflare, REMOTE_ADDR is Cloudflare's
+     * address and the visitor's is in CF-Connecting-IP; anyone can send that
+     * header, so it is only read when the administrator says so.
+     *
+     * @param array<string, mixed> $server
+     */
     private static function clientIp(array $server): string
     {
-        return trim(explode(',', (string) ($server['HTTP_CF_CONNECTING_IP'] ?? $server['REMOTE_ADDR'] ?? ''))[0]);
+        if (CloudflareTrust::isEnabled() && !empty($server['HTTP_CF_CONNECTING_IP'])) {
+            return trim((string) $server['HTTP_CF_CONNECTING_IP']);
+        }
+        return trim((string) ($server['REMOTE_ADDR'] ?? ''));
     }
 }
