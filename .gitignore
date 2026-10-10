@@ -22,3 +22,5 @@ minilytics-data/
 /app/vendor/
 .php-cs-fixer.cache
 /app/.phpunit.cache/
+/app/src/VERSION
+/app/src/VERSION.*

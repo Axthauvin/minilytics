@@ -4032,3 +4032,8 @@ pre, .json-box, .code-box {
     .embed-mode .top-header { padding: 10px 14px; }
     .embed-mode .content-container { padding: 14px 14px 28px; }
 }
+
+/* Shown on the Settings link when a new release is available */
+.update-dot { width: 7px; height: 7px; margin-left: auto; border-radius: 50%; background: var(--primary); flex: 0 0 auto; }
+.update-dot[hidden] { display: none; }
+.update-dot--tab { position: absolute; top: 6px; right: 8px; margin: 0; }

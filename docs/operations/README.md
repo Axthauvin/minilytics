@@ -126,6 +126,10 @@ Leave it unset otherwise: anyone can send this header, and Minilytics would then
 - Test the connector in **Settings → Database** before saving it. The application creates tables lazily as each website receives or reads data.
 - Export or back up the `*.db` files of the data directory before switching. Migration is deliberately not automatic so an incorrect connection can never overwrite local analytics.
 
+## Updates
+
+**Settings → Updates** shows the installed version. For administrators, your server asks GitHub for the latest release (at most twice a day, only while an administrator uses the dashboard; no analytics data is sent) and marks the Settings link when a newer one is available. A copy installed from Git instead of a release archive is shown as a development version and is not compared.
+
 ## Backups
 
 Run this command from a scheduled task to copy the SQLite databases:

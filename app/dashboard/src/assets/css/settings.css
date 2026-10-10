@@ -30,7 +30,7 @@
   box-shadow: var(--shadow-sm);
 }
 .settings-tabs { display: flex; gap: 4px; max-width: 720px; margin: 0 0 18px; padding: 4px; border: 1px solid var(--border); border-radius: 9px; background: #f8fafc; }
-.settings-tab { flex: 1; border: 0; border-radius: 6px; padding: 9px 12px; background: transparent; color: var(--text-muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.settings-tab { position: relative; flex: 1; border: 0; border-radius: 6px; padding: 9px 12px; background: transparent; color: var(--text-muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .settings-tab:hover { color: var(--text-primary); }
 .settings-tab.is-active { color: #1d4ed8; background: var(--bg-surface); box-shadow: var(--shadow-sm); }
 .settings-card h3 {
@@ -431,3 +431,13 @@
   .mcp-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mcp-guide { padding: 14px; }
 }
+
+/* Updates tab */
+.update-versions { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 18px 0 0; }
+.update-versions div { padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: #f8fafc; }
+.update-versions dt { color: var(--text-muted); font-size: 12px; margin-bottom: 4px; }
+.update-versions dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+#updatesCard .settings-feedback { margin: 14px 0 16px; }
+#updatesCard .settings-feedback:empty { display: none; }
+.update-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.update-actions [hidden] { display: none; }

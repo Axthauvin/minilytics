@@ -49,7 +49,7 @@ jobs:
       - name: Package deployable application
         run: |
           chmod +x scripts/build-archive.sh
-          ./scripts/build-archive.sh dist minilytics.tar.gz
+          MINILYTICS_VERSION="${{ steps.vars.outputs.tag }}" ./scripts/build-archive.sh dist minilytics.tar.gz
           cp dist/minilytics.tar.gz "dist/minilytics-${{ steps.vars.outputs.tag }}.tar.gz"
           cd dist
           sha256sum "minilytics-${{ steps.vars.outputs.tag }}.tar.gz" > "minilytics-${{ steps.vars.outputs.tag }}.tar.gz.sha256"
