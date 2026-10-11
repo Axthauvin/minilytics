@@ -86,6 +86,14 @@ if [ -n "${MINILYTICS_VERSION:-}" ]; then
 ' "${MINILYTICS_VERSION}" > "${STAGING_DIR}/src/VERSION"
 fi
 
+# List every file with its SHA-256 in src/MANIFEST. Updates from the dashboard
+# only replace these files, check each one, and remove those a release drops.
+(
+    cd "${STAGING_DIR}"
+    if command -v sha256sum >/dev/null 2>&1; then HASH=(sha256sum); else HASH=(shasum -a 256); fi
+    find . -type f ! -path ./src/MANIFEST -print0 | LC_ALL=C sort -z | xargs -0 "${HASH[@]}" | sed -E 's#^([0-9a-f]{64}) [ *]\./#\1  #' > src/MANIFEST
+)
+
 # Ensure data/ directory exists and contains data/.htaccess
 mkdir -p "${STAGING_DIR}/data"
 if [ ! -f "${STAGING_DIR}/data/.htaccess" ] && [ -f "${APP_DIR}/data/.htaccess" ]; then

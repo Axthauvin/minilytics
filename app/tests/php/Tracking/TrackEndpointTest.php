@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Minilytics\Tests\Tracking;
 
 use Minilytics\Database\Database;
+use Minilytics\Tests\PhpServer;
 use Minilytics\Tracking\CloudflareTrust;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 /**
  * Sends real HTTP requests to track.php through PHP's built-in server, so
@@ -21,14 +21,13 @@ final class TrackEndpointTest extends TestCase
     private const ORIGIN = 'https://example.com';
     private const BROWSER = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36';
 
-    /** @var array<string, array{process: resource, url: string}> */
+    /** @var array<string, PhpServer> */
     private static array $servers = [];
 
     public static function tearDownAfterClass(): void
     {
         foreach (self::$servers as $server) {
-            proc_terminate($server['process']);
-            proc_close($server['process']);
+            $server->stop();
         }
         self::$servers = [];
     }
@@ -290,36 +289,14 @@ final class TrackEndpointTest extends TestCase
     /** Starts the named server on first use. */
     private static function serverUrl(string $name): string
     {
-        if (isset(self::$servers[$name])) {
-            return self::$servers[$name]['url'];
-        }
-        $env = getenv();
-        unset($env['MINILYTICS_TRUST_CLOUDFLARE']);
-        if ($name === 'cloudflare') {
-            $env['MINILYTICS_TRUST_CLOUDFLARE'] = '1';
-        }
-        $port = self::freePort();
-        $null = PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
-        $process = proc_open([PHP_BINARY, '-S', "127.0.0.1:{$port}", '-t', dirname(__DIR__, 3)], [['file', $null, 'r'], ['file', $null, 'w'], ['file', $null, 'w']], $pipes, null, $env);
-        if ($process === false) {
-            throw new RuntimeException('Could not start the PHP built-in server.');
-        }
-        self::$servers[$name] = ['process' => $process, 'url' => "http://127.0.0.1:{$port}"];
-        for ($i = 0; $i < 50; $i++) {
-            if ($socket = @fsockopen('127.0.0.1', $port)) {
-                fclose($socket);
-                return self::$servers[$name]['url'];
+        if (!isset(self::$servers[$name])) {
+            $env = getenv();
+            unset($env['MINILYTICS_TRUST_CLOUDFLARE']);
+            if ($name === 'cloudflare') {
+                $env['MINILYTICS_TRUST_CLOUDFLARE'] = '1';
             }
-            usleep(100_000);
+            self::$servers[$name] = PhpServer::start(dirname(__DIR__, 3), $env);
         }
-        throw new RuntimeException('The PHP built-in server did not start.');
-    }
-
-    private static function freePort(): int
-    {
-        $socket = stream_socket_server('tcp://127.0.0.1:0');
-        $port = (int) substr(strrchr((string) stream_socket_get_name($socket, false), ':'), 1);
-        fclose($socket);
-        return $port;
+        return self::$servers[$name]->url;
     }
 }

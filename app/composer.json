@@ -23,7 +23,10 @@
     "autoload": {
         "psr-4": {
             "Minilytics\\": "src/"
-        }
+        },
+        "files": [
+            "src/Updates/guard.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

@@ -24,4 +24,5 @@ minilytics-data/
 /app/.phpunit.cache/
 /app/src/VERSION
 /app/src/VERSION.*
+/app/src/MANIFEST
 /landing/docs/
