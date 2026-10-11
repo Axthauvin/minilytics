@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Minilytics\Auth\Auth;
 use Minilytics\Auth\Csrf;
 use Minilytics\Database\Database;
+use Minilytics\Http\Asset;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 Auth::startSession();
@@ -67,9 +68,9 @@ $databaseStage = $error !== '' && $databaseDriver !== 'sqlite' ? 'config' : 'cho
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Set up Minilytics</title>
-    <link rel="stylesheet" href="/dashboard/src/assets/css/auth.css">
+    <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/auth.css') ?>">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="/dashboard/src/assets/js/icons.js"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/icons.js') ?>"></script>
     <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg">
 </head>
 
@@ -159,7 +160,7 @@ $databaseStage = $error !== '' && $databaseDriver !== 'sqlite' ? 'config' : 'cho
             </form>
         <?php endif; ?>
     </main>
-    <script src="/dashboard/src/assets/js/password-strength.js"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/password-strength.js') ?>"></script>
     <?php if ($step === 'database'): ?><script>
             (() => {
                 const form = document.getElementById('databaseOnboardingForm');
