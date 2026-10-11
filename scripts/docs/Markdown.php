@@ -198,7 +198,6 @@ final class Markdown
         }, $text);
         $text = (string) preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $text);
         $text = (string) preg_replace('/(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])/', '<em>$1</em>', $text);
-        // The pattern spells the null bytes as \x00 escapes: PHP 8.1 rejects a literal null byte in a regex.
         return (string) preg_replace_callback('/\x00(\d+)\x00/', static fn(array $m): string => $codes[(int) $m[1]], $text);
     }
 }
