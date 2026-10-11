@@ -64,8 +64,9 @@ if ($path === '/dashboard') {
     <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/import.css') ?>">
     <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/settings.css') ?>">
     <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/funnels.css') ?>">
-    <link rel="icon" type="image/svg+xml" href="/dashboard/src/assets/logo.svg">
-    <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/favicon.png">
     <script>
         window.MINILYTICS_GUEST = <?php echo $isGuest ? 'true' : 'false'; ?>;
         window.MINILYTICS_EMBED = <?php echo $isEmbed ? 'true' : 'false'; ?>;
