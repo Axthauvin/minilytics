@@ -71,7 +71,9 @@ $databaseStage = $error !== '' && $databaseDriver !== 'sqlite' ? 'config' : 'cho
     <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/auth.css') ?>">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="<?= Asset::url('/dashboard/src/assets/js/icons.js') ?>"></script>
-    <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/favicon.png">
 </head>
 
 <body>

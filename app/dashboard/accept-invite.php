@@ -46,6 +46,9 @@ if (!$error && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Join Minilytics</title>
+        <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png">
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+        <link rel="apple-touch-icon" href="/favicon.png">
         <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/auth.css') ?>">
     </head>
     <body>
