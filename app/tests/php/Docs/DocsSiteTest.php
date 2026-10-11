@@ -95,6 +95,8 @@ final class DocsSiteTest extends TestCase
             $this->assertFileExists(self::$site . '/' . $page . 'index.html');
         }
         $this->assertFileExists(self::$site . '/_static/search-index.js');
+        // The pages carry their text, inline code included.
+        $this->assertStringContainsString('call <code>minilytics.track</code>', (string) file_get_contents(self::$site . '/tracking/index.html'));
     }
 
     public function testNoMarkdownIsLeftUnconverted(): void
