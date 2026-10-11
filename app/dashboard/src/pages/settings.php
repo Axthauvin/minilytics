@@ -156,9 +156,13 @@
                 <div id="updateLatestRow" hidden><dt>Latest release</dt><dd id="updateLatest">…</dd></div>
             </dl>
             <p class="settings-feedback" id="updateStatus" role="status"></p>
+            <ul class="update-problems" id="updateProblems" hidden></ul>
             <div class="update-actions">
-                <a class="btn-primary" id="updateReleaseLink" href="https://github.com/axthauvin/minilytics/releases" target="_blank" rel="noopener" hidden>See what's new ↗</a>
+                <button type="button" class="btn-primary" id="updateInstall" hidden>Install update</button>
+                <a class="btn-outline" id="updateReleaseLink" href="https://github.com/axthauvin/minilytics/releases" target="_blank" rel="noopener" hidden>See what's new ↗</a>
+                <a class="btn-outline" id="updateManualLink" href="https://github.com/axthauvin/minilytics/blob/main/docs/operations/README.md#updating-by-hand" target="_blank" rel="noopener" hidden>How to update by hand ↗</a>
                 <button type="button" class="btn-outline" id="updateCheckNow" hidden>Check now</button>
+                <button type="button" class="btn-outline" id="updateRollback" hidden>Go back to the previous version</button>
             </div>
         </section>
     </div>

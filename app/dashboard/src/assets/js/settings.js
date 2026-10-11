@@ -47,6 +47,8 @@ const SettingsPage = {
     document.querySelectorAll('#databaseSettingsForm input').forEach((input) => input.addEventListener('input', () => this.invalidateDatabaseTest()));
     document.getElementById('settingsAssistantsPanel')?.addEventListener('click', (event) => this.handleAssistantsClick(event));
     document.getElementById('updateCheckNow')?.addEventListener('click', () => this.loadVersion(true));
+    document.getElementById('updateInstall')?.addEventListener('click', () => this.installUpdate());
+    document.getElementById('updateRollback')?.addEventListener('click', () => this.rollbackUpdate());
   },
 
   async load() {
@@ -193,15 +195,64 @@ const SettingsPage = {
       document.getElementById('updateLatest').textContent = data.latest ? data.latest.version : 'Unknown';
       link.href = data.latest ? data.latest.url : data.releases_url; link.hidden = !data.update_available;
       App.showUpdateDots(Boolean(data.update_available));
-      let message = '';
+      this.latestVersion = data.update_available ? data.latest.version : null;
+      const install = document.getElementById('updateInstall'); install.hidden = !this.latestVersion;
+      if (this.latestVersion) install.textContent = `Install ${this.latestVersion}`;
+      // The last update from the dashboard, and the version a rollback would bring back.
+      const last = data.install || {};
+      this.previousVersion = last.previous || null;
+      const rollback = document.getElementById('updateRollback'); rollback.hidden = !this.previousVersion;
+      if (this.previousVersion) rollback.textContent = `Go back to ${this.previousVersion}`;
+      document.getElementById('updateManualLink').hidden = last.status !== 'broken';
+      let message = ''; let tone = data.update_available ? 'success' : '';
       if (isAdmin && !data.latest) message = 'GitHub could not be reached. Try again later.';
+      else if (last.status === 'broken') { message = `The update to ${last.to} failed and could not be undone. ${last.error} Restore the backup by hand, as the documentation explains.`; tone = 'error'; }
+      else if (last.status === 'failed' && data.update_available) { message = `The update to ${last.to} failed, so Minilytics went back to ${last.from}. ${last.error}`; tone = 'error'; }
       else if (data.update_available) message = `Version ${data.latest.version} is available.`;
       else if (!data.installed) message = 'This copy runs from the source code, so it is not compared with releases.';
+      else if (last.status === 'installed' && last.to === data.installed && !last.verified) message = `Minilytics was updated to ${last.to}, but your server could not reach itself to check that the new version runs. If something looks wrong, go back to ${last.from}.`;
       else if (isAdmin) message = 'You are using the latest version.';
-      status.className = 'settings-feedback' + (data.update_available ? ' settings-success' : '');
+      status.className = 'settings-feedback' + (tone ? ` settings-${tone}` : '');
       status.textContent = message;
     } catch (e) { status.className = 'settings-feedback settings-error'; status.textContent = e.message; }
     finally { if (button) button.disabled = false; }
+  },
+
+  /** Installs the latest release, one step per request so that no request runs long (see Updater.php). */
+  async installUpdate() {
+    const version = this.latestVersion; if (!version) return;
+    if (!confirm(`Install Minilytics ${version}? Your analytics and settings are not touched, and a backup of the current files is kept. Minilytics is unavailable for a few seconds while the files are replaced.`)) return;
+    const status = document.getElementById('updateStatus'); const problems = document.getElementById('updateProblems');
+    const buttons = ['updateInstall', 'updateCheckNow', 'updateRollback'].map((id) => document.getElementById(id));
+    buttons.forEach((b) => { b.disabled = true; }); problems.hidden = true;
+    const steps = [['check', 'Checking that Minilytics can update itself…'], ['download', `Downloading ${version} and checking its files…`], ['backup', 'Backing up the current files…'], ['install', `Installing ${version}…`]];
+    try {
+      for (const [step, text] of steps) {
+        status.className = 'settings-feedback'; status.textContent = text;
+        const data = await Api.runUpdateStep(step);
+        if (step === 'check' && data.problems.length) {
+          problems.replaceChildren(...data.problems.map((problem) => Object.assign(document.createElement('li'), { textContent: problem })));
+          problems.hidden = false; document.getElementById('updateManualLink').hidden = false;
+          status.className = 'settings-feedback settings-error'; status.textContent = 'Minilytics cannot update itself on this server, so update it by hand instead.';
+          return;
+        }
+      }
+      status.className = 'settings-feedback settings-success'; status.textContent = `Minilytics ${version} is installed. Reloading the page…`;
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (e) { status.className = 'settings-feedback settings-error'; status.textContent = e.message; }
+    finally { buttons.forEach((b) => { b.disabled = false; }); }
+  },
+
+  async rollbackUpdate() {
+    const version = this.previousVersion; if (!version) return;
+    if (!confirm(`Go back to Minilytics ${version}? The files of the current version are replaced with the backup taken before the last update. Your analytics and settings are not touched.`)) return;
+    const status = document.getElementById('updateStatus'); const rollback = document.getElementById('updateRollback');
+    rollback.disabled = true; status.className = 'settings-feedback'; status.textContent = `Going back to ${version}…`;
+    try {
+      await Api.runUpdateStep('rollback');
+      status.className = 'settings-feedback settings-success'; status.textContent = `Minilytics ${version} is back. Reloading the page…`;
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (e) { status.className = 'settings-feedback settings-error'; status.textContent = e.message; rollback.disabled = false; }
   },
 
   selectTab(name) {

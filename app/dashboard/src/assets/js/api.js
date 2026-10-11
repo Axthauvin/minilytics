@@ -299,6 +299,13 @@ const Api = {
     if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
   },
 
+  /** Runs one step of an update from the dashboard: check, download, backup, install or rollback. */
+  async runUpdateStep(step) {
+    const res = await apiFetch(`${this.base}/update.php`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ step }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`); return data;
+  },
+
   async getUsers() {
     const res = await apiFetch(`${this.base}/users.php`);
     const data = await res.json().catch(() => ({}));

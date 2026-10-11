@@ -128,7 +128,21 @@ Your PHP installation needs the `pdo_mysql` extension, which most hosting provid
 
 ![Settings → Updates, showing that a new version is available](../assets/settings-updates.png)
 
-Updating from the dashboard is not possible yet. To update, download the latest archive and extract it over your current installation, just like when you installed Minilytics. Run these commands in the folder where Minilytics is installed.
+To update, click **Install** in **Settings → Updates**. Minilytics keeps a backup of its current files, installs the new version, and reloads the page. It is unavailable for a few seconds while this happens.
+
+If something goes wrong, Minilytics goes back to the version you had and tells you why. To return to the previous version later, click **Go back to** in **Settings → Updates**.
+
+Your analytics, accounts and settings are never touched by an update. Other files you keep in the same folder, such as a landing page, are left alone too. The `.htaccess` file is part of Minilytics, so save your changes to it first if you edited it.
+
+If your server does not allow Minilytics to update itself, **Settings → Updates** tells you, and you can [update by hand](#updating-by-hand) instead.
+
+### Restoring the backup by hand
+
+In the rare case where Minilytics cannot go back to the previous version itself, **Settings → Updates** tells you so. Copy everything in `updates/backup/files` from the data folder over the folder where Minilytics is installed, with a terminal, your hosting provider's file manager or FTP. Then delete `updates/state.json` and `updates/maintenance` from the data folder.
+
+### Updating by hand
+
+You can also update by downloading the latest archive and extracting it over your current installation, just like when you installed Minilytics. Run these commands in the folder where Minilytics is installed.
 
 ```bash
 curl -LO https://github.com/axthauvin/minilytics/releases/latest/download/minilytics.tar.gz

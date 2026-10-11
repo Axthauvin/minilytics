@@ -441,3 +441,5 @@
 #updatesCard .settings-feedback:empty { display: none; }
 .update-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .update-actions [hidden] { display: none; }
+.update-problems { margin: 0 0 16px; padding-left: 20px; color: var(--text-muted); font-size: 14px; line-height: 1.5; }
+.update-problems[hidden] { display: none; }
