@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Minilytics\Analytics;
 
 use InvalidArgumentException;
-use Minilytics\Database\Database;
+use Minilytics\Database\Connections;
 use Minilytics\Database\DatabaseConnection;
+use Minilytics\Sites\SiteRegistry;
 use Throwable;
 
 /**
@@ -42,8 +43,8 @@ final class SiteAnalytics
     /** @param array<string, string[]> $filters */
     public static function open(?string $siteId, Period $period, array $filters = []): self
     {
-        $siteId = Database::sanitizeSiteId($siteId);
-        return new self(Database::getConnection($siteId), $siteId, $period, $filters);
+        $siteId = SiteRegistry::requireId($siteId);
+        return new self(Connections::forSite($siteId), $siteId, $period, $filters);
     }
 
     /** Distinct visitors active in the last 5 minutes. */
@@ -709,7 +710,7 @@ final class SiteAnalytics
     private function ownDomains(): array
     {
         $ownDomains = [];
-        foreach (Database::getAvailableSites() as $site) {
+        foreach (SiteRegistry::all() as $site) {
             if (($site['id'] ?? '') === $this->siteId) {
                 $domain = self::normalizeDomain($site['domain'] ?? '');
                 if ($domain !== '') {

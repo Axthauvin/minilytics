@@ -6,11 +6,11 @@
  */
 declare(strict_types=1);
 
-use Minilytics\Database\Database;
+use Minilytics\Database\DataDirectory;
 
 require_once dirname(__DIR__) . '/vendor/autoload.php';
 
-$dataDir = Database::getDataDir();
+$dataDir = DataDirectory::path();
 $args = getopt('', ['destination:']);
 $destination = $args['destination'] ?? ($dataDir . '/backups');
 if (!is_dir($destination) && !mkdir($destination, 0700, true) && !is_dir($destination)) {

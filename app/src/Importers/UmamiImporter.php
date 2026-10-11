@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Minilytics\Importers;
 
 use InvalidArgumentException;
-use Minilytics\Database\Database;
+use Minilytics\Database\Connections;
+use Minilytics\Sites\SiteRegistry;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use RuntimeException;
@@ -224,7 +225,7 @@ class UmamiImporter extends BaseImporter
             }
 
             // 2. Ensure target site and DB exist
-            $sites = Database::getAvailableSites();
+            $sites = SiteRegistry::all();
             $siteExists = false;
             foreach ($sites as $s) {
                 if ($s['id'] === $cleanSiteId) {
@@ -243,10 +244,10 @@ class UmamiImporter extends BaseImporter
                     'domain' => $siteDomain,
                     'created_at' => gmdate('Y-m-d H:i:s'),
                 ];
-                Database::saveSites($sites);
+                SiteRegistry::save($sites);
             }
 
-            $db = Database::getConnection($cleanSiteId);
+            $db = Connections::forSite($cleanSiteId);
             if (!$db->isMysql()) {
                 $db->exec('PRAGMA synchronous = OFF;');
                 $db->exec('PRAGMA journal_mode = MEMORY;');
@@ -420,14 +421,14 @@ class UmamiImporter extends BaseImporter
             if (empty($siteDomain) && !empty($hostnamesMap)) {
                 arsort($hostnamesMap);
                 $detectedHost = array_key_first($hostnamesMap);
-                $sites = Database::getAvailableSites();
+                $sites = SiteRegistry::all();
                 foreach ($sites as &$s) {
                     if ($s['id'] === $cleanSiteId && empty($s['domain'])) {
                         $s['domain'] = $detectedHost;
                         break;
                     }
                 }
-                Database::saveSites($sites);
+                SiteRegistry::save($sites);
                 $siteDomain = $detectedHost;
             }
 

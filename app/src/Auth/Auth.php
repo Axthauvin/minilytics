@@ -6,7 +6,8 @@ namespace Minilytics\Auth;
 
 use Delight\Auth\Auth as AuthEngine;
 use Delight\Auth\Role;
-use Minilytics\Database\Database;
+use Minilytics\Database\DataDirectory;
+use Minilytics\Sites\SiteRegistry;
 use PDO;
 use SQLite3;
 
@@ -22,7 +23,7 @@ final class Auth
 
     public static function dataDir(): string
     {
-        return Database::getDataDir();
+        return DataDirectory::path();
     }
 
     public static function dbPath(): string
@@ -120,7 +121,7 @@ final class Auth
         if (self::user()) {
             return;
         }
-        if (Database::isPublicSite((string) $siteId)) {
+        if (SiteRegistry::isPublic((string) $siteId)) {
             return;
         }
         http_response_code(401);

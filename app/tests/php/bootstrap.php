@@ -25,7 +25,7 @@ putenv('MINILYTICS_DATA_DIR=' . $dataDir);
 
 register_shutdown_function(static function () use ($dataDir): void {
     // Close the cached SQLite connections first: Windows cannot delete open files.
-    (new ReflectionProperty(Minilytics\Database\Database::class, 'instances'))->setValue(null, []);
+    Minilytics\Database\Connections::closeAll();
     (new ReflectionProperty(Minilytics\Auth\Auth::class, 'engine'))->setValue(null, null);
     gc_collect_cycles();
 

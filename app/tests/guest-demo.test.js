@@ -37,7 +37,7 @@ function prepareInstall() {
     require '${workdir}/vendor/autoload.php';
     Minilytics\\Auth\\Auth::db()->exec("INSERT INTO users (email, password, verified, roles_mask, registered) VALUES ('a@b.c', 'x', 1, 1, 0)");
     foreach (['demo_site', 'private_site'] as $id) {
-      $db = Minilytics\\Database\\Database::getConnection($id);
+      $db = Minilytics\\Database\\Connections::forSite($id);
       $db->exec("INSERT INTO user_activity (session_id, visitor_id, action) VALUES ('s1', 'v1', '{\\"name\\":\\"pageview\\",\\"data\\":{\\"path\\":\\"/\\"}}')");
     }
   `], { env: phpEnv() });

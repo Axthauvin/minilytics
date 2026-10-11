@@ -5,7 +5,8 @@ declare(strict_types=1);
 use Minilytics\Analytics\AnalyticsFilters;
 use Minilytics\Analytics\Period;
 use Minilytics\Auth\Auth;
-use Minilytics\Database\Database;
+use Minilytics\Database\Connections;
+use Minilytics\Sites\SiteRegistry;
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -64,8 +65,8 @@ try {
         if ($sessionId === '' || strlen($sessionId) > 255) {
             throw new InvalidArgumentException('A valid session ID is required.');
         }
-        $cleanSite = Database::sanitizeSiteId($siteId);
-        $db = Database::getConnection($cleanSite);
+        $cleanSite = SiteRegistry::requireId($siteId);
+        $db = Connections::forSite($cleanSite);
         $delete = $db->prepare('DELETE FROM user_activity WHERE session_id = :session_id');
         $delete->bindValue(':session_id', $sessionId, SQLITE3_TEXT);
         $delete->execute();
@@ -78,8 +79,8 @@ try {
         echo json_encode(['success' => true, 'deleted_events' => $deleted]);
         exit;
     }
-    $cleanSite = Database::sanitizeSiteId($siteId);
-    $db = Database::getConnection($cleanSite);
+    $cleanSite = SiteRegistry::requireId($siteId);
+    $db = Connections::forSite($cleanSite);
 
     $specificSessionId = trim($_GET['session_id'] ?? '');
 

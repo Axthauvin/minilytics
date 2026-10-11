@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Minilytics\Auth\Auth;
 use Minilytics\Auth\Csrf;
-use Minilytics\Database\Database;
+use Minilytics\Database\DatabaseConfig;
 use Minilytics\Http\Asset;
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -42,7 +42,7 @@ if ($isPost && $step === 'account') {
 }
 if ($isPost && $step === 'database') {
     try {
-        Database::saveDatabaseConfig([
+        DatabaseConfig::save([
             'driver' => $_POST['driver'] ?? 'sqlite',
             'host' => $_POST['host'] ?? '',
             'port' => $_POST['port'] ?? 3306,

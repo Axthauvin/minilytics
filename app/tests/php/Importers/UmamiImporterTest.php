@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Minilytics\Tests\Importers;
 
-use Minilytics\Database\Database;
+use Minilytics\Database\Connections;
 use Minilytics\Importers\ImporterRegistry;
 use Minilytics\Importers\UmamiImporter;
+use Minilytics\Sites\SiteRegistry;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ZipArchive;
@@ -41,7 +42,7 @@ final class UmamiImporterTest extends TestCase
     {
         (new UmamiImporter())->import(self::FIXTURES, 'umami_site', ['name' => 'My blog']);
 
-        $site = array_values(array_filter(Database::getAvailableSites(), static fn(array $s): bool => $s['id'] === 'umami_site'))[0] ?? null;
+        $site = array_values(array_filter(SiteRegistry::all(), static fn(array $s): bool => $s['id'] === 'umami_site'))[0] ?? null;
         $this->assertSame('My blog', $site['name'] ?? null);
         $this->assertSame('blog.example.com', $site['domain'] ?? null);
     }
@@ -123,7 +124,7 @@ final class UmamiImporterTest extends TestCase
     /** @return list<array<string, mixed>> */
     private function storedEvents(string $siteId): array
     {
-        $result = Database::getConnection($siteId)->query('SELECT action FROM user_activity ORDER BY timestamp, id');
+        $result = Connections::forSite($siteId)->query('SELECT action FROM user_activity ORDER BY timestamp, id');
         $events = [];
         while ($result !== false && ($row = $result->fetchArray(SQLITE3_ASSOC))) {
             $events[] = json_decode($row['action'], true);

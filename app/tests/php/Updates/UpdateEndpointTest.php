@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Minilytics\Tests\Updates;
 
-use Minilytics\Database\Database;
+use Minilytics\Database\DataDirectory;
 use Minilytics\Tests\PhpServer;
 use Minilytics\Updates\Updater;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -43,7 +43,7 @@ final class UpdateEndpointTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->work = Database::getDataDir() . '/updates';
+        $this->work = DataDirectory::path() . '/updates';
         @mkdir($this->work . '/backup', 0755, true);
         $this->server = $_SERVER;
     }

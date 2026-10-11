@@ -2,8 +2,8 @@
 
 use Minilytics\Auth\Auth;
 use Minilytics\Auth\Csrf;
-use Minilytics\Database\Database;
 use Minilytics\Http\Asset;
+use Minilytics\Sites\SiteRegistry;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 Auth::startSession();
@@ -19,7 +19,7 @@ if (!$authUser) {
     // (?demo=1 picks the first public site, ?site=<id> a specific one).
     $requestedSite = $_GET['site'] ?? $_GET['site_id'] ?? null;
     if ($requestedSite !== null || !empty($_GET['demo'])) {
-        $publicSite = Database::getPublicSite($requestedSite !== null ? (string) $requestedSite : null);
+        $publicSite = SiteRegistry::findPublic($requestedSite !== null ? (string) $requestedSite : null);
     }
     if (!$publicSite) {
         header('Location: /dashboard/login.php');

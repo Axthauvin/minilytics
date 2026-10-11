@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Minilytics\Tracking;
 
-use Minilytics\Database\Database;
+use Minilytics\Sites\SiteRegistry;
 
 /**
  * Accepts events only from a website's allowed domains, signed with its key.
@@ -22,7 +22,7 @@ final class TrackingAccess
      */
     public static function authorize(TrackingPayload $payload, string $origin): array
     {
-        $site = Database::trackingSite($payload->siteId);
+        $site = SiteRegistry::find($payload->siteId);
         if (!$site) {
             throw new TrackingException("Unknown website \"{$payload->siteId}\". Copy the snippet again from the Websites page of your Minilytics dashboard.", 404);
         }
@@ -44,13 +44,13 @@ final class TrackingAccess
     /** Host name of a URL, or of a bare host. */
     public static function host(string $value): string
     {
-        return Database::normalizeHost((string) (parse_url($value, PHP_URL_HOST) ?: $value));
+        return SiteRegistry::normalizeHost((string) (parse_url($value, PHP_URL_HOST) ?: $value));
     }
 
     /** @param array<string, mixed> $site */
     private static function isAllowed(array $site, string $host): bool
     {
-        $allowed = array_filter(array_map([Database::class, 'normalizeHost'], (array) ($site['allowed_domains'] ?? [])));
+        $allowed = array_filter(array_map([SiteRegistry::class, 'normalizeHost'], (array) ($site['allowed_domains'] ?? [])));
         return in_array($host, $allowed, true) || (self::isLocal($host) && !empty($site['allow_localhost']));
     }
 
