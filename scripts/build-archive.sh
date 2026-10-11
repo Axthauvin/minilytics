@@ -38,46 +38,40 @@ fi
 STAGING_DIR="$(mktemp -d)"
 trap 'rm -rf "${STAGING_DIR}"' EXIT
 
-# Files/directories inside app/ that must not be deployed
+# Files/directories inside app/ that must not be deployed. A pattern without
+# "/" matches a name at any depth (including the tests/ folders of vendor
+# packages), and one with "/" a path from the app folder.
 EXCLUDES=(
     "tests"
     "umami-import"
     "bin/seed-demo.php"
     "phpstan*.neon"
     "phpunit.xml"
+    ".phpunit.cache"
+    ".php-cs-fixer.cache"
     "*.tar.gz"
     "*.zip"
     "*.log"
     ".DS_Store"
+    # Runtime database and secret files, but data/ and data/.htaccess are kept
+    "data/*.db"
+    "data/*.db-wal"
+    "data/*.db-shm"
+    "data/sites.json"
+    "data/database.json"
+    "data/.tracking-secret"
 )
 
-# Build rsync / copy exclusion arguments
-EXCLUDE_ARGS=()
-for item in "${EXCLUDES[@]}"; do
-    EXCLUDE_ARGS+=(--exclude "${item}")
+# Copy app/ to the staging directory, then remove what must not be deployed.
+# The same steps run everywhere, so every machine builds the same archive.
+cp -R "${APP_DIR}/." "${STAGING_DIR}/"
+for pattern in "${EXCLUDES[@]}"; do
+    if [[ "${pattern}" == */* ]]; then
+        find "${STAGING_DIR}" -path "${STAGING_DIR}/${pattern}" -prune -exec rm -rf {} +
+    else
+        find "${STAGING_DIR}" -name "${pattern}" -prune -exec rm -rf {} +
+    fi
 done
-
-# Exclude runtime database and secret files in data/, but keep data/ and data/.htaccess
-EXCLUDE_ARGS+=(
-    --exclude "data/*.db"
-    --exclude "data/*.db-wal"
-    --exclude "data/*.db-shm"
-    --exclude "data/sites.json"
-    --exclude "data/database.json"
-    --exclude "data/.tracking-secret"
-)
-
-# Synchronize project files to staging directory
-if command -v rsync >/dev/null 2>&1; then
-    rsync -a "${EXCLUDE_ARGS[@]}" "${APP_DIR}/" "${STAGING_DIR}/"
-else
-    # Fallback if rsync is not installed
-    cp -R "${APP_DIR}/." "${STAGING_DIR}/"
-    for item in "${EXCLUDES[@]}"; do
-        rm -rf "${STAGING_DIR:?}/${item}" 2>/dev/null || true
-    done
-    rm -f "${STAGING_DIR}/data"/*.db "${STAGING_DIR}/data"/*.db-wal "${STAGING_DIR}/data"/*.db-shm "${STAGING_DIR}/data/sites.json" "${STAGING_DIR}/data/database.json" "${STAGING_DIR}/data/.tracking-secret" 2>/dev/null || true
-fi
 
 # Record the release tag, so the dashboard can show the installed version and
 # tell administrators about newer releases (src/ is not publicly served).
