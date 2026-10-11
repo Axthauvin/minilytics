@@ -3,6 +3,7 @@
 use Minilytics\Auth\Auth;
 use Minilytics\Auth\Csrf;
 use Minilytics\Database\Database;
+use Minilytics\Http\Asset;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 Auth::startSession();
@@ -57,12 +58,12 @@ if ($path === '/dashboard') {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css">
     <!-- Core Stylesheets -->
-    <link rel="stylesheet" href="/dashboard/src/assets/css/dashboard.css">
-    <link rel="stylesheet" href="/dashboard/src/assets/css/overview.css">
-    <link rel="stylesheet" href="/dashboard/src/assets/css/acquisition.css">
-    <link rel="stylesheet" href="/dashboard/src/assets/css/import.css">
-    <link rel="stylesheet" href="/dashboard/src/assets/css/settings.css">
-    <link rel="stylesheet" href="/dashboard/src/assets/css/funnels.css">
+    <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/dashboard.css') ?>">
+    <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/overview.css') ?>">
+    <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/acquisition.css') ?>">
+    <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/import.css') ?>">
+    <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/settings.css') ?>">
+    <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/funnels.css') ?>">
     <link rel="icon" type="image/svg+xml" href="/dashboard/src/assets/logo.svg">
     <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg">
     <script>
@@ -151,21 +152,21 @@ if ($path === '/dashboard') {
 
     <!-- Lucide Icons & Icon Helper -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="/dashboard/src/assets/js/icons.js"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/icons.js') ?>"></script>
 
     <!-- Modular Application Scripts -->
-    <script src="/dashboard/src/assets/js/api.js"></script>
-    <script src="/dashboard/src/assets/js/filters.js"></script>
-    <script src="/dashboard/src/assets/js/calendar-picker.js"></script>
-    <script src="/dashboard/src/assets/js/chart.js"></script>
-    <script src="/dashboard/src/assets/js/websites.js"></script>
-    <script src="/dashboard/src/assets/js/import.js"></script>
-    <script src="/dashboard/src/assets/js/overview.js"></script>
-    <script src="/dashboard/src/assets/js/acquisition.js"></script>
-    <script src="/dashboard/src/assets/js/events.js"></script>
-    <script src="/dashboard/src/assets/js/sessions.js"></script>
-    <script src="/dashboard/src/assets/js/funnels.js"></script>
-    <script src="/dashboard/src/assets/js/settings.js"></script>
-    <script src="/dashboard/src/assets/js/app.js"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/api.js') ?>"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/filters.js') ?>"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/calendar-picker.js') ?>"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/chart.js') ?>"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/websites.js') ?>"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/import.js') ?>"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/overview.js') ?>"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/acquisition.js') ?>"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/events.js') ?>"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/sessions.js') ?>"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/funnels.js') ?>"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/settings.js') ?>"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/app.js') ?>"></script>
 </body>
 </html>

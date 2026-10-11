@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Minilytics\Auth\Auth;
 use Minilytics\Auth\Csrf;
+use Minilytics\Http\Asset;
 use Minilytics\OAuth\OAuthException;
 use Minilytics\OAuth\OAuthServer;
 
@@ -59,7 +60,7 @@ $h = static fn(?string $value): string => htmlspecialchars((string) $value, ENT_
 $clientName = $request['client']['client_name'] ?? '';
 $redirectHost = $request === null ? '' : (string) (parse_url($request['redirect_uri'], PHP_URL_HOST) ?: parse_url($request['redirect_uri'], PHP_URL_SCHEME));
 $isLocalApp = $request !== null && OAuthServer::redirectsToLocalApp($request['redirect_uri']);
-?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Connect an assistant | Minilytics</title><link rel="stylesheet" href="/dashboard/src/assets/css/auth.css"></head><body><main class="auth-card">
+?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Connect an assistant | Minilytics</title><link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/auth.css') ?>"></head><body><main class="auth-card">
 <img src="/dashboard/src/assets/logo.svg" width="44" height="44" alt="Minilytics">
 <?php if ($error !== null): ?>
 <h1>Connection failed</h1>
