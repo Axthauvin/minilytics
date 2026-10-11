@@ -6,7 +6,7 @@ namespace Minilytics\Tests\Analytics;
 
 use Minilytics\Analytics\Period;
 use Minilytics\Analytics\SiteAnalytics;
-use Minilytics\Database\Database;
+use Minilytics\Database\Connections;
 use PHPUnit\Framework\TestCase;
 
 final class SiteAnalyticsTest extends TestCase
@@ -16,7 +16,7 @@ final class SiteAnalyticsTest extends TestCase
     protected function setUp(): void
     {
         $this->now = time();
-        Database::getConnection('test_site')->exec('DELETE FROM user_activity');
+        Connections::forSite('test_site')->exec('DELETE FROM user_activity');
     }
 
     public function testSummaryCountsVisitorsSessionsAndPageviews(): void
@@ -85,7 +85,7 @@ final class SiteAnalyticsTest extends TestCase
     /** Stores an event the way track.php does, `$secondsAgo` before now. */
     private function record(string $sessionId, string $visitorId, string $name, array $data, int $secondsAgo): void
     {
-        $stmt = Database::getConnection('test_site')->prepare('INSERT INTO user_activity (session_id, visitor_id, action, timestamp) VALUES (:session, :visitor, :action, :timestamp)');
+        $stmt = Connections::forSite('test_site')->prepare('INSERT INTO user_activity (session_id, visitor_id, action, timestamp) VALUES (:session, :visitor, :action, :timestamp)');
         $stmt->bindValue(':session', $sessionId, SQLITE3_TEXT);
         $stmt->bindValue(':visitor', $visitorId, SQLITE3_TEXT);
         $stmt->bindValue(':action', (string) json_encode(['name' => $name, 'data' => $data]), SQLITE3_TEXT);

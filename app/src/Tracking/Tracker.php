@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Minilytics\Tracking;
 
-use Minilytics\Database\Database;
+use Minilytics\Database\Connections;
 use Throwable;
 
 /**
@@ -35,7 +35,7 @@ final class Tracker
      */
     private static function track(array $site, TrackingPayload $payload, array $server, string $originHost): array
     {
-        $db = Database::getConnection($site['id']);
+        $db = Connections::forSite($site['id']);
         $store = new ActivityStore($db);
         $userAgent = new UserAgent((string) ($server['HTTP_USER_AGENT'] ?? ''));
         $ip = self::clientIp($server);

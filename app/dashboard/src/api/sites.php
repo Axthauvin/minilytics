@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
+use Minilytics\Analytics\SiteOverview;
 use Minilytics\Auth\Auth;
-use Minilytics\Database\Database;
+use Minilytics\Sites\SiteRegistry;
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Methods: GET, POST, PATCH, DELETE, OPTIONS');
@@ -27,7 +28,7 @@ try {
     // Tracking secrets and configuration are administrator-only.
     if ($action === 'tracking-config') {
         Auth::requireAdmin();
-        $site = Database::trackingSite((string) ($_GET['id'] ?? ''));
+        $site = SiteRegistry::find((string) ($_GET['id'] ?? ''));
         if (!$site) {
             throw new InvalidArgumentException('Website not found.');
         }
@@ -37,10 +38,10 @@ try {
     if ($method === 'PATCH' || $action === 'update-config') {
         Auth::requireAdmin();
         $body = json_decode(file_get_contents('php://input'), true) ?: $_POST;
-        $site = Database::updateSiteConfig((string) ($body['id'] ?? $_GET['id'] ?? ''), $body);
+        $site = SiteRegistry::update((string) ($body['id'] ?? $_GET['id'] ?? ''), $body);
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        echo json_encode(['success' => true, 'site' => $site, 'snippet' => Database::trackingSnippet($site, "$scheme://$host/minilytics.js")], JSON_UNESCAPED_SLASHES);
+        echo json_encode(['success' => true, 'site' => $site, 'snippet' => SiteRegistry::trackingSnippet($site, "$scheme://$host/minilytics.js")], JSON_UNESCAPED_SLASHES);
         exit;
     }
     // 1. DELETE site
@@ -56,7 +57,7 @@ try {
             exit;
         }
 
-        Database::deleteSite($siteId);
+        SiteRegistry::delete($siteId);
         echo json_encode([
             'success' => true,
             'message' => "Website '{$siteId}' and its database were deleted successfully.",
@@ -79,18 +80,18 @@ try {
             echo json_encode(['error' => 'Website identifier (site ID) is required']);
             exit;
         }
-        if (Database::normalizeHost($domain) === '') {
+        if (SiteRegistry::normalizeHost($domain) === '') {
             http_response_code(400);
             echo json_encode(['error' => 'A production domain is required to protect the tracking endpoint.']);
             exit;
         }
 
-        $site = Database::createSite($id, $name, $domain);
+        $site = SiteRegistry::create($id, $name, $domain);
 
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost:8080';
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
         $scriptUrl = "{$protocol}{$host}/minilytics.js";
-        $trackingSnippet = Database::trackingSnippet($site, $scriptUrl);
+        $trackingSnippet = SiteRegistry::trackingSnippet($site, $scriptUrl);
 
         echo json_encode([
             'success' => true,
@@ -101,10 +102,10 @@ try {
     }
 
     // 3. GET: List all websites with live statistics
-    $sites = Database::getSitesWithStats();
+    $sites = SiteOverview::all();
     if (Auth::isGuest()) {
         // Guests only see public demo sites, without tracking secrets.
-        $sites = array_values(array_map([Database::class, 'guestSiteView'], array_filter($sites, static fn(array $s): bool => !empty($s['is_public']))));
+        $sites = array_values(array_map([SiteRegistry::class, 'guestView'], array_filter($sites, static fn(array $s): bool => !empty($s['is_public']))));
     }
     echo json_encode([
         'success' => true,

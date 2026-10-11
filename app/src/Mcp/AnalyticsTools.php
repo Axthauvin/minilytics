@@ -9,7 +9,7 @@ use InvalidArgumentException;
 use Minilytics\Analytics\AnalyticsFilters;
 use Minilytics\Analytics\Period;
 use Minilytics\Analytics\SiteAnalytics;
-use Minilytics\Database\Database;
+use Minilytics\Sites\SiteRegistry;
 
 /**
  * The analytics exposed to AI assistants over MCP.
@@ -39,7 +39,7 @@ final class AnalyticsTools
                     'site_id' => $site['id'],
                     'name' => $site['name'] ?? $site['id'],
                     'domain' => $site['domain'] ?? '',
-                ], Database::getAvailableSites())],
+                ], SiteRegistry::all())],
             ),
             self::report(
                 'get_overview',
@@ -180,7 +180,7 @@ final class AnalyticsTools
         if (isset($args['site_id']) && is_string($args['site_id']) && $args['site_id'] !== '') {
             return $args['site_id'];
         }
-        $sites = Database::getAvailableSites();
+        $sites = SiteRegistry::all();
         if (count($sites) === 1) {
             return (string) $sites[0]['id'];
         }

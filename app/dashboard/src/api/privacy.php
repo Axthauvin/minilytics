@@ -3,18 +3,19 @@
 declare(strict_types=1);
 
 use Minilytics\Auth\Auth;
-use Minilytics\Database\Database;
+use Minilytics\Database\Connections;
+use Minilytics\Sites\SiteRegistry;
 
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../../vendor/autoload.php';
 Auth::requireAdmin();
 try {
-    $site = Database::sanitizeSiteId($_GET['site_id'] ?? null);
+    $site = SiteRegistry::requireId($_GET['site_id'] ?? null);
     $visitor = trim((string) ($_GET['visitor_id'] ?? ''));
     if ($visitor === '') {
         throw new InvalidArgumentException('visitor_id is required.');
     }
-    $db = Database::getConnection($site);
+    $db = Connections::forSite($site);
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'DELETE') {
         $s = $db->prepare('DELETE FROM user_activity WHERE visitor_id=:visitor');
         $s->bindValue(':visitor', $visitor, SQLITE3_TEXT);

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Minilytics\Updates;
 
 use Closure;
-use Minilytics\Database\Database;
+use Minilytics\Database\DataDirectory;
 use Throwable;
 
 /**
@@ -32,7 +32,7 @@ final class UpdateCheck
 
     public static function create(): self
     {
-        return new self(dirname(__DIR__) . '/VERSION', Database::getDataDir() . '/update-check.json', self::fetchFromGitHub(...));
+        return new self(dirname(__DIR__) . '/VERSION', DataDirectory::path() . '/update-check.json', self::fetchFromGitHub(...));
     }
 
     /** The installed version, such as "v1.1.2-beta", or null for a development checkout. */

@@ -5,8 +5,9 @@ declare(strict_types=1);
 use Minilytics\Analytics\Period;
 use Minilytics\Analytics\SiteAnalytics;
 use Minilytics\Auth\Auth;
-use Minilytics\Database\Database;
+use Minilytics\Database\Connections;
 use Minilytics\Database\DatabaseConnection;
+use Minilytics\Sites\SiteRegistry;
 
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../../vendor/autoload.php';
@@ -131,8 +132,8 @@ function analyzeJourneySources(DatabaseConnection $db, array $steps, string $sta
 try {
     $payload = json_decode(file_get_contents('php://input'), true) ?: [];
     $siteId = $_GET['site_id'] ?? $payload['site_id'] ?? null;
-    $site = Database::sanitizeSiteId($siteId);
-    $db = Database::getConnection($site);
+    $site = SiteRegistry::requireId($siteId);
+    $db = Connections::forSite($site);
     setupFunnels($db);
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $name = trim((string) ($payload['name'] ?? ''));

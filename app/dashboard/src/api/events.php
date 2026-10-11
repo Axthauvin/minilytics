@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 use Minilytics\Analytics\Period;
 use Minilytics\Auth\Auth;
-use Minilytics\Database\Database;
+use Minilytics\Database\Connections;
+use Minilytics\Sites\SiteRegistry;
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -15,8 +16,8 @@ Auth::requireSiteAccess((string) ($_GET['site_id'] ?? $_GET['site'] ?? ''));
 
 try {
     $siteId = $_GET['site_id'] ?? $_GET['site'] ?? null;
-    $cleanSite = Database::sanitizeSiteId($siteId);
-    $db = Database::getConnection($cleanSite);
+    $cleanSite = SiteRegistry::requireId($siteId);
+    $db = Connections::forSite($cleanSite);
 
     $search = trim($_GET['search'] ?? '');
     $eventName = trim($_GET['event_name'] ?? '');

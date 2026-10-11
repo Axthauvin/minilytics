@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Minilytics\Tracking;
 
-use Minilytics\Database\Database;
+use Minilytics\Database\DataDirectory;
 
 /**
  * Whether this server sits behind Cloudflare, so the visitor's IP address is
@@ -39,6 +39,6 @@ final class CloudflareTrust
 
     private static function path(): string
     {
-        return Database::getDataDir() . '/tracking.json';
+        return DataDirectory::path() . '/tracking.json';
     }
 }

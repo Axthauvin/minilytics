@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Minilytics\Tests\Tracking;
 
-use Minilytics\Database\Database;
+use Minilytics\Database\Connections;
+use Minilytics\Sites\SiteRegistry;
 use Minilytics\Tests\PhpServer;
 use Minilytics\Tracking\CloudflareTrust;
 use PHPUnit\Framework\TestCase;
@@ -34,13 +35,13 @@ final class TrackEndpointTest extends TestCase
 
     protected function tearDown(): void
     {
-        Database::updateSiteConfig('test_site', ['allowed_domains' => ['example.com'], 'allow_localhost' => false, 'internal_ips' => ['10.0.0.99']]);
+        SiteRegistry::update('test_site', ['allowed_domains' => ['example.com'], 'allow_localhost' => false, 'internal_ips' => ['10.0.0.99']]);
         CloudflareTrust::save(false);
     }
 
     protected function setUp(): void
     {
-        $db = Database::getConnection('test_site');
+        $db = Connections::forSite('test_site');
         $db->exec('DELETE FROM user_activity');
         $db->exec('DELETE FROM bot_activity');
         $db->exec('DELETE FROM rate_limits');
@@ -87,7 +88,7 @@ final class TrackEndpointTest extends TestCase
 
     public function testLocalhostIsAcceptedOnceEnabled(): void
     {
-        Database::updateSiteConfig('test_site', ['allow_localhost' => true]);
+        SiteRegistry::update('test_site', ['allow_localhost' => true]);
 
         foreach (['http://localhost:3000', 'http://127.0.0.1:8080', 'http://blog.localhost'] as $origin) {
             $this->assertSame(200, $this->track($this->event(), ["Origin: {$origin}"])['status'], $origin);
@@ -97,7 +98,7 @@ final class TrackEndpointTest extends TestCase
 
     public function testLocalhostListedAsAnAllowedDomainKeepsWorking(): void
     {
-        Database::updateSiteConfig('test_site', ['allowed_domains' => ['example.com', 'localhost']]);
+        SiteRegistry::update('test_site', ['allowed_domains' => ['example.com', 'localhost']]);
 
         $this->assertSame(200, $this->track($this->event(), ['Origin: http://localhost:3000'])['status']);
     }
@@ -187,12 +188,12 @@ final class TrackEndpointTest extends TestCase
 
         $this->assertSame(['ignored' => 'bot'], $response['body']);
         $this->assertSame([], $this->storedEvents());
-        $this->assertSame(1, (int) Database::getConnection('test_site')->querySingle('SELECT COUNT(*) FROM bot_activity'));
+        $this->assertSame(1, (int) Connections::forSite('test_site')->querySingle('SELECT COUNT(*) FROM bot_activity'));
     }
 
     public function testInternalTrafficIsIgnored(): void
     {
-        Database::updateSiteConfig('test_site', ['internal_ips' => ['127.0.0.1']]);
+        SiteRegistry::update('test_site', ['internal_ips' => ['127.0.0.1']]);
 
         $response = $this->track($this->event());
 
@@ -278,7 +279,7 @@ final class TrackEndpointTest extends TestCase
     /** @return list<array{session_id: string, visitor_id: string, action: array<string, mixed>}> */
     private function storedEvents(): array
     {
-        $result = Database::getConnection('test_site')->query('SELECT session_id, visitor_id, action FROM user_activity ORDER BY id');
+        $result = Connections::forSite('test_site')->query('SELECT session_id, visitor_id, action FROM user_activity ORDER BY id');
         $events = [];
         while ($result !== false && ($row = $result->fetchArray(SQLITE3_ASSOC))) {
             $events[] = ['session_id' => $row['session_id'], 'visitor_id' => $row['visitor_id'], 'action' => json_decode($row['action'], true)];

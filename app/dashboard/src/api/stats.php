@@ -6,7 +6,7 @@ use Minilytics\Analytics\AnalyticsFilters;
 use Minilytics\Analytics\Period;
 use Minilytics\Analytics\SiteAnalytics;
 use Minilytics\Auth\Auth;
-use Minilytics\Database\Database;
+use Minilytics\Sites\SiteRegistry;
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -17,9 +17,9 @@ Auth::requireSiteAccess((string) ($_GET['site_id'] ?? $_GET['site'] ?? ''));
 
 try {
     $analytics = SiteAnalytics::open($_GET['site_id'] ?? $_GET['site'] ?? null, Period::fromRequest($_GET), AnalyticsFilters::fromRequest($_GET));
-    $availableSites = Database::getAvailableSites();
+    $availableSites = SiteRegistry::all();
     if (Auth::isGuest()) {
-        $availableSites = array_values(array_map([Database::class, 'guestSiteView'], array_filter($availableSites, static fn(array $s): bool => !empty($s['is_public']))));
+        $availableSites = array_values(array_map([SiteRegistry::class, 'guestView'], array_filter($availableSites, static fn(array $s): bool => !empty($s['is_public']))));
     }
 
     echo json_encode([

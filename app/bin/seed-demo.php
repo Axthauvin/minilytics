@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-use Minilytics\Database\Database;
+use Minilytics\Database\Connections;
 use Minilytics\Database\DatabaseConnection;
+use Minilytics\Sites\SiteRegistry;
 
 /**
  * Minilytics live demo seeder.
@@ -42,16 +43,16 @@ $extraDomains = array_filter((array) ($options['domain'] ?? []), 'is_string');
 // ---------------------------------------------------------------------------
 // 1. Website configuration: create if missing, flag as public, allow local hosts
 // ---------------------------------------------------------------------------
-if (!Database::trackingSite($siteId)) {
-    Database::createSite($siteId, 'Minilytics Demo', 'localhost');
+if (!SiteRegistry::find($siteId)) {
+    SiteRegistry::create($siteId, 'Minilytics Demo', 'localhost');
     fwrite(STDOUT, "Created website '{$siteId}'.\n");
 }
-$site = Database::trackingSite($siteId);
+$site = SiteRegistry::find($siteId);
 $allowed = array_merge((array) ($site['allowed_domains'] ?? []), ['localhost', '127.0.0.1'], $extraDomains);
-Database::updateSiteConfig($siteId, ['is_public' => true, 'allowed_domains' => $allowed]);
-fwrite(STDOUT, "Website '{$siteId}' is public (allowed domains: " . implode(', ', array_unique(array_map([Database::class, 'normalizeHost'], $allowed))) . ").\n");
+SiteRegistry::update($siteId, ['is_public' => true, 'allowed_domains' => $allowed]);
+fwrite(STDOUT, "Website '{$siteId}' is public (allowed domains: " . implode(', ', array_unique(array_map([SiteRegistry::class, 'normalizeHost'], $allowed))) . ").\n");
 
-$db = Database::getConnection($siteId);
+$db = Connections::forSite($siteId);
 ensureFunnelsTable($db);
 
 if (isset($options['reset']) && !isset($options['live-only'])) {

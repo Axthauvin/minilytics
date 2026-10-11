@@ -6,7 +6,7 @@ namespace Minilytics\Updates;
 
 use Closure;
 use FilesystemIterator;
-use Minilytics\Database\Database;
+use Minilytics\Database\DataDirectory;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use RuntimeException;
@@ -57,7 +57,7 @@ final class Updater
 
     public static function create(): self
     {
-        return new self(dirname(__DIR__, 2), Database::getDataDir() . '/updates', self::downloadFile(...), self::askInstalledVersion(...));
+        return new self(dirname(__DIR__, 2), DataDirectory::path() . '/updates', self::downloadFile(...), self::askInstalledVersion(...));
     }
 
     /**

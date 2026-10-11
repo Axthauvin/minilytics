@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Minilytics\Auth\Auth;
-use Minilytics\Database\Database;
+use Minilytics\Database\DatabaseConfig;
 
 require_once __DIR__ . '/../../../vendor/autoload.php';
 
@@ -14,7 +14,7 @@ try {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
     if ($method === 'GET') {
-        echo json_encode(['success' => true, 'config' => Database::publicDatabaseConfig()]);
+        echo json_encode(['success' => true, 'config' => DatabaseConfig::publicView()]);
         exit;
     }
 
@@ -31,15 +31,16 @@ try {
     $action = $input['action'] ?? 'test';
 
     if ($action === 'test') {
-        if (($input['password'] ?? '') === '' && ($input['driver'] ?? '') === (Database::getDatabaseConfig()['driver'] ?? '')) {
-            $input['password'] = Database::getDatabaseConfig()['password'] ?? '';
+        $saved = DatabaseConfig::load();
+        if (($input['password'] ?? '') === '' && ($input['driver'] ?? '') === $saved['driver']) {
+            $input['password'] = $saved['password'];
         }
-        $result = Database::testDatabaseConfig($input);
+        $result = DatabaseConfig::test($input);
         echo json_encode(['success' => true, 'message' => 'Connection successful.', 'connection' => $result]);
         exit;
     }
     if ($action === 'save') {
-        $config = Database::saveDatabaseConfig($input);
+        $config = DatabaseConfig::save($input);
         echo json_encode(['success' => true, 'message' => 'Database connector saved.', 'config' => $config]);
         exit;
     }
