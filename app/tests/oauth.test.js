@@ -36,7 +36,7 @@ function prepareInstall() {
   const setup = spawnSync('php', ['-r', `
     require '${workdir.replace(/\\/g, '/')}/vendor/autoload.php';
     Minilytics\\Auth\\Auth::createUser('${EMAIL}', '${PASSWORD}', 'admin');
-    Minilytics\\Database\\Database::getConnection('private_site')->exec("INSERT INTO user_activity (session_id, visitor_id, action) VALUES ('s1', 'v1', '{\\"name\\":\\"pageview\\",\\"data\\":{\\"path\\":\\"/\\"}}')");
+    Minilytics\\Database\\Connections::forSite('private_site')->exec("INSERT INTO user_activity (session_id, visitor_id, action) VALUES ('s1', 'v1', '{\\"name\\":\\"pageview\\",\\"data\\":{\\"path\\":\\"/\\"}}')");
   `], { env: phpEnv() });
   assert.equal(setup.status, 0, setup.stdout.toString() + setup.stderr.toString());
 }

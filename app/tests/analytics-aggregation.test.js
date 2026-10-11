@@ -18,10 +18,11 @@ test('audience breakdowns aggregate distinct visitors and use visitor labels', (
 });
 
 test('visitor-facing secondary analytics use visitor ids instead of sessions', () => {
-  const db = read('src/Database/Database.php');
+  const sites = read('src/Analytics/SiteOverview.php');
   const funnels = read('dashboard/src/api/funnels.php');
 
-  assert.doesNotMatch(db, /COUNT\(DISTINCT session_id\) FROM user_activity/);
+  assert.doesNotMatch(sites, /COUNT\(DISTINCT session_id\) FROM user_activity/);
+  assert.match(sites, /COUNT\(DISTINCT COALESCE\(visitor_id, session_id\)\)/);
   assert.match(funnels, /COUNT\(DISTINCT COALESCE\(visitor_id, session_id\)\)/);
 });
 
