@@ -1,15 +1,15 @@
 # Minilytics documentation
 
-Thanks for beeing interested in Minilytics! This documentation is a work in progress, and we welcome contributions. Please submit issues or pull requests on [GitHub](github.com/axthauvin/minilytics).
+Minilytics is a self-hosted web analytics tool that sends the page views and events of your website to your own PHP server, without cookies by default.
 
-## Getting started
+This documentation is a work in progress, and contributions are welcome on [GitHub](https://github.com/axthauvin/minilytics).
 
-You can use these guides after completing the [quick start](../README.md#quick-start).
+## Guides
 
-- [Tracking](tracking/README.md): install the tracker and send events.
-- [Privacy and data protection](privacy/README.md): choose a tracking mode and configure safeguards.
-- [Operations and storage](operations/README.md): manage access, data retention, and backups.
-- [Importing Umami data](importing/README.md): migrate historical analytics.
-- [AI assistants (MCP)](mcp/README.md): ask Claude, ChatGPT, Cursor and other assistants about your analytics.
+New to Minilytics? Start with the [installation guide](../README.md#quick-start), then follow these guides.
 
-See also: [README](../README.md), [tracking](tracking/README.md), [operations](operations/README.md).
+- [Tracking](tracking/README.md). Add Minilytics to your website and measure clicks.
+- [Privacy and data protection](privacy/README.md). Choose how much you collect about your visitors.
+- [Operations and storage](operations/README.md). Manage accounts, storage, updates and backups.
+- [Importing from another analytics service](importing/README.md). Bring your past analytics with you.
+- [AI assistants (MCP)](mcp/README.md). Ask Claude, ChatGPT or Cursor about your traffic.

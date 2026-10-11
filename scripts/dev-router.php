@@ -12,7 +12,8 @@ declare(strict_types=1);
  */
 $landing = realpath(dirname(__DIR__) . '/landing');
 $path = rawurldecode((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH));
-$file = $landing === false ? false : realpath($landing . ($path === '/' ? '/index.html' : $path));
+// Like a web server's directory index: /docs/ serves /docs/index.html.
+$file = $landing === false ? false : realpath($landing . (str_ends_with($path, '/') ? $path . 'index.html' : $path));
 
 if ($file === false || !is_file($file) || !str_starts_with($file, $landing . DIRECTORY_SEPARATOR)) {
     return false;

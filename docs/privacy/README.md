@@ -1,24 +1,20 @@
 # Privacy and data protection
 
-As Minilytics wants to be a plug and play solution, it does not require any configuration to be privacy-friendly. It does not use cookies, local storage, or session storage in its default mode. It does not store raw IP addresses or user agents. It does not call a third-party geolocation service.
+Minilytics is private without any setting. It uses no cookies, stores nothing in your visitors' browsers, never keeps their IP address and never sends their data to another company.
 
-## Tracking modes
+## Two tracking modes
 
-Minilytics has two tracking modes.
+**Strict mode** is the default, and it works without a consent banner. Minilytics recognizes a visitor with an anonymous code that changes every month, and keeps nothing on their device. The only downside is that a visitor who changes networks, for example from Wi-Fi to mobile data, is counted twice.
 
-The **`strict` mode (used by default)** doesn't need a consent banner. Minilytics stores nothing in the visitor's browser. The server recognizes visitors with an anonymous hash that changes every month, and never stores IPs or user agents. It works well, but if the visitor's IP changes (for example when they switch from Wi-Fi to mobile data), Minilytics counts them as a new visitor.
+**Enriched mode** is more precise, but it needs your visitors' consent. It only starts once a visitor accepts analytics in your consent banner, then keeps a temporary identifier in their browser so that a visit stays one visit even when their network changes. The identifier is deleted when the tab is closed or after 30 minutes without activity, so nobody can be followed over time. Browsers that ask not to be tracked (Do Not Track or Global Privacy Control) are never tracked in this mode.
 
-The **`enriched` mode (opt-in)** only starts once the visitor accepts analytics in your consent banner (you call `minilytics.consent()`). Nothing is sent before that. Instead of relying on the IP, it keeps a random session ID in the browser's `sessionStorage`, so a visit stays tracked as one session even if the IP changes. It also records the viewport size. The ID is deleted when the tab is closed or after 30 minutes of inactivity, so it can't follow anyone long-term. This also means a visitor who comes back later counts as a new visitor. It's turned off automatically if the browser sends Do Not Track or Global Privacy Control.
+Choose strict mode if you do not want a consent banner, and enriched mode if you already have one.
 
-So use `strict` if you don't want a consent banner, and `enriched` if you already have one and want more accurate sessions.
+In both modes, the end of page addresses, after a `?` or a `#`, is removed because it can contain personal information. Campaign tags such as `utm_source` are kept.
 
-In both modes, URL query strings and fragments are removed (campaign parameters like `utm_source` are kept).
+## Turning on enriched mode
 
-### Enabling enriched mode
-
-Add `data-privacy-mode="enriched"` to the tracking snippet and call `minilytics.consent()` once the visitor accepts. Call `minilytics.withdrawConsent()` if they change their mind. If your page already knows consent was granted when it loads, you can add `data-consent="granted"` to the snippet instead.
-
-Example snippet for enriched mode:
+In the tracking snippet, replace `data-privacy-mode="strict"` with `data-privacy-mode="enriched"`. Then, in your consent banner, call `minilytics.consent()` when the visitor accepts, and `minilytics.withdrawConsent()` if they change their mind.
 
 ```html
 <script
@@ -29,33 +25,35 @@ Example snippet for enriched mode:
   data-privacy-mode="enriched"
 ></script>
 <script>
-  // Call after analytics consent is granted.
+  // When the visitor accepts analytics
   minilytics.consent();
 
-  // Call when consent is withdrawn.
+  // When the visitor withdraws their consent
   minilytics.withdrawConsent();
 </script>
 ```
 
-Your consent banner remains responsible for storing the consent choice. Minilytics does not create that cookie.
+If your page already knows that the visitor accepted, add `data-consent="granted"` to the snippet instead of calling `minilytics.consent()`.
 
-## Visitor choice
+Your consent banner remembers the visitor's choice. Minilytics does not store it.
 
-Visitors can opt out and opt back in for their browser profile. Opting out saves a `minilytics_opt_out` flag in `localStorage`, which is the only thing strict mode ever writes to the browser, and only when the visitor asks for it.
+## Letting visitors opt out
+
+You can offer visitors a way to stop being counted, for example with a link in your privacy policy. Call `minilytics.optOut()` to stop counting them and `minilytics.optIn()` to start again. The choice applies to the browser they use.
 
 ```js
 minilytics.optOut();
 minilytics.optIn();
 ```
 
-## Site safeguards
+## Visitor location
 
-In a site's settings, administrators can allow specific domains, exclude internal IP addresses, set data retention, and rotate the write key. Treat the generated tracking snippet as sensitive because it contains that key.
+Minilytics shows the country, region and city of your visitors. It finds them from the visitor's IP address, without storing that address and without asking another service. If your website already runs behind a service that provides the location, such as Cloudflare, Minilytics uses it instead. Locations are approximate, especially cities.
 
-For a multi-node deployment, configure the same `MINILYTICS_TRACKING_SECRET` value on every node. Otherwise, Minilytics stores a local secret in `data/.tracking-secret`.
+The location comes from [DB-IP City Lite](https://db-ip.com/db/download/ip-to-city-lite), a free database published under the CC BY 4.0 license. Your server downloads it from [jsDelivr](https://www.jsdelivr.com/package/npm/dbip-city-lite) the first time it is needed, then once a month. No visitor information is ever sent with this download.
 
-Minilytics determines country, region and city from the request IP without storing that IP. It first uses location headers supplied by Cloudflare, Vercel, CloudFront, Fastly or Apache GeoIP/MaxMind. Otherwise it uses the local DB-IP City Lite database. The database is downloaded automatically on first use and refreshed monthly; no API key, account, lookup quota or per-visitor external request is involved. City-level IP location is approximate and must not be treated as a precise address.
+## Website settings
 
-The bundled reader is licensed under Apache-2.0. DB-IP City Lite data is licensed under CC BY 4.0 and is attributed in the dashboard.
+In **Settings → Tracking**, administrators choose which domains can send data, ignore their own visits by IP address, decide how long data is kept, and can change the website's tracking key.
 
-See also: [tracking](../tracking/README.md), [operations](../operations/README.md), [documentation index](../README.md).
+![Settings → Tracking, with the allowed domains, ignored IP addresses and data retention](../assets/settings-tracking.png)

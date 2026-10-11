@@ -85,10 +85,10 @@
             <div class="settings-card-heading">
                 <div>
                     <h3>Visitor IP addresses</h3>
-                    <p>Applies to every website. IP addresses are never stored: they set the rate limit, the visitor key and the internal traffic filter.</p>
+                    <p>Applies to every website. IP addresses are never stored, and only serve for the rate limit, the visitor key and the internal traffic filter.</p>
                 </div>
             </div>
-            <label class="tracking-checkbox"><input id="trackingTrustCloudflare" type="checkbox"><span><strong>Minilytics is behind Cloudflare</strong><small id="trackingTrustCloudflareHelp">Turn on when this Minilytics domain goes through Cloudflare; your tracked websites do not matter. Visitor addresses are then read from Cloudflare's CF-Connecting-IP header. Leave it off otherwise: anyone can send this header with a fake address.</small></span></label>
+            <label class="tracking-checkbox"><input id="trackingTrustCloudflare" type="checkbox"><span><strong>Minilytics is behind Cloudflare</strong><small id="trackingTrustCloudflareHelp">Turn on when this Minilytics domain goes through Cloudflare, whatever your tracked websites use. Visitor addresses are then read from Cloudflare's CF-Connecting-IP header. Leave it off otherwise, since anyone can send this header with a fake address.</small></span></label>
             <p class="settings-feedback" id="trackingServerFeedback" role="status"></p>
         </section>
     </div>

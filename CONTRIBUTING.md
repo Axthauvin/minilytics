@@ -32,7 +32,7 @@ Local data (`auth.db`, `sites.json`, analytics databases) is written to `minilyt
 | `app/minilytics.js` | Tracking script embedded on websites                               |
 | `app/tests/`        | JavaScript unit and smoke tests, PHPUnit tests in `app/tests/php/` |
 | `landing/`          | Marketing site and install guide                                   |
-| `docs/`             | User documentation                                                 |
+| `docs/`             | User documentation, also published as the site's `/docs/` pages    |
 | `scripts/`          | Development router, release and deployment scripts                 |
 
 ## Coding standard
@@ -70,6 +70,14 @@ Some tests start a PHP server, so they are skipped when `php` is not on your `PA
 The [CI workflow](.github/workflows/ci.yml) runs all of these checks, plus a PHP syntax check on PHP 8.1, on every pull request and every push to `main`.
 
 If you change something that the tests don't cover, describe how you checked it manually in the pull request.
+
+## Documentation
+
+The guides in `docs/` are the only source: edit the Markdown files, and they read well on GitHub as they are. `scripts/build-docs.php` turns them into the `/docs/` pages of the website (plain PHP, no dependency) when the landing page is packaged. To preview them, build the pages and open http://localhost:8080/docs/ with `composer serve` running:
+
+```bash
+php scripts/build-docs.php
+```
 
 ## Commit convention
 

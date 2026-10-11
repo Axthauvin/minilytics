@@ -1,6 +1,6 @@
 # Tracking
 
-Create a website in the dashboard and copy the generated snippet. It includes the site's ID and write key.
+To start collecting visits, add your website in the dashboard with **Add New Website**, then copy the tracking snippet it gives you. It looks like this.
 
 ```html
 <script
@@ -12,19 +12,13 @@ Create a website in the dashboard and copy the generated snippet. It includes th
 ></script>
 ```
 
-Add it to the `<head>` of every page to measure. Minilytics records a pageview automatically and detects browser history changes.
+Paste it in the `<head>` of every page of your website. Minilytics then counts page views on its own, including on websites that change pages without reloading.
 
-## Custom events
+## Measure clicks and other actions
 
-Minilytics allows you to send custom events with a name and optional properties. Use the `minilytics.track` function:
+Page views are counted automatically. To also measure actions, such as sign-ups or clicks on a button, send events.
 
-Send a named event with useful properties:
-
-```js
-minilytics.track("button_click", { buttonId: "signup", plan: "pro" });
-```
-
-You can also use declarative tracking, that automatically sends events when an element is clicked. Add `data-minilytics-event` and additional `data-minilytics-*` attributes to the element:
+The simplest way is to add a `data-minilytics-event` attribute to the element. Minilytics sends the event each time it is clicked, along with any other `data-minilytics-…` attribute you add.
 
 ```html
 <button data-minilytics-event="signup_button" data-minilytics-plan="pro">
@@ -32,9 +26,25 @@ You can also use declarative tracking, that automatically sends events when an e
 </button>
 ```
 
-## Troubleshooting
+From your own JavaScript, call `minilytics.track` with the name of the event and, if you want, some details.
 
-The tracker stays silent in the browser console by default, so it does not pollute the console of the sites that embed it (for example a development host that is not an allowed domain). If events are not arriving, enable debug mode to see accepted events and configuration, network, or endpoint errors. Add `data-debug="true"` to the script tag:
+```js
+minilytics.track("signup", { plan: "pro" });
+```
+
+Your events then appear on the **Events** page of the dashboard.
+
+![The Events page, with the number of events and their trend over the week](../assets/events.png)
+
+## When nothing shows up
+
+First, check that your website's domain is listed in **Settings → Tracking → Allowed domains**. Minilytics ignores visits coming from any other domain.
+
+![Settings → Tracking, with the allowed domains and the localhost option](../assets/settings-tracking.png)
+
+To try the snippet on your own computer, turn on **Accept events from localhost** in the same place. Turn it off once your website is live, since anyone can then send data from their own computer.
+
+If visits still do not arrive, add `data-debug="true"` to the snippet. Minilytics then explains in the browser console what it sends and what goes wrong. Remove it once everything works.
 
 ```html
 <script
@@ -46,13 +56,3 @@ The tracker stays silent in the browser console by default, so it does not pollu
   data-debug="true"
 ></script>
 ```
-
-Without debug mode, rejected events still explain what to fix in the response to the `track.php` request, in the browser's network panel. For example, a page served from a domain that is not allowed answers `403` with:
-
-```json
-{"error": "blog.example.com is not an allowed domain for this website. Add it in Settings → Tracking → Allowed domains."}
-```
-
-To test the snippet on your computer, enable **Accept events from localhost** in **Settings → Tracking** instead of adding `localhost` to the allowed domains, and turn it off once the website is live: anyone can run a local page with your script key.
-
-See also: [privacy](../privacy/README.md), [operations](../operations/README.md), [documentation index](../README.md).
