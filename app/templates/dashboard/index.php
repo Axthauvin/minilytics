@@ -115,7 +115,10 @@ use Minilytics\Http\View;
     </div>
 
     <!-- Inspector Modals & Drawers -->
-    <?php include dirname(__DIR__, 2) . '/dashboard/src/components/modal.php'; ?>
+    <?php include View::path('dashboard/modals/payload'); ?>
+    <?php include View::path('dashboard/modals/session-detail'); ?>
+    <?php include View::path('dashboard/modals/add-site'); ?>
+    <?php include View::path('dashboard/modals/import'); ?>
 
     <!-- Lucide Icons & Icon Helper -->
     <script src="https://unpkg.com/lucide@latest"></script>
