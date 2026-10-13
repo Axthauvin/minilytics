@@ -8,7 +8,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 test('audience breakdowns aggregate distinct visitors and use visitor labels', () => {
   const stats = read('src/Analytics/SiteAnalytics.php');
-  const overview = read('dashboard/src/pages/overview.php');
+  const overview = read('templates/dashboard/pages/overview.php');
 
   assert.match(stats, /COUNT\(DISTINCT COALESCE\(visitor_id, session_id\)\) as count/);
   assert.match(stats, /\$totalVisitors > 0 \? round\(\(\$count \/ \$totalVisitors\)/);
@@ -75,7 +75,7 @@ test('session previews separate page views from custom events', () => {
 
 test('session details expose page views and custom events separately', () => {
   const api = read('dashboard/src/api/sessions.php');
-  const page = read('dashboard/src/pages/sessions.php');
+  const page = read('templates/dashboard/pages/sessions.php');
 
   assert.match(api, /'pageview_count' => \$pageviewCount/);
   assert.match(api, /'custom_event_count' => \$customEventCount/);

@@ -22,7 +22,7 @@ DirectoryIndex index.html index.php
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
     # Application code and Composer files are never meant to be requested directly.
-    RewriteRule ^(vendor|src|bin|tests)(/|$) - [F,L]
+    RewriteRule ^(vendor|src|templates|bin|tests)(/|$) - [F,L]
     RewriteRule ^composer\.(json|lock)$ - [F,L]
 </IfModule>
 

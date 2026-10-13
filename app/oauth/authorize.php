@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Minilytics\Auth\Auth;
 use Minilytics\Auth\Csrf;
-use Minilytics\Http\Asset;
+use Minilytics\Http\View;
 use Minilytics\OAuth\OAuthException;
 use Minilytics\OAuth\OAuthServer;
 
@@ -56,35 +56,12 @@ if ($request !== null && $isPost) {
     }
 }
 
-$h = static fn(?string $value): string => htmlspecialchars((string) $value, ENT_QUOTES);
-$clientName = $request['client']['client_name'] ?? '';
-$redirectHost = $request === null ? '' : (string) (parse_url($request['redirect_uri'], PHP_URL_HOST) ?: parse_url($request['redirect_uri'], PHP_URL_SCHEME));
-$isLocalApp = $request !== null && OAuthServer::redirectsToLocalApp($request['redirect_uri']);
-?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Connect an assistant | Minilytics</title><link rel="icon" type="image/png" sizes="512x512" href="/favicon.png"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="apple-touch-icon" href="/favicon.png"><link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/auth.css') ?>"></head><body><main class="auth-card">
-<img src="/dashboard/src/assets/logo.svg" width="44" height="44" alt="Minilytics">
-<?php if ($error !== null): ?>
-<h1>Connection failed</h1>
-<div class="auth-error"><?= $h($error) ?></div>
-<?php else: ?>
-<span class="eyebrow">Connect an assistant</span>
-<h1>Allow <?= $h($clientName) ?> to read your analytics?</h1>
-<p>You are signed in as <strong><?= $h($user['email']) ?></strong>.</p>
-<ul class="oauth-scopes">
-    <li><strong>Read-only.</strong> It can read the statistics of every website in this workspace. It cannot change or delete anything.</li>
-    <li>You can disconnect it at any time in <strong>Settings → AI assistants</strong>.</li>
-</ul>
-<?php if ($isLocalApp): ?>
-<div class="auth-error">Access is handed to an application running on this computer. Only continue if you just started this connection from your assistant.</div>
-<?php else: ?>
-<p class="oauth-redirect">After you allow access, you will return to <strong><?= $h($redirectHost) ?></strong>.</p>
-<?php endif; ?>
-<form method="post" action="/oauth/authorize.php" class="oauth-actions">
-<?php foreach ($params as $name => $value): ?>
-    <input type="hidden" name="<?= $h((string) $name) ?>" value="<?= $h(is_string($value) ? $value : '') ?>">
-<?php endforeach; ?>
-    <?= Csrf::field() ?>
-    <button type="submit" name="decision" value="deny" class="oauth-deny">Cancel</button>
-    <button type="submit" name="decision" value="allow">Allow access</button>
-</form>
-<?php endif; ?>
-</main></body></html>
+echo View::render('auth/oauth-authorize', [
+    'title' => 'Connect an assistant | Minilytics',
+    'error' => $error,
+    'params' => $params,
+    'clientName' => $request['client']['client_name'] ?? '',
+    'email' => $user['email'] ?? '',
+    'redirectHost' => $request === null ? '' : (string) (parse_url($request['redirect_uri'], PHP_URL_HOST) ?: parse_url($request['redirect_uri'], PHP_URL_SCHEME)),
+    'isLocalApp' => $request !== null && OAuthServer::redirectsToLocalApp($request['redirect_uri']),
+], 'layouts/auth');

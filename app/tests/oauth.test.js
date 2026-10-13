@@ -24,7 +24,7 @@ const phpEnv = () => ({ ...process.env, MINILYTICS_DATA_DIR: path.join(workdir, 
 
 function prepareInstall() {
   workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'minilytics-oauth-'));
-  for (const entry of ['dashboard', 'src', 'vendor', 'oauth', '.well-known', 'mcp.php']) {
+  for (const entry of ['dashboard', 'src', 'templates', 'vendor', 'oauth', '.well-known', 'mcp.php']) {
     fs.cpSync(path.join(root, entry), path.join(workdir, entry), { recursive: true });
   }
   const data = path.join(workdir, 'data');

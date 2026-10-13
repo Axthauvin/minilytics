@@ -35,7 +35,7 @@ server {
     client_max_body_size 128M;
 
     # Application code, Composer files, databases and dotfiles are never served.
-    location ~ ^/(vendor|src|bin|tests)(/|$) { return 403; }
+    location ~ ^/(vendor|src|templates|bin|tests)(/|$) { return 403; }
     location ~ \.(db|db-wal|db-shm|json|lock)$ { return 403; }
     location ~ /\.(?!well-known/) { return 403; }
 
@@ -68,7 +68,7 @@ analytics.example.com {
     # Application code, Composer files, databases and dotfiles are never served.
     # /.well-known/ stays reachable for AI assistants to sign in.
     @blocked {
-        path_regexp ^/(vendor|src|bin|tests)(/|$)|\.(db|db-wal|db-shm|json|lock)$|/\.
+        path_regexp ^/(vendor|src|templates|bin|tests)(/|$)|\.(db|db-wal|db-shm|json|lock)$|/\.
         not path /.well-known/*
     }
     respond @blocked 403

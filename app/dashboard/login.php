@@ -1,11 +1,12 @@
 <?php
+
 declare(strict_types=1);
 
 use Delight\Auth\AuthException;
 use Delight\Auth\TooManyRequestsException;
 use Minilytics\Auth\Auth;
 use Minilytics\Auth\Csrf;
-use Minilytics\Http\Asset;
+use Minilytics\Http\View;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 Auth::startSession();
@@ -39,36 +40,4 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !Csrf::isValid()) {
         $error = 'Incorrect email address or password.';
     }
 }
-?>
-<!doctype html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Sign in | Minilytics</title>
-        <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png">
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-        <link rel="apple-touch-icon" href="/favicon.png">
-        <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/auth.css') ?>">
-    </head>
-    <body>
-        <main class="auth-card">
-            <img src="/dashboard/src/assets/logo.svg" width="44" height="44" alt="Minilytics">
-            <h1>Sign in</h1>
-            <p>Access your Minilytics dashboard.</p>
-            <?php if ($error): ?>
-                <div class="auth-error"><?= htmlspecialchars($error) ?></div>
-            <?php endif; ?>
-            <form method="post">
-                <?= Csrf::field() ?>
-                <label>Email address
-                    <input required type="email" name="email" autocomplete="email">
-                </label>
-                <label>Password
-                    <input required type="password" name="password" autocomplete="current-password">
-                </label>
-                <button type="submit">Sign in</button>
-            </form>
-        </main>
-    </body>
-</html>
+echo View::render('auth/login', ['title' => 'Sign in | Minilytics', 'error' => $error], 'layouts/auth');

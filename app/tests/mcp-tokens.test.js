@@ -20,7 +20,7 @@ const phpEnv = () => ({ ...process.env, MINILYTICS_DATA_DIR: path.join(workdir, 
 /** Isolated copy of the app with two private websites and one administrator owning two tokens. */
 function prepareInstall() {
   workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'minilytics-tokens-'));
-  for (const dir of ['dashboard', 'src', 'vendor']) {
+  for (const dir of ['dashboard', 'src', 'templates', 'vendor']) {
     fs.cpSync(path.join(root, dir), path.join(workdir, dir), { recursive: true });
   }
   fs.copyFileSync(path.join(root, 'mcp.php'), path.join(workdir, 'mcp.php'));
