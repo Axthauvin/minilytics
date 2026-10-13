@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Minilytics\OAuth;
 
-use Minilytics\Auth\Auth;
+use Minilytics\Auth\AuthDatabase;
 use Minilytics\Auth\BearerTokens;
 use SQLite3;
 
@@ -102,7 +102,7 @@ final class OAuthServer
         $clientId = 'mlc_' . bin2hex(random_bytes(16));
         $now = time();
 
-        $db = Auth::db();
+        $db = AuthDatabase::connection();
         self::prune($db);
         $stmt = $db->prepare('INSERT INTO oauth_clients (client_id, client_name, redirect_uris, created_at) VALUES (:id, :name, :uris, :now)');
         $stmt->bindValue(':id', $clientId, SQLITE3_TEXT);
@@ -125,10 +125,10 @@ final class OAuthServer
     /** @return array{client_id: string, client_name: string, redirect_uris: list<string>}|null */
     public static function client(string $clientId): ?array
     {
-        if ($clientId === '' || !Auth::hasDatabase()) {
+        if ($clientId === '' || !AuthDatabase::exists()) {
             return null;
         }
-        $stmt = Auth::db()->prepare('SELECT client_id, client_name, redirect_uris FROM oauth_clients WHERE client_id = :id');
+        $stmt = AuthDatabase::connection()->prepare('SELECT client_id, client_name, redirect_uris FROM oauth_clients WHERE client_id = :id');
         $stmt->bindValue(':id', $clientId, SQLITE3_TEXT);
         $row = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
         if (!$row) {
@@ -173,7 +173,7 @@ final class OAuthServer
     public static function createAuthorizationCode(array $request, int $userId): string
     {
         $code = bin2hex(random_bytes(32));
-        $stmt = Auth::db()->prepare('INSERT INTO oauth_codes (code_hash, client_id, user_id, redirect_uri, code_challenge, expires_at) VALUES (:hash, :client, :user, :redirect, :challenge, :expires)');
+        $stmt = AuthDatabase::connection()->prepare('INSERT INTO oauth_codes (code_hash, client_id, user_id, redirect_uri, code_challenge, expires_at) VALUES (:hash, :client, :user, :redirect, :challenge, :expires)');
         $stmt->bindValue(':hash', hash('sha256', $code), SQLITE3_TEXT);
         $stmt->bindValue(':client', $request['client']['client_id'], SQLITE3_TEXT);
         $stmt->bindValue(':user', $userId, SQLITE3_INTEGER);
@@ -231,7 +231,7 @@ final class OAuthServer
      */
     public static function connectedApps(int $userId): array
     {
-        $stmt = Auth::db()->prepare('SELECT c.client_id, c.client_name, MIN(t.created_at) AS connected_at, MAX(t.last_used_at) AS last_used_at FROM oauth_tokens t JOIN oauth_clients c ON c.client_id = t.client_id WHERE t.user_id = :user AND t.refresh_expires_at > :now GROUP BY c.client_id, c.client_name ORDER BY connected_at DESC');
+        $stmt = AuthDatabase::connection()->prepare('SELECT c.client_id, c.client_name, MIN(t.created_at) AS connected_at, MAX(t.last_used_at) AS last_used_at FROM oauth_tokens t JOIN oauth_clients c ON c.client_id = t.client_id WHERE t.user_id = :user AND t.refresh_expires_at > :now GROUP BY c.client_id, c.client_name ORDER BY connected_at DESC');
         $stmt->bindValue(':user', $userId, SQLITE3_INTEGER);
         $stmt->bindValue(':now', time(), SQLITE3_INTEGER);
         $result = $stmt->execute();
@@ -245,7 +245,7 @@ final class OAuthServer
     /** Revokes every token the user granted to an application. */
     public static function disconnect(int $userId, string $clientId): bool
     {
-        $db = Auth::db();
+        $db = AuthDatabase::connection();
         $stmt = $db->prepare('DELETE FROM oauth_tokens WHERE user_id = :user AND client_id = :client');
         $stmt->bindValue(':user', $userId, SQLITE3_INTEGER);
         $stmt->bindValue(':client', $clientId, SQLITE3_TEXT);
@@ -255,7 +255,7 @@ final class OAuthServer
 
     public static function revokeAllForUser(int $userId): void
     {
-        $db = Auth::db();
+        $db = AuthDatabase::connection();
         foreach (['oauth_tokens', 'oauth_codes'] as $table) {
             $stmt = $db->prepare("DELETE FROM {$table} WHERE user_id = :user");
             $stmt->bindValue(':user', $userId, SQLITE3_INTEGER);
@@ -281,7 +281,7 @@ final class OAuthServer
 
     private static function exchangeCode(string $clientId, array $request): array
     {
-        $db = Auth::db();
+        $db = AuthDatabase::connection();
         $hash = hash('sha256', (string) ($request['code'] ?? ''));
         $stmt = $db->prepare('SELECT client_id, user_id, redirect_uri, code_challenge, expires_at FROM oauth_codes WHERE code_hash = :hash');
         $stmt->bindValue(':hash', $hash, SQLITE3_TEXT);
@@ -320,7 +320,7 @@ final class OAuthServer
     /** Rotates a refresh token: the old one stops working as soon as the new pair is issued. */
     private static function refresh(string $clientId, string $refreshToken): array
     {
-        $db = Auth::db();
+        $db = AuthDatabase::connection();
         $stmt = $db->prepare('SELECT id, refresh_expires_at FROM oauth_tokens WHERE refresh_hash = :hash AND client_id = :client');
         $stmt->bindValue(':hash', hash('sha256', $refreshToken), SQLITE3_TEXT);
         $stmt->bindValue(':client', $clientId, SQLITE3_TEXT);

@@ -23,7 +23,7 @@ final class McpTokens
         $token = self::PREFIX . bin2hex(random_bytes(24));
         $hint = substr($token, 0, strlen(self::PREFIX) + 4) . '…' . substr($token, -4);
         $now = time();
-        $db = Auth::db();
+        $db = AuthDatabase::connection();
         $stmt = $db->prepare('INSERT INTO mcp_tokens (user_id, name, token_hash, hint, created_at) VALUES (:user, :name, :hash, :hint, :now)');
         $stmt->bindValue(':user', $userId, SQLITE3_INTEGER);
         $stmt->bindValue(':name', $name, SQLITE3_TEXT);
@@ -37,7 +37,7 @@ final class McpTokens
     /** @return list<array{id: int, name: string, hint: string, created_at: string, last_used_at: ?string}> */
     public static function forUser(int $userId): array
     {
-        $stmt = Auth::db()->prepare('SELECT id, name, hint, created_at, last_used_at FROM mcp_tokens WHERE user_id = :user ORDER BY id DESC');
+        $stmt = AuthDatabase::connection()->prepare('SELECT id, name, hint, created_at, last_used_at FROM mcp_tokens WHERE user_id = :user ORDER BY id DESC');
         $stmt->bindValue(':user', $userId, SQLITE3_INTEGER);
         $result = $stmt->execute();
         $tokens = [];
@@ -50,7 +50,7 @@ final class McpTokens
     /** Deletes one of the user's tokens. Returns false when it does not exist. */
     public static function revoke(int $userId, int $id): bool
     {
-        $db = Auth::db();
+        $db = AuthDatabase::connection();
         $stmt = $db->prepare('DELETE FROM mcp_tokens WHERE id = :id AND user_id = :user');
         $stmt->bindValue(':id', $id, SQLITE3_INTEGER);
         $stmt->bindValue(':user', $userId, SQLITE3_INTEGER);
@@ -60,7 +60,7 @@ final class McpTokens
 
     public static function revokeAllForUser(int $userId): void
     {
-        $stmt = Auth::db()->prepare('DELETE FROM mcp_tokens WHERE user_id = :user');
+        $stmt = AuthDatabase::connection()->prepare('DELETE FROM mcp_tokens WHERE user_id = :user');
         $stmt->bindValue(':user', $userId, SQLITE3_INTEGER);
         $stmt->execute();
     }
