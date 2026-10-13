@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Minilytics\Tests\Auth;
 
-use Delight\Auth\Role;
 use Delight\Auth\UserAlreadyExistsException;
 use Minilytics\Auth\Auth;
+use Minilytics\Auth\Invitations;
 use Minilytics\Auth\McpTokens;
+use Minilytics\Auth\Users;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -90,10 +91,47 @@ final class AuthTest extends TestCase
         $this->assertNull(McpTokens::authenticate($token['token']));
     }
 
+    public function testAnInvitationCanBeAcceptedOnce(): void
+    {
+        $email = 'invited-' . uniqid() . '@minilytics.test';
+        $invitation = Invitations::create($email, Auth::createUser('inviter-' . uniqid() . '@minilytics.test', self::PASSWORD, 'admin'));
+
+        $pending = Invitations::findPending($invitation['token']);
+        $this->assertSame($email, $pending['email'] ?? null);
+
+        Invitations::markAccepted($pending['id']);
+        $this->assertNull(Invitations::findPending($invitation['token']));
+    }
+
+    public function testANewInvitationReplacesThePendingOne(): void
+    {
+        $email = 'reinvited-' . uniqid() . '@minilytics.test';
+        $admin = Auth::createUser('admin-' . uniqid() . '@minilytics.test', self::PASSWORD, 'admin');
+        $first = Invitations::create($email, $admin);
+        $second = Invitations::create($email, $admin);
+
+        $this->assertNull(Invitations::findPending($first['token']));
+        $this->assertNotNull(Invitations::findPending($second['token']));
+        $this->assertNull(Invitations::findPending('not-a-token'));
+    }
+
+    public function testUsersLookups(): void
+    {
+        $email = 'lookup-' . uniqid() . '@minilytics.test';
+        $id = Auth::createUser($email, self::PASSWORD, 'member');
+        $admins = Users::adminCount();
+        Auth::createUser('extra-admin-' . uniqid() . '@minilytics.test', self::PASSWORD, 'admin');
+
+        $this->assertSame($email, Users::find($id)['email'] ?? null);
+        $this->assertNull(Users::find(PHP_INT_MAX));
+        $this->assertTrue(Users::emailExists($email));
+        $this->assertFalse(Users::emailExists('nobody-' . uniqid() . '@minilytics.test'));
+        $this->assertSame($admins + 1, Users::adminCount());
+        $this->assertContains($id, array_column(Users::all(), 'id'));
+    }
+
     private function isAdmin(int $userId): bool
     {
-        $stmt = Auth::db()->prepare('SELECT roles_mask FROM users WHERE id = :id');
-        $stmt->bindValue(':id', $userId, SQLITE3_INTEGER);
-        return ((int) $stmt->execute()->fetchArray(SQLITE3_NUM)[0] & Role::ADMIN) !== 0;
+        return Users::find($userId)['role'] === 'admin';
     }
 }

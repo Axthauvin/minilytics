@@ -44,7 +44,7 @@ function prepareInstall() {
   const dir = workdir.replace(/\\/g, '/');
   const setup = spawnSync('php', ['-r', `
     require '${dir}/vendor/autoload.php';
-    Minilytics\\Auth\\Auth::db()->exec("INSERT INTO users (email, password, verified, roles_mask, registered) VALUES ('a@b.c', 'x', 1, 1, 0)");
+    Minilytics\\Auth\\AuthDatabase::connection()->exec("INSERT INTO users (email, password, verified, roles_mask, registered) VALUES ('a@b.c', 'x', 1, 1, 0)");
     $db = Minilytics\\Database\\Connections::forSite('private_site');
     $insert = $db->prepare("INSERT INTO user_activity (session_id, visitor_id, action) VALUES (:session, 'v1', :action)");
     foreach (json_decode(file_get_contents('${dir}/activity.json'), true) as [$session, $name, $data]) {

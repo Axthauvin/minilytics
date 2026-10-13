@@ -6,13 +6,11 @@ namespace Minilytics\Auth;
 
 use Delight\Auth\Auth as AuthEngine;
 use Delight\Auth\Role;
-use Minilytics\Database\DataDirectory;
 use Minilytics\Sites\SiteRegistry;
 use PDO;
-use SQLite3;
 
 /**
- * Authentication and invitation helpers for the private dashboard.
+ * Authentication helpers for the private dashboard.
  *
  * Accounts, sessions and login throttling are handled by delight-im/auth;
  * this class keeps the dashboard's small API ("admin" / "member" roles).
@@ -21,18 +19,9 @@ final class Auth
 {
     private static ?AuthEngine $engine = null;
 
-    public static function dataDir(): string
-    {
-        return DataDirectory::path();
-    }
-
-    public static function dbPath(): string
-    {
-        return self::dataDir() . '/auth.db';
-    }
     public static function hasDatabase(): bool
     {
-        return is_file(self::dbPath());
+        return AuthDatabase::exists();
     }
 
     public static function startSession(): void
@@ -48,21 +37,13 @@ final class Auth
         self::engine();
     }
 
-    public static function db(): SQLite3
-    {
-        $db = new SQLite3(self::dbPath());
-        $db->busyTimeout(5000);
-        $db->exec('PRAGMA journal_mode = WAL;');
-        AuthSchema::ensure($db);
-        return $db;
-    }
-
     public static function engine(): AuthEngine
     {
         if (self::$engine === null) {
             self::configureSession();
-            self::db()->close();
-            $pdo = new PDO('sqlite:' . self::dbPath());
+            // Creates the database and its tables before the engine uses them.
+            AuthDatabase::connection();
+            $pdo = new PDO('sqlite:' . AuthDatabase::path());
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $pdo->exec('PRAGMA busy_timeout = 5000;');
             // Resync on every request so role changes and deleted accounts apply immediately.

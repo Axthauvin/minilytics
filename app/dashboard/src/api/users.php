@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use Delight\Auth\Role;
-use Minilytics\Auth\McpTokens;
 use Minilytics\Auth\Auth;
+use Minilytics\Auth\Invitations;
+use Minilytics\Auth\McpTokens;
+use Minilytics\Auth\Users;
 use Minilytics\OAuth\OAuthServer;
 
 header('Content-Type: application/json; charset=utf-8');
@@ -23,23 +25,12 @@ if ($method === 'OPTIONS') {
 // Authentication is required for any user operations
 Auth::requireLogin();
 $currentUser = Auth::user();
-$db = Auth::db();
 
 try {
     // 1. GET: List all authorized users and include current user info
     if ($method === 'GET') {
-        $result = $db->query('SELECT id, email, roles_mask, registered FROM users ORDER BY registered ASC');
-        $users = [];
-        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-            $users[] = [
-                'id' => (int) $row['id'],
-                'email' => $row['email'],
-                'role' => ((int) $row['roles_mask'] & Role::ADMIN) ? 'admin' : 'member',
-                'created_at' => gmdate('Y-m-d H:i:s', (int) $row['registered']),
-            ];
-        }
         echo json_encode([
-            'users' => $users,
+            'users' => Users::all(),
             'current_user' => [
                 'id' => (int) ($currentUser['id'] ?? 0),
                 'email' => $currentUser['email'] ?? '',
@@ -71,9 +62,7 @@ try {
         }
 
         // Check if user exists
-        $stmt = $db->prepare("SELECT id, email, CASE WHEN roles_mask & 1 THEN 'admin' ELSE 'member' END AS role FROM users WHERE id = :id");
-        $stmt->bindValue(':id', $userId, SQLITE3_INTEGER);
-        $userToDelete = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
+        $userToDelete = Users::find($userId);
         if (!$userToDelete) {
             http_response_code(404);
             Auth::jsonError('User not found.');
@@ -81,7 +70,7 @@ try {
 
         // If target is an admin, ensure at least one other administrator remains
         if ($userToDelete['role'] === 'admin') {
-            $adminCount = (int) $db->querySingle('SELECT COUNT(*) FROM users WHERE roles_mask & 1');
+            $adminCount = Users::adminCount();
             if ($adminCount <= 1) {
                 http_response_code(400);
                 Auth::jsonError('Cannot delete the only administrator.');
@@ -89,9 +78,7 @@ try {
         }
 
         // Clean up any invitations created by this user
-        $cleanInvites = $db->prepare('UPDATE invitations SET created_by = NULL WHERE created_by = :id');
-        $cleanInvites->bindValue(':id', $userId, SQLITE3_INTEGER);
-        $cleanInvites->execute();
+        Invitations::forgetCreator($userId);
         McpTokens::revokeAllForUser($userId);
         OAuthServer::revokeAllForUser($userId);
 
@@ -116,9 +103,7 @@ try {
         }
 
         // Check if user exists
-        $stmt = $db->prepare("SELECT id, email, CASE WHEN roles_mask & 1 THEN 'admin' ELSE 'member' END AS role FROM users WHERE id = :id");
-        $stmt->bindValue(':id', $userId, SQLITE3_INTEGER);
-        $targetUser = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
+        $targetUser = Users::find($userId);
         if (!$targetUser) {
             http_response_code(404);
             Auth::jsonError('User not found.');
@@ -132,7 +117,7 @@ try {
 
         // If demoting an admin, ensure at least one other administrator remains
         if ($targetUser['role'] === 'admin' && $newRole !== 'admin') {
-            $adminCount = (int) $db->querySingle('SELECT COUNT(*) FROM users WHERE roles_mask & 1');
+            $adminCount = Users::adminCount();
             if ($adminCount <= 1) {
                 http_response_code(400);
                 Auth::jsonError('Cannot remove the only administrator.');
@@ -163,31 +148,19 @@ try {
             Auth::jsonError('A valid email address is required.');
         }
 
-        $s = $db->prepare('SELECT id FROM users WHERE email = :email');
-        $s->bindValue(':email', $email, SQLITE3_TEXT);
-        if ($s->execute()->fetchArray()) {
+        if (Users::emailExists($email)) {
             http_response_code(409);
             Auth::jsonError('This email already has an account.');
         }
 
-        $token = bin2hex(random_bytes(32));
-        $s = $db->prepare('UPDATE invitations SET accepted_at = CURRENT_TIMESTAMP WHERE email = :email AND accepted_at IS NULL');
-        $s->bindValue(':email', $email, SQLITE3_TEXT);
-        $s->execute();
-
-        $s = $db->prepare('INSERT INTO invitations (email, token_hash, expires_at, created_by) VALUES (:email, :hash, :expires, :by)');
-        $s->bindValue(':email', $email, SQLITE3_TEXT);
-        $s->bindValue(':hash', hash('sha256', $token), SQLITE3_TEXT);
-        $s->bindValue(':expires', gmdate('Y-m-d H:i:s', time() + 7 * 86400), SQLITE3_TEXT);
-        $s->bindValue(':by', (int) $admin['id'], SQLITE3_INTEGER);
-        $s->execute();
+        $invitation = Invitations::create($email, (int) $admin['id']);
 
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         echo json_encode([
             'success' => true,
-            'invite_url' => "$scheme://$host/dashboard/accept-invite.php?token=$token",
-            'expires_at' => gmdate('c', time() + 7 * 86400),
+            'invite_url' => "$scheme://$host/dashboard/accept-invite.php?token={$invitation['token']}",
+            'expires_at' => gmdate('c', $invitation['expires_at']),
         ]);
         exit;
     }

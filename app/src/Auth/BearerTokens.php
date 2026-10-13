@@ -32,10 +32,10 @@ final class BearerTokens
      */
     public static function owner(string $table, string $hashColumn, string $token, string $condition = ''): ?array
     {
-        if (!Auth::hasDatabase()) {
+        if (!AuthDatabase::exists()) {
             return null;
         }
-        $db = Auth::db();
+        $db = AuthDatabase::connection();
         $stmt = $db->prepare("SELECT t.id, t.last_used_at, u.id AS user_id, u.email FROM {$table} t JOIN users u ON u.id = t.user_id WHERE t.{$hashColumn} = :hash AND u.status = " . Status::NORMAL . $condition);
         $stmt->bindValue(':hash', hash('sha256', $token), SQLITE3_TEXT);
         $row = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
