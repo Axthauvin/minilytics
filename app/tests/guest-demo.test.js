@@ -21,6 +21,7 @@ function prepareInstall() {
   workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'minilytics-guest-'));
   fs.cpSync(path.join(root, 'dashboard'), path.join(workdir, 'dashboard'), { recursive: true });
   fs.cpSync(path.join(root, 'src'), path.join(workdir, 'src'), { recursive: true });
+  fs.cpSync(path.join(root, 'templates'), path.join(workdir, 'templates'), { recursive: true });
   fs.cpSync(path.join(root, 'vendor'), path.join(workdir, 'vendor'), { recursive: true });
   const data = path.join(workdir, 'data');
   fs.mkdirSync(data);

@@ -6,6 +6,7 @@ parameters:
         - bin
         - dashboard
         - src
+        - templates
         - index.php
         - mcp.php
         - oauth
