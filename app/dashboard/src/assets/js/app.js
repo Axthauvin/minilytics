@@ -436,6 +436,14 @@ const App = {
         }
       });
     });
+
+    // Escape key to close
+    window.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      document
+        .querySelectorAll(".modal-overlay.active")
+        .forEach((m) => m.classList.remove("active"));
+    });
   },
 
   bindAddSiteModal() {
