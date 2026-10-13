@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 test('audience breakdowns aggregate distinct visitors and use visitor labels', () => {
-  const stats = read('src/Analytics/SiteAnalytics.php');
+  const stats = read('src/Analytics/Reports/EnvironmentReport.php') + read('src/Analytics/Reports/CountriesReport.php');
   const overview = read('templates/dashboard/pages/overview.php');
 
   assert.match(stats, /COUNT\(DISTINCT COALESCE\(visitor_id, session_id\)\) as count/);
@@ -27,14 +27,14 @@ test('visitor-facing secondary analytics use visitor ids instead of sessions', (
 });
 
 test('overview bounce-rate query does not nest aggregate functions', () => {
-  const stats = read('src/Analytics/SiteAnalytics.php');
+  const stats = read('src/Analytics/Reports/SummaryReport.php');
 
   assert.doesNotMatch(stats, /MAX\(1, COUNT\(\*\)\)/);
   assert.match(stats, /NULLIF\(COUNT\(\*\), 0\) as bounce_rate/);
 });
 
 test('overview treats MySQL JSON null referrers as direct traffic', () => {
-  const stats = read('src/Analytics/SiteAnalytics.php');
+  const stats = read('src/Analytics/Reports/ReferrersReport.php');
   const db = read('src/Database/DatabaseConnection.php');
 
   assert.match(stats, /strtolower\(\$rawRef\) !== 'null'/);
