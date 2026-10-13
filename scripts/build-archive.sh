@@ -37,6 +37,9 @@ fi
 # Create a clean temporary staging area
 STAGING_DIR="$(mktemp -d)"
 trap 'rm -rf "${STAGING_DIR}"' EXIT
+# mktemp creates a 0700 folder, and tar records it as the archive root: once
+# extracted, the web root would be unreadable by the web server.
+chmod 755 "${STAGING_DIR}"
 
 # Files/directories inside app/ that must not be deployed. A pattern without
 # "/" matches a name at any depth (including the tests/ folders of vendor
@@ -53,13 +56,6 @@ EXCLUDES=(
     "*.zip"
     "*.log"
     ".DS_Store"
-    # Runtime database and secret files, but data/ and data/.htaccess are kept
-    "data/*.db"
-    "data/*.db-wal"
-    "data/*.db-shm"
-    "data/sites.json"
-    "data/database.json"
-    "data/.tracking-secret"
 )
 
 # Copy app/ to the staging directory, then remove what must not be deployed.
@@ -72,6 +68,8 @@ for pattern in "${EXCLUDES[@]}"; do
         find "${STAGING_DIR}" -name "${pattern}" -prune -exec rm -rf {} +
     fi
 done
+# Data folder of older versions: data now lives outside the web root.
+rm -rf "${STAGING_DIR}/data"
 
 # Record the release tag, so the dashboard can show the installed version and
 # tell administrators about newer releases (src/ is not publicly served).
@@ -88,21 +86,15 @@ fi
     find . -type f ! -path ./src/MANIFEST -print0 | LC_ALL=C sort -z | xargs -0 "${HASH[@]}" | sed -E 's#^([0-9a-f]{64}) [ *]\./#\1  #' > src/MANIFEST
 )
 
-# Ensure data/ directory exists and contains data/.htaccess
-mkdir -p "${STAGING_DIR}/data"
-if [ ! -f "${STAGING_DIR}/data/.htaccess" ] && [ -f "${APP_DIR}/data/.htaccess" ]; then
-    cp "${APP_DIR}/data/.htaccess" "${STAGING_DIR}/data/.htaccess"
-fi
-
 # Ensure .htaccess at root exists
 if [ ! -f "${STAGING_DIR}/.htaccess" ] && [ -f "${APP_DIR}/.htaccess" ]; then
     cp "${APP_DIR}/.htaccess" "${STAGING_DIR}/.htaccess"
 fi
 
-# Safety check: ensure no db files leaked into staging
-LEAKED_DB=$(find "${STAGING_DIR}/data" -name "*.db" 2>/dev/null || true)
-if [ -n "${LEAKED_DB}" ]; then
-    echo "ERROR: Database file detected in staging data/ folder: ${LEAKED_DB}" >&2
+# Safety check: ensure no database or secret file leaked into staging
+LEAKED=$(find "${STAGING_DIR}" \( -name "*.db" -o -name "*.db-wal" -o -name "*.db-shm" -o -name "sites.json" -o -name "database.json" -o -name ".tracking-secret" \) -print)
+if [ -n "${LEAKED}" ]; then
+    echo "ERROR: Data file detected in staging: ${LEAKED}" >&2
     exit 1
 fi
 
