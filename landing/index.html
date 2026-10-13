@@ -325,8 +325,7 @@
                     <h2>Ready to <em>install?</em></h2>
                     <p class="install-lead">
                         Download the archive and run Minilytics in minutes on
-                        your local machine or server. No Node.js runtime or
-                        database server required.
+                        your local machine or server.
                     </p>
                     <div class="install-actions">
                         <a
@@ -359,6 +358,14 @@
                             </svg>
                             <span>GitHub</span>
                         </a>
+                        <a
+                            class="button-secondary"
+                            href="/docs/"
+                            data-minilytics-event="docs_click"
+                            data-minilytics-location="install_section"
+                            ><i data-lucide="book-open"></i
+                            ><span>Docs</span></a
+                        >
                     </div>
                 </div>
                 <div class="install-terminal">
@@ -424,31 +431,6 @@ tar -xzf minilytics.tar.gz"
 <span class="t-cmd"><span class="t-prompt">$</span> curl -LO https://github.com/axthauvin/minilytics/releases/latest/download/minilytics.tar.gz</span>
 <span class="t-cmd"><span class="t-prompt">$</span> tar -xzf minilytics.tar.gz</span></code></pre>
                 </div>
-            </section>
-            <section class="docs-callout wrap" aria-label="Documentation">
-                <span class="docs-callout-icon"><i data-lucide="book-open"></i></span>
-                <div class="docs-callout-copy">
-                    <h2>Everything else is in <em>the docs.</em></h2>
-                    <p>
-                        Guides to install the tracker, choose a privacy mode,
-                        run your server, import your past analytics and connect
-                        an AI assistant.
-                    </p>
-                    <nav class="docs-links" aria-label="Documentation guides">
-                        <a href="/docs/tracking/">Tracking</a
-                        ><a href="/docs/privacy/">Privacy</a
-                        ><a href="/docs/operations/">Operations</a
-                        ><a href="/docs/importing/">Importing data</a
-                        ><a href="/docs/mcp/">AI assistants</a>
-                    </nav>
-                </div>
-                <a
-                    class="button"
-                    href="/docs/"
-                    data-minilytics-event="docs_click"
-                    data-minilytics-location="docs_callout"
-                    ><i data-lucide="book-open"></i>Read the docs</a
-                >
             </section>
         </main>
         <footer class="wrap">

@@ -640,7 +640,7 @@ body {
     display: grid;
     grid-template-columns: 0.8fr 1.2fr;
     gap: 70px;
-    padding: 145px 0;
+    padding: 110px 0;
 }
 .principles h2 {
     font-size: 48px;
@@ -1434,52 +1434,7 @@ h3 {
     }
 }
 
-/* Documentation card on the main page, and guide shortcuts shared with install.html */
-.docs-callout {
-    display: flex;
-    align-items: center;
-    gap: 28px;
-    margin-bottom: 84px;
-    padding: 36px 44px;
-    border: 1px solid #dbeafe;
-    border-radius: 16px;
-    background: #f5f9ff;
-}
-.docs-callout-icon {
-    display: grid;
-    flex: 0 0 auto;
-    place-items: center;
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    background: #dbeafe;
-    color: #2563eb;
-}
-.docs-callout-icon svg {
-    width: 24px;
-    height: 24px;
-}
-.docs-callout-copy {
-    flex: 1;
-}
-.docs-callout h2 {
-    margin: 0 0 6px;
-    color: var(--ink);
-    font-size: 28px;
-    line-height: 1.15;
-    letter-spacing: -0.035em;
-}
-.docs-callout h2 em {
-    color: #3b82f6;
-    font-style: normal;
-}
-.docs-callout p {
-    max-width: 560px;
-    margin: 0;
-    color: var(--muted);
-    font-size: 14.5px;
-    line-height: 1.6;
-}
+/* Guide shortcuts on install.html */
 .docs-links {
     display: flex;
     flex-wrap: wrap;
@@ -1502,14 +1457,6 @@ h3 {
 .docs-links a:hover {
     border-color: #93c5fd;
     background: #eff6ff;
-}
-@media (max-width: 800px) {
-    .docs-callout {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 18px;
-        padding: 30px;
-    }
 }
 
 /* AI assistants (MCP): its own band, apart from the feature cards */
