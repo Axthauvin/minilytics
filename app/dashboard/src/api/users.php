@@ -3,8 +3,9 @@
 declare(strict_types=1);
 
 use Delight\Auth\Role;
-use Minilytics\Auth\McpTokens;
 use Minilytics\Auth\Auth;
+use Minilytics\Auth\Invitations;
+use Minilytics\Auth\McpTokens;
 use Minilytics\OAuth\OAuthServer;
 
 header('Content-Type: application/json; charset=utf-8');
@@ -89,9 +90,7 @@ try {
         }
 
         // Clean up any invitations created by this user
-        $cleanInvites = $db->prepare('UPDATE invitations SET created_by = NULL WHERE created_by = :id');
-        $cleanInvites->bindValue(':id', $userId, SQLITE3_INTEGER);
-        $cleanInvites->execute();
+        Invitations::forgetCreator($userId);
         McpTokens::revokeAllForUser($userId);
         OAuthServer::revokeAllForUser($userId);
 
@@ -170,24 +169,14 @@ try {
             Auth::jsonError('This email already has an account.');
         }
 
-        $token = bin2hex(random_bytes(32));
-        $s = $db->prepare('UPDATE invitations SET accepted_at = CURRENT_TIMESTAMP WHERE email = :email AND accepted_at IS NULL');
-        $s->bindValue(':email', $email, SQLITE3_TEXT);
-        $s->execute();
-
-        $s = $db->prepare('INSERT INTO invitations (email, token_hash, expires_at, created_by) VALUES (:email, :hash, :expires, :by)');
-        $s->bindValue(':email', $email, SQLITE3_TEXT);
-        $s->bindValue(':hash', hash('sha256', $token), SQLITE3_TEXT);
-        $s->bindValue(':expires', gmdate('Y-m-d H:i:s', time() + 7 * 86400), SQLITE3_TEXT);
-        $s->bindValue(':by', (int) $admin['id'], SQLITE3_INTEGER);
-        $s->execute();
+        $invitation = Invitations::create($email, (int) $admin['id']);
 
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         echo json_encode([
             'success' => true,
-            'invite_url' => "$scheme://$host/dashboard/accept-invite.php?token=$token",
-            'expires_at' => gmdate('c', time() + 7 * 86400),
+            'invite_url' => "$scheme://$host/dashboard/accept-invite.php?token={$invitation['token']}",
+            'expires_at' => gmdate('c', $invitation['expires_at']),
         ]);
         exit;
     }

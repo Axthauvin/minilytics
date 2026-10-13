@@ -7,6 +7,7 @@ namespace Minilytics\Tests\Auth;
 use Delight\Auth\Role;
 use Delight\Auth\UserAlreadyExistsException;
 use Minilytics\Auth\Auth;
+use Minilytics\Auth\Invitations;
 use Minilytics\Auth\McpTokens;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -88,6 +89,30 @@ final class AuthTest extends TestCase
 
         $this->assertTrue(McpTokens::revoke($owner, $token['id']));
         $this->assertNull(McpTokens::authenticate($token['token']));
+    }
+
+    public function testAnInvitationCanBeAcceptedOnce(): void
+    {
+        $email = 'invited-' . uniqid() . '@minilytics.test';
+        $invitation = Invitations::create($email, Auth::createUser('inviter-' . uniqid() . '@minilytics.test', self::PASSWORD, 'admin'));
+
+        $pending = Invitations::findPending($invitation['token']);
+        $this->assertSame($email, $pending['email'] ?? null);
+
+        Invitations::markAccepted($pending['id']);
+        $this->assertNull(Invitations::findPending($invitation['token']));
+    }
+
+    public function testANewInvitationReplacesThePendingOne(): void
+    {
+        $email = 'reinvited-' . uniqid() . '@minilytics.test';
+        $admin = Auth::createUser('admin-' . uniqid() . '@minilytics.test', self::PASSWORD, 'admin');
+        $first = Invitations::create($email, $admin);
+        $second = Invitations::create($email, $admin);
+
+        $this->assertNull(Invitations::findPending($first['token']));
+        $this->assertNotNull(Invitations::findPending($second['token']));
+        $this->assertNull(Invitations::findPending('not-a-token'));
     }
 
     private function isAdmin(int $userId): bool

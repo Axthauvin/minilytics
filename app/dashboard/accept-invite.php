@@ -4,19 +4,14 @@ declare(strict_types=1);
 use Delight\Auth\UserAlreadyExistsException;
 use Minilytics\Auth\Auth;
 use Minilytics\Auth\Csrf;
+use Minilytics\Auth\Invitations;
 use Minilytics\Http\Asset;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 Auth::startSession();
 $token = (string) ($_GET['token'] ?? $_POST['token'] ?? '');
 $error = '';
-$invite = null;
-if (Auth::hasDatabase() && preg_match('/^[a-f0-9]{64}$/', $token)) {
-    $db = Auth::db();
-    $s = $db->prepare('SELECT * FROM invitations WHERE token_hash = :hash AND accepted_at IS NULL AND expires_at > CURRENT_TIMESTAMP');
-    $s->bindValue(':hash', hash('sha256', $token), SQLITE3_TEXT);
-    $invite = $s->execute()->fetchArray(SQLITE3_ASSOC) ?: null;
-}
+$invite = Auth::hasDatabase() ? Invitations::findPending($token) : null;
 if (!$invite) {
     $error = 'This invitation link is invalid or has expired.';
 }
@@ -29,9 +24,7 @@ if (!$error && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     } else {
         try {
             $id = Auth::createUser($invite['email'], $password, 'member');
-            $s = $db->prepare('UPDATE invitations SET accepted_at = CURRENT_TIMESTAMP WHERE id = :id');
-            $s->bindValue(':id', $invite['id'], SQLITE3_INTEGER);
-            $s->execute();
+            Invitations::markAccepted($invite['id']);
             Auth::loginById($id);
             header('Location: /dashboard/#websites');
             exit;
