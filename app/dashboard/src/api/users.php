@@ -6,6 +6,7 @@ use Delight\Auth\Role;
 use Minilytics\Auth\Auth;
 use Minilytics\Auth\Invitations;
 use Minilytics\Auth\McpTokens;
+use Minilytics\Auth\Users;
 use Minilytics\OAuth\OAuthServer;
 
 header('Content-Type: application/json; charset=utf-8');
@@ -24,23 +25,12 @@ if ($method === 'OPTIONS') {
 // Authentication is required for any user operations
 Auth::requireLogin();
 $currentUser = Auth::user();
-$db = Auth::db();
 
 try {
     // 1. GET: List all authorized users and include current user info
     if ($method === 'GET') {
-        $result = $db->query('SELECT id, email, roles_mask, registered FROM users ORDER BY registered ASC');
-        $users = [];
-        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-            $users[] = [
-                'id' => (int) $row['id'],
-                'email' => $row['email'],
-                'role' => ((int) $row['roles_mask'] & Role::ADMIN) ? 'admin' : 'member',
-                'created_at' => gmdate('Y-m-d H:i:s', (int) $row['registered']),
-            ];
-        }
         echo json_encode([
-            'users' => $users,
+            'users' => Users::all(),
             'current_user' => [
                 'id' => (int) ($currentUser['id'] ?? 0),
                 'email' => $currentUser['email'] ?? '',
@@ -72,9 +62,7 @@ try {
         }
 
         // Check if user exists
-        $stmt = $db->prepare("SELECT id, email, CASE WHEN roles_mask & 1 THEN 'admin' ELSE 'member' END AS role FROM users WHERE id = :id");
-        $stmt->bindValue(':id', $userId, SQLITE3_INTEGER);
-        $userToDelete = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
+        $userToDelete = Users::find($userId);
         if (!$userToDelete) {
             http_response_code(404);
             Auth::jsonError('User not found.');
@@ -82,7 +70,7 @@ try {
 
         // If target is an admin, ensure at least one other administrator remains
         if ($userToDelete['role'] === 'admin') {
-            $adminCount = (int) $db->querySingle('SELECT COUNT(*) FROM users WHERE roles_mask & 1');
+            $adminCount = Users::adminCount();
             if ($adminCount <= 1) {
                 http_response_code(400);
                 Auth::jsonError('Cannot delete the only administrator.');
@@ -115,9 +103,7 @@ try {
         }
 
         // Check if user exists
-        $stmt = $db->prepare("SELECT id, email, CASE WHEN roles_mask & 1 THEN 'admin' ELSE 'member' END AS role FROM users WHERE id = :id");
-        $stmt->bindValue(':id', $userId, SQLITE3_INTEGER);
-        $targetUser = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
+        $targetUser = Users::find($userId);
         if (!$targetUser) {
             http_response_code(404);
             Auth::jsonError('User not found.');
@@ -131,7 +117,7 @@ try {
 
         // If demoting an admin, ensure at least one other administrator remains
         if ($targetUser['role'] === 'admin' && $newRole !== 'admin') {
-            $adminCount = (int) $db->querySingle('SELECT COUNT(*) FROM users WHERE roles_mask & 1');
+            $adminCount = Users::adminCount();
             if ($adminCount <= 1) {
                 http_response_code(400);
                 Auth::jsonError('Cannot remove the only administrator.');
@@ -162,9 +148,7 @@ try {
             Auth::jsonError('A valid email address is required.');
         }
 
-        $s = $db->prepare('SELECT id FROM users WHERE email = :email');
-        $s->bindValue(':email', $email, SQLITE3_TEXT);
-        if ($s->execute()->fetchArray()) {
+        if (Users::emailExists($email)) {
             http_response_code(409);
             Auth::jsonError('This email already has an account.');
         }

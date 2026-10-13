@@ -37,12 +37,6 @@ final class Auth
         self::engine();
     }
 
-    /** @deprecated Use AuthDatabase::connection() or a repository. */
-    public static function db(): \SQLite3
-    {
-        return AuthDatabase::connection();
-    }
-
     public static function engine(): AuthEngine
     {
         if (self::$engine === null) {
