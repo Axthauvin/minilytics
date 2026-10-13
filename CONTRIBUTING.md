@@ -73,7 +73,7 @@ If you change something that the tests don't cover, describe how you checked it 
 
 ## Documentation
 
-The guides in `docs/` are the only source: edit the Markdown files, and they read well on GitHub as they are. `scripts/build-docs.php` turns them into the `/docs/` pages of the website (plain PHP, no dependency) when the landing page is packaged. To preview them, build the pages and open http://localhost:8080/docs/ with `composer serve` running:
+The guides in `docs/` are the only source: edit the Markdown files, and they read well on GitHub as they are. `scripts/build-docs.php` turns them into the `/docs/` pages of the website (plain PHP, no dependency) when the landing page is packaged. `composer serve` builds them on start, so open http://localhost:8080/docs/ to preview them. After editing a guide while the server runs, rebuild the pages:
 
 ```bash
 php scripts/build-docs.php
