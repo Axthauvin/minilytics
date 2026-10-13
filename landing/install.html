@@ -38,7 +38,7 @@
             <section class="install-hero wrap">
                 <h1>Run Minilytics<br /><em>where you want.</em></h1>
                 <p>
-                    Minilytics needs PHP 8.0 or newer with SQLite enabled.
+                    Minilytics needs PHP 8.1 or newer with SQLite enabled.
                     <br />
                     <strong
                         >No Node.js runtime or database server is required.
@@ -104,9 +104,11 @@
                         <aside>
                             <strong>Nginx</strong
                             ><span
-                                >Block direct HTTP access to
-                                <code style="color: var(--blue)">/data/</code
-                                >.</span
+                                >Add the
+                                <a href="/docs/operations/#nginx"
+                                    >server rules</a
+                                >
+                                that keep private files hidden.</span
                             >
                         </aside>
                     </article>
@@ -135,7 +137,7 @@
                         <p>For a local Windows setup.</p>
                         <ol>
                             <li>
-                                Confirm PHP 8.0+ and the SQLite extension are
+                                Confirm PHP 8.1+ and the SQLite extension are
                                 enabled in WAMP.
                             </li>
                             <li>
@@ -155,8 +157,10 @@
                         <aside>
                             <strong>Tip</strong
                             ><span
-                                >Ensure Apache can write to the
-                                <code style="color: var(--blue)">data/</code>
+                                >Apache must be able to write to
+                                <code style="color: var(--blue)"
+                                    >C:\wamp64\www\minilytics-data</code
+                                >, created next to the Minilytics
                                 folder.</span
                             >
                         </aside>
@@ -168,7 +172,7 @@
                 <article>
                     <i data-lucide="code-2"></i>
                     <div>
-                        <strong>PHP 8.0+</strong
+                        <strong>PHP 8.1+</strong
                         ><span>with the sqlite3 and pdo_sqlite extensions enabled</span>
                     </div>
                 </article>
@@ -176,7 +180,10 @@
                     <i data-lucide="folder-key"></i>
                     <div>
                         <strong>Write access</strong
-                        ><span>for the <code>data/</code> directory</span>
+                        ><span
+                            >for the <code>minilytics-data/</code> folder,
+                            outside the web root</span
+                        >
                     </div>
                 </article>
                 <article>
