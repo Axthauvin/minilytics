@@ -47,6 +47,12 @@ final class Tracker
             $store->recordIgnored($reason, $userAgent->value, $originHost, $ip);
             return ['ignored' => 'bot'];
         }
+        if ($payload->name() === '_ml_bot') {
+            // The tracking script detected an automated browser and says so instead of sending analytics.
+            $reason = substr((string) preg_replace('/[^a-zA-Z0-9_$]/', '', (string) ($payload->data['reason'] ?? '')), 0, 60);
+            $store->recordIgnored('client:' . ($reason !== '' ? $reason : 'unknown'), $userAgent->value, $originHost, $ip);
+            return ['ignored' => 'bot'];
+        }
         if (in_array($ip, (array) ($site['internal_ips'] ?? []), true)) {
             $store->recordIgnored('internal_traffic', $userAgent->value, $originHost, $ip);
             return ['ignored' => 'internal'];

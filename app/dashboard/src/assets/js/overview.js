@@ -175,6 +175,7 @@ const OverviewPage = {
       this.renderReferrers();
       this.renderEnvironment();
       this.renderCountries();
+      this.renderBots(data.bots);
     } catch (err) {
       if (token !== this._loadToken) return;
       window.App?.displayNoDataMessage(siteId);
@@ -516,6 +517,35 @@ const OverviewPage = {
             `;
       })
       .join("");
+  },
+
+  inconsistencies: ['no_languages','no_screen','no_chrome_object','mobile_without_touch','platform_mismatch'],
+  reasonLabels: {known_bot_user_agent:'Known bot or crawler', missing_user_agent:'Missing user agent', internal_traffic:'Internal traffic', webdriver:'Automated browser'},
+  reasonLabel(reason) { if(String(reason).startsWith('client:')) { const detail=String(reason).slice(7); return (this.inconsistencies.includes(detail)?'Inconsistent browser (':'Automated browser (')+detail.replace(/_/g,' ')+')'; } return this.reasonLabels[reason] || String(reason).replace(/_/g,' ').replace(/^./,c=>c.toUpperCase()); },
+  bars(rows, key, label) {
+    const top=Math.max(1,...rows.map(r=>r.count));
+    return rows.length?rows.map(r=>`<div class="bot-bar"><div class="bot-bar-fill" style="width:${Math.round(r.count/top*100)}%"></div><span class="bot-bar-label" title="${this.escapeHtml(r[key])}">${this.escapeHtml(label?label(r[key]):r[key])}</span><strong>${r.count}</strong></div>`).join(''):'<span class="pill-muted">No data</span>';
+  },
+  toggleBotRequests(button) {
+    const open = button.getAttribute("aria-expanded") !== "true";
+    button.setAttribute("aria-expanded", String(open));
+    button.querySelector("svg")?.replaceWith(
+      new DOMParser().parseFromString(Icons.get(open ? "chevron-down" : "chevron-right", { size: 14 }), "text/html").body.firstChild,
+    );
+    button.nextElementSibling.hidden = !open;
+  },
+  renderBots(bots) {
+    const card=document.querySelector('.bot-card'); if(card) card.hidden=!bots;
+    if(!bots) return;
+    const total=bots.total||0, recent=(bots.recent||[]).slice(0,10);
+    document.getElementById('botCount').textContent=`${total} detection${total===1?'':'s'}`;
+    const panel=document.getElementById('botsList');
+    if(!total){ panel.innerHTML='<span class="pill-muted">No detected bot traffic for this period.</span>'; return; }
+    const top=(bots.reasons||[])[0];
+    panel.innerHTML=`<div class="bot-kpis"><div class="bot-kpi"><small>Blocked requests</small><strong>${total}</strong></div><div class="bot-kpi"><small>Distinct sources</small><strong>${bots.sources||0}</strong></div><div class="bot-kpi"><small>Main reason</small><strong>${top?this.escapeHtml(this.reasonLabel(top.reason)):'-'}</strong></div></div>
+      <div class="bot-columns"><div><h4>Why they were blocked</h4>${this.bars(bots.reasons||[],'reason',r=>this.reasonLabel(r))}</div><div><h4>Top user agents</h4>${this.bars(bots.agents||[],'user_agent')}</div><div><h4>Targeted websites</h4>${this.bars(bots.origins||[],'origin')}</div></div>
+      <button type="button" class="bot-latest-toggle" aria-expanded="false">${Icons.get("chevron-right",{size:14})}<span>Latest requests</span></button><div class="bot-list" hidden>${recent.map(b=>`<div class="bot-row"><strong>${this.escapeHtml(this.reasonLabel(b.reason))}</strong><span title="${this.escapeHtml(b.user_agent||'')}">${this.escapeHtml(b.user_agent||'Unknown agent')}</span><time>${this.escapeHtml(b.timestamp)}</time></div>`).join('')}</div>`;
+    panel.querySelector('.bot-latest-toggle').addEventListener('click', e => this.toggleBotRequests(e.currentTarget));
   },
 
   renderCountries() {

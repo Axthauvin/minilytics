@@ -10,6 +10,13 @@
             : "/track.php");
     var autoTrack =
         !script || script.getAttribute("data-auto-track") !== "false";
+    // Real visitors move, scroll, touch or type. Events are held back until the
+    // first such interaction, which keeps scripts that merely load the page out.
+    var requireInteraction =
+        !script || script.getAttribute("data-require-interaction") !== "false";
+    var interacted = false,
+        pendingPageview = null,
+        pendingEvents = [];
     var debug = !!script && script.getAttribute("data-debug") === "true";
     var privacyMode =
         script && script.getAttribute("data-privacy-mode") === "enriched"
@@ -41,11 +48,109 @@
         } catch (_) {}
         return null;
     }
+    var DOCUMENT_DRIVER_KEYS = [
+        "__webdriver_evaluate",
+        "__selenium_evaluate",
+        "__webdriver_script_function",
+        "__webdriver_script_func",
+        "__webdriver_script_fn",
+        "__fxdriver_evaluate",
+        "__driver_unwrapped",
+        "__webdriver_unwrapped",
+        "__driver_evaluate",
+        "__selenium_unwrapped",
+        "__fxdriver_unwrapped",
+    ];
+    var WINDOW_DRIVER_KEYS = [
+        "_phantom",
+        "__nightmare",
+        "_selenium",
+        "callPhantom",
+        "callSelenium",
+        "_Selenium_IDE_Recorder",
+    ];
+    var DRIVER_ATTRIBUTES = ["selenium", "webdriver", "driver"];
+
+    // Detection keys based on https://stackoverflow.com/a/41220267 (CC BY-SA 4.0)
     function automatedBrowserReason() {
         if (navigator.webdriver === true) return "webdriver";
-        if (window._phantom || window.__nightmare || window.callPhantom)
-            return "headless_globals";
+        var key;
+        for (var i = 0; i < WINDOW_DRIVER_KEYS.length; i++) {
+            key = WINDOW_DRIVER_KEYS[i];
+            if (window[key]) return key;
+        }
+        for (i = 0; i < DOCUMENT_DRIVER_KEYS.length; i++) {
+            key = DOCUMENT_DRIVER_KEYS[i];
+            if (document[key]) return key;
+        }
+        for (key in document) {
+            // ChromeDriver injects a $cdc_... object into the document.
+            if (/\$[a-z]dc_/.test(key) && document[key] && document[key].cache_)
+                return key;
+        }
+        try {
+            if (String(window.external).indexOf("Sequentum") !== -1)
+                return "Sequentum";
+        } catch (_) {}
+        var root = document.documentElement;
+        for (i = 0; root && i < DRIVER_ATTRIBUTES.length; i++) {
+            if (root.getAttribute(DRIVER_ATTRIBUTES[i]))
+                return DRIVER_ATTRIBUTES[i];
+        }
+        return inconsistentBrowserReason();
+    }
+    // Properties a real browser always agrees on, and that headless or
+    // spoofed browsers often get wrong. Each check only fires on a clear
+    // contradiction, since a false positive hides a real visitor.
+    function inconsistentBrowserReason() {
+        try {
+            var ua = navigator.userAgent || "";
+            var platform = navigator.platform || "";
+            if (navigator.languages && navigator.languages.length === 0)
+                return "no_languages";
+            if (window.screen && screen.width === 0 && screen.height === 0)
+                return "no_screen";
+            // Desktop Chrome always has window.chrome; Android WebViews and
+            // iOS browsers do not, so mobile user agents are left alone.
+            if (
+                /Chrome\//.test(ua) &&
+                !/Mobile|Android|CriOS/.test(ua) &&
+                !window.chrome
+            )
+                return "no_chrome_object";
+            if (/iPhone|Android.*Mobile/.test(ua) && navigator.maxTouchPoints === 0)
+                return "mobile_without_touch";
+            if (
+                (/Windows/.test(ua) && platform && !/^Win/.test(platform)) ||
+                (/Macintosh/.test(ua) && platform && !/^Mac/.test(platform))
+            )
+                return "platform_mismatch";
+        } catch (_) {}
         return null;
+    }
+    // Lets the server log the detection (without storing any analytics event),
+    // so that it shows up in the dashboard's bot report. Sent once per page.
+    var botReported = false;
+    function reportBot(reason) {
+        if (botReported || !siteId || !siteKey) return;
+        botReported = true;
+        var payload = JSON.stringify({
+            site_id: siteId,
+            site_key: siteKey,
+            name: "_ml_bot",
+            data: { reason: reason },
+        });
+        // fetch rather than sendBeacon: beacons are sent with credentials,
+        // which the tracking endpoint's CORS policy does not allow.
+        try {
+            if (typeof fetch === "function")
+                fetch(endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: payload,
+                    keepalive: true,
+                }).catch(function () {});
+        } catch (_) {}
     }
     function browserPrivacyReason() {
         if (navigator.globalPrivacyControl === true)
@@ -139,7 +244,53 @@
         });
         return out;
     }
+    var INTERACTION_EVENTS = [
+        "pointermove",
+        "pointerdown",
+        "keydown",
+        "wheel",
+        "scroll",
+        "touchstart",
+    ];
+    function onInteraction(e) {
+        if (interacted || !e.isTrusted) return;
+        interacted = true;
+        INTERACTION_EVENTS.forEach(function (type) {
+            removeEventListener(type, onInteraction, true);
+        });
+        reportDebug("First interaction detected, sending the held events.", {
+            pageview: !!pendingPageview,
+            events: pendingEvents.length,
+        });
+        var held = pendingEvents;
+        pendingEvents = [];
+        if (pendingPageview) {
+            var data = pendingPageview.data;
+            pendingPageview = null;
+            pageview(data);
+        }
+        held.forEach(function (event) {
+            send(event.name, event.data);
+        });
+    }
+    if (requireInteraction)
+        INTERACTION_EVENTS.forEach(function (type) {
+            addEventListener(type, onInteraction, {
+                capture: true,
+                passive: true,
+            });
+        });
     function send(name, data) {
+        if (requireInteraction && !interacted && siteId && siteKey) {
+            // Only the latest page view matters; other events are kept in order.
+            if (name === "pageview") pendingPageview = { data: data };
+            else if (pendingEvents.length < 20)
+                pendingEvents.push({ name: name, data: data });
+            reportDebug("Event held until the first user interaction.", {
+                event: name,
+            });
+            return false;
+        }
         if (!siteId || !siteKey) {
             if (!configurationReported) {
                 configurationReported = true;
@@ -168,6 +319,7 @@
         }
         var automatedReason = automatedBrowserReason();
         if (automatedReason) {
+            reportBot(automatedReason);
             reportDebug(
                 "Event was not sent because an automated browser was detected.",
                 {
@@ -352,6 +504,8 @@
         sessionId: sessionId,
         siteId: siteId,
     };
+    var automated = automatedBrowserReason();
+    if (automated && autoTrack) reportBot(automated);
     if (!autoTrack || optedOut()) return;
     if (document.readyState === "complete") pageview();
     else addEventListener("load", pageview, { once: true });

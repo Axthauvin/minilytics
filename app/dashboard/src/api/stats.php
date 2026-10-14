@@ -39,7 +39,7 @@ try {
             'devices' => $analytics->environment('device'),
         ],
         'countries' => $analytics->countries(),
-    ], JSON_UNESCAPED_SLASHES);
+    ] + (Auth::isGuest() ? [] : ['bots' => $analytics->botActivity()]), JSON_UNESCAPED_SLASHES);
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['error' => $e->getMessage()]);

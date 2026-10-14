@@ -28,9 +28,5 @@
 .acquisition-row strong { color:var(--text-secondary); font-size:12px; font-variant-numeric:tabular-nums; }
 .acquisition-empty { padding:20px 4px 8px; color:var(--text-muted); font-size:12px; text-align:center; }
 .acquisition-help { color:var(--text-muted); font-size:13px; margin:-4px 0 14px; }
-.bot-card { margin-top:4px; margin-bottom:20px; padding:18px; }
-.bot-list { display:flex; flex-direction:column; gap:0; }
-.bot-row { display:grid; grid-template-columns:180px minmax(0,1fr) 165px; gap:12px; align-items:center; padding:10px 0; border-top:1px solid var(--border); font-size:12px; }
-.bot-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-muted); }.bot-row time { color:var(--text-muted); text-align:right; }
 @media (max-width: 1050px) { .acquisition-grid--three { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media (max-width: 700px) { .acquisition-hero{align-items:flex-start;flex-direction:column}.acquisition-hero-note{white-space:normal}.acquisition-grid--three,.acquisition-grid--two{grid-template-columns:1fr}.acquisition-section-title{display:block}.acquisition-section-title p{margin-top:4px}.bot-row{grid-template-columns:1fr;gap:4px}.bot-row time{text-align:left} }
+@media (max-width: 700px) { .acquisition-hero{align-items:flex-start;flex-direction:column}.acquisition-hero-note{white-space:normal}.acquisition-grid--three,.acquisition-grid--two{grid-template-columns:1fr}.acquisition-section-title{display:block}.acquisition-section-title p{margin-top:4px} }

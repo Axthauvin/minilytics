@@ -135,9 +135,9 @@ final class SiteAnalytics
         return (new AcquisitionReport($this->query))->get();
     }
 
-    /** @see BotsReport::recent() */
+    /** @see BotsReport::summary() */
     public function botActivity(): array
     {
-        return (new BotsReport($this->query))->recent();
+        return (new BotsReport($this->query))->summary();
     }
 }

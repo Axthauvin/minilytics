@@ -7,6 +7,10 @@ namespace Minilytics\Tracking;
 /** Coarse browser, OS and device read from a User-Agent header. The raw header is never stored. */
 final class UserAgent
 {
+    /** Crawlers, link previews, monitoring tools, HTTP libraries and scraping frameworks. */
+    private const BOT_PATTERN = '/bot|crawler|spider|slurp|facebookexternalhit|preview|headless|lighthouse|pingdom|uptimerobot|curl|wget'
+        . '|python-requests|python-urllib|aiohttp|httpx|axios|node-fetch|got \(|undici|go-http-client|okhttp|java\/|apache-httpclient|libwww|httpclient|scrapy|postman|insomnia|phantomjs|puppeteer|playwright|selenium/i';
+
     public function __construct(public readonly string $value) {}
 
     /** Why the request looks automated, or null for a regular browser. */
@@ -15,7 +19,7 @@ final class UserAgent
         if ($this->value === '') {
             return 'missing_user_agent';
         }
-        return preg_match('/bot|crawler|spider|slurp|facebookexternalhit|preview|headless|lighthouse|pingdom|uptimerobot|curl|wget/i', $this->value) ? 'known_bot_user_agent' : null;
+        return preg_match(self::BOT_PATTERN, $this->value) ? 'known_bot_user_agent' : null;
     }
 
     public function browser(): string

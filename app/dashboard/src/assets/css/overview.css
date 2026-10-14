@@ -54,3 +54,26 @@
 .clean-pill-row.is-filtered { border-color: #c7d2fe; box-shadow: inset 3px 0 0 var(--primary); }
 .clean-pill-row.is-filtered .pill-progress-bg { background: #e0e7ff; }
 @media (hover: none) { .clean-pill-row.is-filterable .pill-actions { max-width: 64px; opacity: 1; } }
+
+/* Blocked bot traffic */
+.bot-card { margin-top:4px; margin-bottom:20px; padding:18px; }
+.bot-list { display:flex; flex-direction:column; gap:0; }
+.bot-card h4 { margin:18px 0 8px; font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; }
+.bot-kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.bot-kpi { min-width:0; padding:12px 14px; border:1px solid var(--border); border-radius:10px; background:var(--bg-surface); }
+.bot-kpi small { display:block; color:var(--text-muted); font-size:11px; font-weight:600; margin-bottom:6px; }
+.bot-kpi strong { display:block; font-size:20px; letter-spacing:-.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bot-kpi:nth-child(3) strong { font-size:14px; line-height:28px; }
+.bot-columns { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+.bot-bar { position:relative; display:flex; justify-content:space-between; gap:10px; align-items:center; padding:6px 8px; margin-bottom:4px; font-size:12px; border-radius:6px; overflow:hidden; }
+.bot-bar-fill { position:absolute; inset:0 auto 0 0; background:rgba(37,99,235,.12); border-radius:6px; }
+.bot-bar-label { position:relative; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bot-bar strong { position:relative; }
+@media (max-width: 900px) { .bot-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } .bot-columns { grid-template-columns:1fr; } }
+.bot-row { display:grid; grid-template-columns:180px minmax(0,1fr) 165px; gap:12px; align-items:center; padding:10px 0; border-top:1px solid var(--border); font-size:12px; }
+.bot-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-muted); }.bot-row time { color:var(--text-muted); text-align:right; }
+@media (max-width: 700px) { .bot-row { grid-template-columns:1fr; gap:4px; } .bot-row time { text-align:left; } }
+.bot-card { margin-top:20px; }
+.bot-latest-toggle { display:flex; align-items:center; gap:6px; margin-top:18px; padding:0; border:0; background:none; cursor:pointer; font:inherit; font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; }
+.bot-latest-toggle:hover { color:var(--text-primary); }
+.bot-list[hidden] { display:none; }

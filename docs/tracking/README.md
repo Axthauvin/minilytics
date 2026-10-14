@@ -36,6 +36,18 @@ Your events then appear on the **Events** page of the dashboard.
 
 ![The Events page, with the number of events and their trend over the week](../assets/events.png)
 
+## Visits from robots
+
+As with any analytics tool, you want to count only real visitors, not automated programs. Minilytics tries to ignore robots in two ways.
+
+- **Using the user agent:** Crawlers, link previews and scripts such as `curl` announce themselves in their user agent, and automated browsers give themselves away to the tracking script. Minilytics recognises both and ignores them.
+- **What the visitor does:** A real visitor moves the mouse, scrolls, touches the screen or presses a key. Minilytics only sends a page view after the first of these, so a program that merely loads a page is never counted.
+
+The visits that were ignored are listed at the bottom of the **Overview** page, with the reason why. Nothing about them is added to your statistics.
+Of course, thoses methods are not perfect and some robots can still be counted, we apologize for that and we are working on improving our detection methods. 
+
+If you prefer to count every page load anyway, add `data-require-interaction="false"` to the snippet.
+
 ## When nothing shows up
 
 First, check that your website's domain is listed in **Settings → Tracking → Allowed domains**. Minilytics ignores visits coming from any other domain.
