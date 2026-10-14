@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../../vendor/autoload.php';
 Auth::requireSiteAccess((string) ($_GET['site_id'] ?? ''));
 try {
     $analytics = SiteAnalytics::open($_GET['site_id'] ?? null, Period::fromRequest($_GET));
-    echo json_encode(['success' => true,'reports' => $analytics->acquisition(),'bots' => $analytics->botActivity()], JSON_UNESCAPED_SLASHES);
+    echo json_encode(['success' => true,'reports' => $analytics->acquisition()], JSON_UNESCAPED_SLASHES);
 } catch (Throwable $e) {
     http_response_code(400);
     echo json_encode(['error' => $e->getMessage()]);

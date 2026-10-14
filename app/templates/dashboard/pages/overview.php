@@ -212,6 +212,13 @@
             </ul>
         </div>
     </div>
+    <section class="data-table-card bot-card">
+        <div class="breakdown-card-header">
+            <div class="breakdown-header-title-group"><h3 class="breakdown-card-title">Blocked bots &amp; internal traffic</h3></div>
+            <span id="botCount" class="breakdown-card-sub">0 detections</span>
+        </div>
+        <div id="botsList"><span class="pill-muted">No detected bot traffic for this period.</span></div>
+    </section>
     </div> <!-- /#overviewDataContainer -->
 
     <!-- Empty / No Traffic State (Inside page-overview) -->
