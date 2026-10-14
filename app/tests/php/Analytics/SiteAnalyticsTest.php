@@ -17,6 +17,7 @@ final class SiteAnalyticsTest extends TestCase
     {
         $this->now = time();
         Connections::forSite('test_site')->exec('DELETE FROM user_activity');
+        Connections::forSite('test_site')->exec('DELETE FROM bot_activity');
     }
 
     public function testSummaryCountsVisitorsSessionsAndPageviews(): void
@@ -77,6 +78,22 @@ final class SiteAnalyticsTest extends TestCase
         $this->assertSame(66.7, $pages[0]['percentage']);
     }
 
+    public function testBotActivityIsSummarisedByReasonAndAgent(): void
+    {
+        $this->recordBot('known_bot_user_agent', 'Googlebot/2.1', 'ip-1', 3600);
+        $this->recordBot('known_bot_user_agent', 'Googlebot/2.1', 'ip-2', 1800);
+        $this->recordBot('webdriver', 'Mozilla/5.0', 'ip-1', 600);
+        $this->recordBot('webdriver', 'Old', 'ip-3', 10 * 86400);
+
+        $bots = $this->analytics('7d')->botActivity();
+
+        $this->assertSame(3, $bots['total']);
+        $this->assertSame(2, $bots['sources']);
+        $this->assertSame([['reason' => 'known_bot_user_agent', 'count' => 2], ['reason' => 'webdriver', 'count' => 1]], $bots['reasons']);
+        $this->assertSame(['user_agent' => 'Googlebot/2.1', 'count' => 2], $bots['agents'][0]);
+        $this->assertCount(3, $bots['recent']);
+    }
+
     private function analytics(string $range): SiteAnalytics
     {
         return SiteAnalytics::open('test_site', Period::from($range, now: $this->now));
@@ -89,6 +106,17 @@ final class SiteAnalyticsTest extends TestCase
         $stmt->bindValue(':session', $sessionId, SQLITE3_TEXT);
         $stmt->bindValue(':visitor', $visitorId, SQLITE3_TEXT);
         $stmt->bindValue(':action', (string) json_encode(['name' => $name, 'data' => $data]), SQLITE3_TEXT);
+        $stmt->bindValue(':timestamp', gmdate('Y-m-d H:i:s', $this->now - $secondsAgo), SQLITE3_TEXT);
+        $stmt->execute();
+    }
+
+    private function recordBot(string $reason, string $userAgent, string $ip, int $secondsAgo): void
+    {
+        $stmt = Connections::forSite('test_site')->prepare('INSERT INTO bot_activity (reason, user_agent, origin, ip_hash, timestamp) VALUES (:reason, :ua, :origin, :ip, :timestamp)');
+        $stmt->bindValue(':reason', $reason, SQLITE3_TEXT);
+        $stmt->bindValue(':ua', $userAgent, SQLITE3_TEXT);
+        $stmt->bindValue(':origin', 'example.com', SQLITE3_TEXT);
+        $stmt->bindValue(':ip', $ip, SQLITE3_TEXT);
         $stmt->bindValue(':timestamp', gmdate('Y-m-d H:i:s', $this->now - $secondsAgo), SQLITE3_TEXT);
         $stmt->execute();
     }
