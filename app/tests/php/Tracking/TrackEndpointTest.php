@@ -191,6 +191,15 @@ final class TrackEndpointTest extends TestCase
         $this->assertSame(1, (int) Connections::forSite('test_site')->querySingle('SELECT COUNT(*) FROM bot_activity'));
     }
 
+    public function testBrowsersReportingAutomationAreLoggedAsBots(): void
+    {
+        $response = $this->track($this->event(['name' => '_ml_bot', 'data' => ['reason' => 'webdriver']]));
+
+        $this->assertSame(['ignored' => 'bot'], $response['body']);
+        $this->assertSame([], $this->storedEvents());
+        $this->assertSame('client:webdriver', Connections::forSite('test_site')->querySingle('SELECT reason FROM bot_activity'));
+    }
+
     public function testInternalTrafficIsIgnored(): void
     {
         SiteRegistry::update('test_site', ['internal_ips' => ['127.0.0.1']]);
