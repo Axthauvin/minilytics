@@ -44,8 +44,8 @@ final class AnalyticsTools
             self::report(
                 'get_overview',
                 'Traffic overview',
-                'Visitors, visits, pageviews, events, bounce rate (%), average visit duration (seconds) and visitors active in the last 5 minutes. Deltas compare with the previous period of the same length.',
-                static fn(SiteAnalytics $analytics): array => ['summary' => $analytics->summary()],
+                'Visitors, visits, pageviews, events, bounce rate (%), average visit duration (seconds) and visitors active in the last 5 minutes. A visit ends after 30 minutes without activity, so one visitor can have several visits. Each metric comes with the value of the previous period of the same length, the absolute change and the change in percent (null when there is no previous value to compare with).',
+                static fn(SiteAnalytics $analytics): array => ['summary' => self::overview($analytics->summary())],
             ),
             self::report(
                 'get_timeseries',
@@ -227,6 +227,34 @@ final class AnalyticsTools
     {
         $value = $args[$key] ?? null;
         return is_string($value) && trim($value) !== '' ? trim($value) : null;
+    }
+
+    /**
+     * Reshapes the summary for an assistant: plain numbers, visits only, and for
+     * every metric its previous value, its absolute change and its change in percent.
+     */
+    private static function overview(array $summary): array
+    {
+        $current = [
+            'visitors' => $summary['visitors'],
+            'visits' => $summary['sessions'],
+            'pageviews' => $summary['pageviews'],
+            'events' => $summary['events'],
+            'bounce_rate' => $summary['bounce_rate'],
+            'avg_duration_seconds' => $summary['avg_duration_seconds'],
+        ];
+        $previous = $summary['previous'] === null ? null : ['visits' => $summary['previous']['sessions']] + $summary['previous'];
+
+        $metrics = [];
+        foreach ($current as $name => $value) {
+            $before = $previous[$name] ?? null;
+            $metrics[$name] = ['value' => $value, 'previous' => $before];
+            if ($before !== null) {
+                $metrics[$name]['change'] = round($value - $before, 1);
+                $metrics[$name]['change_percent'] = $before == 0 ? null : round(($value - $before) / $before * 100, 1);
+            }
+        }
+        return $metrics + ['live_visitors' => ['value' => $summary['live_visitors']]];
     }
 
     /** Conversion through ad-hoc or saved funnel steps; the saved funnels when neither is given. */

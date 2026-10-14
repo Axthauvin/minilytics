@@ -177,13 +177,18 @@ test('MCP tools return the site analytics', { skip: !hasPhp }, async () => {
   const overview = await callTool('get_overview', { site_id: 'private_site', range: '30d' });
   assert.equal(overview.data.site_id, 'private_site');
   assert.equal(overview.data.period.range, '30d');
-  assert.equal(overview.data.summary.visitors, 1);
+  assert.equal(overview.data.summary.visitors.value, 1);
+  assert.equal(overview.data.summary.visitors.previous, 0);
+  assert.equal(overview.data.summary.visitors.change, 1);
+  assert.equal(overview.data.summary.visitors.change_percent, null);
+  assert.equal(overview.data.summary.sessions, undefined);
+  assert.equal(overview.data.summary.session_count, undefined);
 
   const pages = await callTool('get_top_pages', { site_id: 'private_site', limit: 5, filters: { page: ['/pricing'] } });
   assert.equal(pages.data.pages[0].path, '/pricing');
 
   const filteredOut = await callTool('get_overview', { site_id: 'private_site', filters: { page: ['/nowhere'] } });
-  assert.equal(filteredOut.data.summary.visitors, 0);
+  assert.equal(filteredOut.data.summary.visitors.value, 0);
 
   const devices = await callTool('get_environment', { site_id: 'private_site', dimension: 'device' });
   assert.equal(devices.data.dimension, 'device');
@@ -238,7 +243,7 @@ test('MCP computes funnels from steps or saved funnels', { skip: !hasPhp }, asyn
 
 test('MCP filters visits by the events they triggered', { skip: !hasPhp }, async () => {
   const converted = await callTool('get_overview', { site_id: 'private_site', filters: { event: ['Signup'] } });
-  assert.equal(converted.data.summary.sessions, 1);
+  assert.equal(converted.data.summary.visits.value, 1);
 
   const failed = await callTool('get_top_pages', { site_id: 'private_site', filters: { event: ['Upload Error'] } });
   assert.deepEqual(failed.data.pages.map((page) => page.path).sort(), ['/blog/first-post', '/pricing']);
