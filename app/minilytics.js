@@ -96,6 +96,35 @@
             if (document.documentElement.getAttribute(DRIVER_ATTRIBUTES[i]))
                 return DRIVER_ATTRIBUTES[i];
         }
+        return inconsistentBrowserReason();
+    }
+    // Properties a real browser always agrees on, and that headless or
+    // spoofed browsers often get wrong. Each check only fires on a clear
+    // contradiction, since a false positive hides a real visitor.
+    function inconsistentBrowserReason() {
+        try {
+            var ua = navigator.userAgent || "";
+            var platform = navigator.platform || "";
+            if (navigator.languages && navigator.languages.length === 0)
+                return "no_languages";
+            if (window.screen && screen.width === 0 && screen.height === 0)
+                return "no_screen";
+            // Desktop Chrome always has window.chrome; Android WebViews and
+            // iOS browsers do not, so mobile user agents are left alone.
+            if (
+                /Chrome\//.test(ua) &&
+                !/Mobile|Android|CriOS/.test(ua) &&
+                !window.chrome
+            )
+                return "no_chrome_object";
+            if (/iPhone|Android.*Mobile/.test(ua) && navigator.maxTouchPoints === 0)
+                return "mobile_without_touch";
+            if (
+                (/Windows/.test(ua) && platform && !/^Win/.test(platform)) ||
+                (/Macintosh/.test(ua) && platform && !/^Mac/.test(platform))
+            )
+                return "platform_mismatch";
+        } catch (_) {}
         return null;
     }
     // Lets the server log the detection (without storing any analytics event),
