@@ -159,7 +159,7 @@ test('an approved assistant reads the analytics with its token', { skip: !hasPhp
   assert.ok(tokens.refresh_token);
   const { status, body } = await mcp(tokens.access_token, 'tools/call', { name: 'get_overview', arguments: { site_id: 'private_site' } });
   assert.equal(status, 200);
-  assert.equal(JSON.parse(body.result.content[0].text).summary.visitors, 1);
+  assert.equal(JSON.parse(body.result.content[0].text).summary.visitors.value, 1);
 });
 
 test('the authorization response carries state and iss', { skip: !hasPhp }, async () => {

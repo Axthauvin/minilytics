@@ -23,7 +23,7 @@ final class SummaryReport
         return (int) ($rows[0]['visitors'] ?? 0);
     }
 
-    /** Headline numbers for the period, with deltas against the previous period of identical length. */
+    /** Headline numbers for the period, with deltas and raw values of the previous period of identical length (null for all time). */
     public function get(): array
     {
         if ($this->result !== null) {
@@ -41,6 +41,7 @@ final class SummaryReport
         $bounceRate = $sessions > 0 ? round((float) ($visits['bounce_rate'] ?? 0), 1) : 0.0;
 
         $deltas = ['visitors' => null, 'sessions' => null, 'pageviews' => null, 'bounce_rate' => null, 'duration' => null];
+        $previous = null;
         if (!$this->query->period->isAll()) {
             $previousStart = gmdate('Y-m-d H:i:s', $this->query->period->previousStart());
             $previousTotals = $this->totals($previousStart, $start, '<');
@@ -48,6 +49,14 @@ final class SummaryReport
             $previousSessions = (int) ($previousVisits['total_sessions'] ?? 0);
             $previousBounceRate = $previousSessions > 0 ? round((float) ($previousVisits['bounce_rate'] ?? 0), 1) : 0.0;
             $previousDuration = round((float) ($previousVisits['avg_duration'] ?? 0), 1);
+            $previous = [
+                'visitors' => (int) ($previousTotals['visitors'] ?? 0),
+                'sessions' => $previousSessions,
+                'pageviews' => (int) ($previousTotals['pageviews'] ?? 0),
+                'events' => (int) ($previousTotals['total_events'] ?? 0),
+                'bounce_rate' => $previousBounceRate,
+                'avg_duration_seconds' => $previousDuration,
+            ];
             $deltas = [
                 'visitors' => self::formatDiff($visitors - (int) ($previousTotals['visitors'] ?? 0)),
                 'sessions' => self::formatDiff($sessions - $previousSessions),
@@ -67,6 +76,7 @@ final class SummaryReport
             'avg_duration_seconds' => $avgDuration,
             'live_visitors' => $this->liveVisitors(),
             'deltas' => $deltas,
+            'previous' => $previous,
         ];
     }
 
