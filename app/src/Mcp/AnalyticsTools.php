@@ -229,7 +229,6 @@ final class AnalyticsTools
         return is_string($value) && trim($value) !== '' ? trim($value) : null;
     }
 
-    /** Conversion through ad-hoc or saved funnel steps; the saved funnels when neither is given. */
     /**
      * Reshapes the summary for an assistant: plain numbers, visits only, and for
      * every metric its previous value, its absolute change and its change in percent.
@@ -258,6 +257,7 @@ final class AnalyticsTools
         return $metrics + ['live_visitors' => ['value' => $summary['live_visitors']]];
     }
 
+    /** Conversion through ad-hoc or saved funnel steps; the saved funnels when neither is given. */
     private static function funnel(SiteAnalytics $analytics, array $args): array
     {
         $saved = $analytics->savedFunnels();
