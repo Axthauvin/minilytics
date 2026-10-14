@@ -21,7 +21,6 @@ final class BotsReport
      *     reasons: list<array{reason: string, count: int}>,
      *     agents: list<array{user_agent: string, count: int}>,
      *     origins: list<array{origin: string, count: int}>,
-     *     daily: list<array{day: string, count: int}>,
      *     recent: list<array<string, mixed>>
      * }
      */
@@ -34,10 +33,6 @@ final class BotsReport
             'reasons' => $this->top('reason'),
             'agents' => $this->top('user_agent'),
             'origins' => $this->top('origin'),
-            'daily' => array_map(
-                static fn(array $row): array => ['day' => (string) $row['day'], 'count' => (int) $row['count']],
-                $this->rows('SELECT DATE(timestamp) AS day, COUNT(*) AS count FROM bot_activity WHERE timestamp BETWEEN :start AND :end GROUP BY DATE(timestamp) ORDER BY day'),
-            ),
             'recent' => $this->recent(),
         ];
     }

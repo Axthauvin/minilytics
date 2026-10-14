@@ -59,14 +59,11 @@
 .bot-card { margin-top:4px; margin-bottom:20px; padding:18px; }
 .bot-list { display:flex; flex-direction:column; gap:0; }
 .bot-card h4 { margin:18px 0 8px; font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; }
-.bot-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.bot-kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
 .bot-kpi { min-width:0; padding:12px 14px; border:1px solid var(--border); border-radius:10px; background:var(--bg-surface); }
 .bot-kpi small { display:block; color:var(--text-muted); font-size:11px; font-weight:600; margin-bottom:6px; }
 .bot-kpi strong { display:block; font-size:20px; letter-spacing:-.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .bot-kpi:nth-child(3) strong { font-size:14px; line-height:28px; }
-.bot-kpi--chart { color:#2563eb; }
-.bot-spark { display:flex; align-items:flex-end; gap:3px; height:28px; }
-.bot-spark i { flex:1; max-width:18px; min-width:3px; background:currentColor; border-radius:2px 2px 0 0; opacity:.8; }
 .bot-columns { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
 .bot-bar { position:relative; display:flex; justify-content:space-between; gap:10px; align-items:center; padding:6px 8px; margin-bottom:4px; font-size:12px; border-radius:6px; overflow:hidden; }
 .bot-bar-fill { position:absolute; inset:0 auto 0 0; background:rgba(37,99,235,.12); border-radius:6px; }
@@ -77,5 +74,6 @@
 .bot-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-muted); }.bot-row time { color:var(--text-muted); text-align:right; }
 @media (max-width: 700px) { .bot-row { grid-template-columns:1fr; gap:4px; } .bot-row time { text-align:left; } }
 .bot-card { margin-top:20px; }
-.bot-latest { margin-top:18px; }
-.bot-latest summary { cursor:pointer; font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; font-weight:600; }
+.bot-latest-toggle { display:flex; align-items:center; gap:6px; margin-top:18px; padding:0; border:0; background:none; cursor:pointer; font:inherit; font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; }
+.bot-latest-toggle:hover { color:var(--text-primary); }
+.bot-list[hidden] { display:none; }

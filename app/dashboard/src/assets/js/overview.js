@@ -525,9 +525,13 @@ const OverviewPage = {
     const top=Math.max(1,...rows.map(r=>r.count));
     return rows.length?rows.map(r=>`<div class="bot-bar"><div class="bot-bar-fill" style="width:${Math.round(r.count/top*100)}%"></div><span class="bot-bar-label" title="${this.escapeHtml(r[key])}">${this.escapeHtml(label?label(r[key]):r[key])}</span><strong>${r.count}</strong></div>`).join(''):'<span class="pill-muted">No data</span>';
   },
-  sparkline(daily) {
-    const top=Math.max(1,...daily.map(d=>d.count));
-    return `<div class="bot-spark" role="img" aria-label="Bot requests per day">${daily.map(d=>`<i title="${this.escapeHtml(d.day)}: ${d.count}" style="height:${Math.max(8,Math.round(d.count/top*100))}%"></i>`).join('')}</div>`;
+  toggleBotRequests(button) {
+    const open = button.getAttribute("aria-expanded") !== "true";
+    button.setAttribute("aria-expanded", String(open));
+    button.querySelector("svg")?.replaceWith(
+      new DOMParser().parseFromString(Icons.get(open ? "chevron-down" : "chevron-right", { size: 14 }), "text/html").body.firstChild,
+    );
+    button.nextElementSibling.hidden = !open;
   },
   renderBots(bots) {
     const card=document.querySelector('.bot-card'); if(card) card.hidden=!bots;
@@ -537,9 +541,10 @@ const OverviewPage = {
     const panel=document.getElementById('botsList');
     if(!total){ panel.innerHTML='<span class="pill-muted">No detected bot traffic for this period.</span>'; return; }
     const top=(bots.reasons||[])[0];
-    panel.innerHTML=`<div class="bot-kpis"><div class="bot-kpi"><small>Blocked requests</small><strong>${total}</strong></div><div class="bot-kpi"><small>Distinct sources</small><strong>${bots.sources||0}</strong></div><div class="bot-kpi"><small>Main reason</small><strong>${top?this.escapeHtml(this.reasonLabel(top.reason)):'-'}</strong></div><div class="bot-kpi bot-kpi--chart"><small>Per day</small>${this.sparkline(bots.daily||[])}</div></div>
+    panel.innerHTML=`<div class="bot-kpis"><div class="bot-kpi"><small>Blocked requests</small><strong>${total}</strong></div><div class="bot-kpi"><small>Distinct sources</small><strong>${bots.sources||0}</strong></div><div class="bot-kpi"><small>Main reason</small><strong>${top?this.escapeHtml(this.reasonLabel(top.reason)):'-'}</strong></div></div>
       <div class="bot-columns"><div><h4>Why they were blocked</h4>${this.bars(bots.reasons||[],'reason',r=>this.reasonLabel(r))}</div><div><h4>Top user agents</h4>${this.bars(bots.agents||[],'user_agent')}</div><div><h4>Targeted websites</h4>${this.bars(bots.origins||[],'origin')}</div></div>
-      <details class="bot-latest"><summary>Latest requests</summary><div class="bot-list">${recent.map(b=>`<div class="bot-row"><strong>${this.escapeHtml(this.reasonLabel(b.reason))}</strong><span title="${this.escapeHtml(b.user_agent||'')}">${this.escapeHtml(b.user_agent||'Unknown agent')}</span><time>${this.escapeHtml(b.timestamp)}</time></div>`).join('')}</div></details>`;
+      <button type="button" class="bot-latest-toggle" aria-expanded="false">${Icons.get("chevron-right",{size:14})}<span>Latest requests</span></button><div class="bot-list" hidden>${recent.map(b=>`<div class="bot-row"><strong>${this.escapeHtml(this.reasonLabel(b.reason))}</strong><span title="${this.escapeHtml(b.user_agent||'')}">${this.escapeHtml(b.user_agent||'Unknown agent')}</span><time>${this.escapeHtml(b.timestamp)}</time></div>`).join('')}</div>`;
+    panel.querySelector('.bot-latest-toggle').addEventListener('click', e => this.toggleBotRequests(e.currentTarget));
   },
 
   renderCountries() {
