@@ -92,8 +92,9 @@
             if (String(window.external).indexOf("Sequentum") !== -1)
                 return "Sequentum";
         } catch (_) {}
-        for (i = 0; i < DRIVER_ATTRIBUTES.length; i++) {
-            if (document.documentElement.getAttribute(DRIVER_ATTRIBUTES[i]))
+        var root = document.documentElement;
+        for (i = 0; root && i < DRIVER_ATTRIBUTES.length; i++) {
+            if (root.getAttribute(DRIVER_ATTRIBUTES[i]))
                 return DRIVER_ATTRIBUTES[i];
         }
         return inconsistentBrowserReason();

@@ -20,6 +20,7 @@ function storage() {
 function loadTracker(options = {}) {
     const beacons = [];
     const errors = [];
+    const listeners = {};
     const script = {
         src: "http://localhost:8080/minilytics.js",
         getAttribute(name) {
@@ -27,6 +28,8 @@ function loadTracker(options = {}) {
                 {
                     "data-site-id": "demo",
                     "data-site-key": "test-write-key",
+                    // Most tests are about what is sent, not when.
+                    "data-require-interaction": "false",
                     ...options.attributes,
                 }[name] ?? null
             );
@@ -68,13 +71,24 @@ function loadTracker(options = {}) {
         localStorage: storage(),
         sessionStorage: storage(),
         history: { pushState() {}, replaceState() {} },
-        addEventListener() {},
+        addEventListener(type, listener) {
+            (listeners[type] ||= []).push(listener);
+        },
+        removeEventListener(type, listener) {
+            listeners[type] = (listeners[type] || []).filter(
+                (item) => item !== listener,
+            );
+        },
         setTimeout() {},
         fetch: options.fetch,
     };
     context.window = context;
     vm.runInNewContext(tracker, context, { filename: "minilytics.js" });
-    return { beacons, context, errors };
+    const interact = (type = "pointermove", isTrusted = true) =>
+        [...(listeners[type] || [])].forEach((listener) =>
+            listener({ type, isTrusted }),
+        );
+    return { beacons, context, errors, interact };
 }
 
 async function payload(body) {
@@ -235,4 +249,97 @@ test("automated browser with navigator.webdriver is ignored", () => {
         event: "bot_event",
         reason: "webdriver",
     });
+});
+
+test("page views and events wait for the first trusted interaction", async () => {
+    const { beacons, context, interact } = loadTracker({
+        attributes: { "data-require-interaction": "true" },
+    });
+    context.minilytics.track("signup", { plan: "pro" });
+    assert.equal(beacons.length, 0);
+
+    interact("keydown", false);
+    assert.equal(beacons.length, 0, "synthetic events do not count");
+
+    interact("pointermove");
+    assert.equal(beacons.length, 2);
+    assert.deepEqual(
+        [(await payload(beacons[0].body)).name, (await payload(beacons[1].body)).name],
+        ["pageview", "signup"],
+    );
+
+    interact("scroll");
+    assert.equal(beacons.length, 2, "only the first interaction flushes");
+});
+
+test("a detected automated browser is reported to the server", async () => {
+    const requests = [];
+    const { beacons } = loadTracker({
+        navigator: { webdriver: true },
+        fetch: (endpoint, init) => {
+            requests.push({ endpoint, init });
+            return Promise.resolve({ ok: true });
+        },
+    });
+
+    assert.equal(beacons.length, 0);
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].endpoint, "http://localhost:8080/track.php");
+    assert.deepEqual(JSON.parse(requests[0].init.body), {
+        site_id: "demo",
+        site_key: "test-write-key",
+        name: "_ml_bot",
+        data: { reason: "webdriver" },
+    });
+});
+
+for (const [name, reason, navigator] of [
+    ["no languages", "no_languages", { languages: [] }],
+    [
+        "a desktop Chrome without window.chrome",
+        "no_chrome_object",
+        { userAgent: "Mozilla/5.0 (X11; Linux x86_64) Chrome/152.0.0.0 Safari/537.36" },
+    ],
+    [
+        "a mobile user agent without touch",
+        "mobile_without_touch",
+        { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4)", maxTouchPoints: 0 },
+    ],
+    [
+        "a Windows user agent on another platform",
+        "platform_mismatch",
+        { userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", platform: "Linux x86_64" },
+    ],
+]) {
+    test(`a browser with ${name} is reported as inconsistent`, () => {
+        const requests = [];
+        const { beacons } = loadTracker({
+            navigator,
+            fetch: (endpoint, init) => {
+                requests.push(JSON.parse(init.body));
+                return Promise.resolve({ ok: true });
+            },
+        });
+
+        assert.equal(beacons.length, 0);
+        assert.equal(requests[0].data.reason, reason);
+    });
+}
+
+test("a regular browser is not reported", () => {
+    const names = [];
+    loadTracker({
+        navigator: {
+            languages: ["en-US"],
+            platform: "Linux x86_64",
+            userAgent: "Mozilla/5.0 (X11; Linux x86_64) Gecko/20100101 Firefox/130.0",
+            maxTouchPoints: 0,
+        },
+        fetch: (endpoint, init) => {
+            names.push(JSON.parse(init.body).name);
+            return Promise.resolve({ ok: true });
+        },
+    });
+
+    assert.deepEqual(names, ["pageview"]);
 });
