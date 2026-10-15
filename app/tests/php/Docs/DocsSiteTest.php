@@ -91,7 +91,7 @@ final class DocsSiteTest extends TestCase
 
     public function testBuildsEveryPage(): void
     {
-        foreach (['', 'tracking/', 'privacy/', 'operations/', 'importing/', 'mcp/'] as $page) {
+        foreach (['', 'tracking/', 'privacy/', 'operations/', 'importing/', 'importing/umami/', 'importing/matomo/', 'mcp/'] as $page) {
             $this->assertFileExists(self::$site . '/' . $page . 'index.html');
         }
         $this->assertFileExists(self::$site . '/_static/search-index.js');

@@ -30,7 +30,8 @@ function docs_page(array $page, array $pages, ?array $previous, ?array $next, ar
             $group = $item['group'];
         }
         $current = $item['slug'] === $page['slug'];
-        $nav .= '<a href="' . $e($item['url']) . '"' . ($current ? ' class="is-active" aria-current="page"' : '') . '>' . $e($item['slug'] === '' ? 'Introduction' : $item['title']) . '</a>';
+        $classes = trim((str_contains($item['slug'], '/') ? 'nav-sub ' : '') . ($current ? 'is-active' : ''));
+        $nav .= '<a href="' . $e($item['url']) . '"' . ($classes !== '' ? ' class="' . $classes . '"' : '') . ($current ? ' aria-current="page"' : '') . '>' . $e($item['slug'] === '' ? 'Introduction' : $item['title']) . '</a>';
     }
     $nav .= '</div>';
 

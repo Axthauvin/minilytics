@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Minilytics\Auth\Auth;
 use Minilytics\Importers\ImporterRegistry;
+use Minilytics\Sites\SiteRegistry;
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -64,7 +65,10 @@ try {
 
         if (method_exists($importer, 'inspect')) {
             $info = $importer->inspect($sourcePath);
-            echo json_encode(array_merge(['success' => true], $info), JSON_UNESCAPED_SLASHES);
+            echo json_encode(array_merge(['success' => true], $info, [
+                'default_retention_days' => SiteRegistry::DEFAULT_RETENTION_DAYS,
+                'max_retention_days' => SiteRegistry::MAX_RETENTION_DAYS,
+            ]), JSON_UNESCAPED_SLASHES);
             exit;
         }
 
@@ -162,10 +166,11 @@ try {
             $siteId = 'imported_site';
         }
 
-        $result = $importer->import($sourcePath, $siteId, [
-            'name' => $siteName,
-            'domain' => $siteDomain,
-        ]);
+        $importOptions = ['name' => $siteName, 'domain' => $siteDomain];
+        if (isset($_POST['retention_days']) && is_numeric($_POST['retention_days'])) {
+            $importOptions['retention_days'] = (int) $_POST['retention_days'];
+        }
+        $result = $importer->import($sourcePath, $siteId, $importOptions);
 
         echo json_encode($result, JSON_UNESCAPED_SLASHES);
         exit;

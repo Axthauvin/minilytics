@@ -8,6 +8,7 @@
 
 use Minilytics\Auth\Csrf;
 use Minilytics\Http\Asset;
+use Minilytics\Http\Docs;
 use Minilytics\Http\View;
 
 ?>
@@ -27,7 +28,7 @@ use Minilytics\Http\View;
     <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/dashboard.css') ?>">
     <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/overview.css') ?>">
     <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/acquisition.css') ?>">
-    <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/import.css') ?>">
+    <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/site-setup.css') ?>">
     <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/settings.css') ?>">
     <link rel="stylesheet" href="<?= Asset::url('/dashboard/src/assets/css/funnels.css') ?>">
     <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png">
@@ -80,7 +81,7 @@ use Minilytics\Http\View;
             <!-- Shown by App.checkServerConfig() when the .htaccess rules are not applied -->
             <div class="server-config-banner" id="serverConfigWarning" role="alert" hidden>
                 <span><strong>Your web server is not applying the Minilytics access rules:</strong> application files such as <code>composer.json</code> are publicly readable.</span>
-                <a href="https://github.com/axthauvin/minilytics/blob/main/docs/operations/README.md#web-server-configuration" target="_blank" rel="noopener">Nginx &amp; Caddy setup ↗</a>
+                <a href="<?= Docs::url('operations', 'web-server-configuration') ?>" target="_blank" rel="noopener">Nginx &amp; Caddy setup ↗</a>
             </div>
             <?php endif; ?>
             <?php if (!$isGuest): ?>
@@ -118,7 +119,6 @@ use Minilytics\Http\View;
     <?php include View::path('dashboard/modals/payload'); ?>
     <?php include View::path('dashboard/modals/session-detail'); ?>
     <?php include View::path('dashboard/modals/add-site'); ?>
-    <?php include View::path('dashboard/modals/import'); ?>
 
     <!-- Lucide Icons & Icon Helper -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -130,7 +130,7 @@ use Minilytics\Http\View;
     <script src="<?= Asset::url('/dashboard/src/assets/js/calendar-picker.js') ?>"></script>
     <script src="<?= Asset::url('/dashboard/src/assets/js/chart.js') ?>"></script>
     <script src="<?= Asset::url('/dashboard/src/assets/js/websites.js') ?>"></script>
-    <script src="<?= Asset::url('/dashboard/src/assets/js/import.js') ?>"></script>
+    <script src="<?= Asset::url('/dashboard/src/assets/js/site-setup.js') ?>"></script>
     <script src="<?= Asset::url('/dashboard/src/assets/js/overview.js') ?>"></script>
     <script src="<?= Asset::url('/dashboard/src/assets/js/acquisition.js') ?>"></script>
     <script src="<?= Asset::url('/dashboard/src/assets/js/events.js') ?>"></script>
