@@ -6,6 +6,7 @@ namespace Minilytics\OAuth;
 
 use Minilytics\Auth\AuthDatabase;
 use Minilytics\Auth\BearerTokens;
+use Minilytics\Http\Docs;
 use SQLite3;
 
 /**
@@ -59,7 +60,7 @@ final class OAuthServer
             'scopes_supported' => [self::SCOPE],
             'bearer_methods_supported' => ['header'],
             'resource_name' => 'Minilytics',
-            'resource_documentation' => 'https://github.com/axthauvin/minilytics/tree/main/docs/mcp',
+            'resource_documentation' => Docs::url('mcp'),
         ];
     }
 
@@ -78,7 +79,7 @@ final class OAuthServer
             'token_endpoint_auth_methods_supported' => ['none'],
             'scopes_supported' => [self::SCOPE, 'offline_access'],
             'authorization_response_iss_parameter_supported' => true,
-            'service_documentation' => 'https://github.com/axthauvin/minilytics/tree/main/docs/mcp',
+            'service_documentation' => Docs::url('mcp'),
         ];
     }
 
