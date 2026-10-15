@@ -25,9 +25,11 @@
         </aside>
 
         <section id="funnelWorkspace" class="funnel-workspace">
-            <div class="funnel-page-loader" role="status" aria-live="polite">
-                <span class="funnel-loader-ring" aria-hidden="true"></span>
-                <span>Loading funnels…</span>
+            <div class="analysis-card">
+                <div class="funnel-page-loader" role="status" aria-live="polite">
+                    <span class="funnel-loader-ring" aria-hidden="true"></span>
+                    <span>Loading funnels…</span>
+                </div>
             </div>
         </section>
     </div>
@@ -43,6 +45,7 @@
             <input id="funnelName" class="funnel-name-input" maxlength="80" placeholder="e.g. Checkout completion">
             <div class="funnel-builder-steps-head"><span id="builderStepsLabel">Steps</span></div>
             <div id="funnelBuilderSteps" class="funnel-builder-steps"></div>
+            <div id="funnelDuplicateNotice" class="funnel-duplicate-notice" role="status" hidden></div>
             <div class="funnel-builder-footer"><button id="btnCancelFunnel" type="button" class="btn-secondary-funnel">Cancel</button><button id="btnSaveFunnel" type="button" class="btn-funnel-create">Save funnel</button></div>
         </div>
     </div>
