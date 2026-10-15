@@ -14,7 +14,7 @@
 Minilytics is a lightweight, privacy-friendly web analytics tool written in PHP. Most analytics tools need Node.js, Docker or a separate database server. **Minilytics doesn't**.
 
 - **Runs on a cheap Apache hosting plan, no VPS needed.** It stores data in SQLite by default, and MySQL and MariaDB are also supported. Installation takes [three steps](#production-installation). Just upload the archive and you are done.
-- **Bring your history with you.** You can import your [Umami](docs/importing/README.md) data from the dashboard or the command line. Importers for Google Analytics, Plausible, Matomo and Simple Analytics are planned.
+- **Bring your history with you.** You can import your [Umami and Matomo](docs/importing/README.md) data from the dashboard or the command line. Importers for Google Analytics, Plausible and Simple Analytics are planned.
 
 ![Screenshot of the Minilytics dashboard](docs/assets/dashboard.png)
 

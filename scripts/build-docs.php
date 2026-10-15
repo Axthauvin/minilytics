@@ -27,6 +27,8 @@ $pages = [
     'privacy' => ['Getting started', 'privacy/README.md'],
     'operations' => ['Running Minilytics', 'operations/README.md'],
     'importing' => ['Running Minilytics', 'importing/README.md'],
+    'importing/umami' => ['Running Minilytics', 'importing/umami.md'],
+    'importing/matomo' => ['Running Minilytics', 'importing/matomo.md'],
     'mcp' => ['Running Minilytics', 'mcp/README.md'],
 ];
 $slugByFile = array_flip(array_map(static fn(array $page): string => $page[1], $pages));
@@ -84,6 +86,10 @@ foreach ($pages as $slug => [$group, $file]) {
 // The home page lists the guides with the descriptions from docs/README.md.
 $guides = [];
 foreach (array_slice($rendered, 1) as $page) {
+    // Sub-pages, such as one guide per import source, are reached from their parent page.
+    if (str_contains($page['slug'], '/')) {
+        continue;
+    }
     preg_match('/\[[^\]]+\]\(' . preg_quote($page['slug'], '/') . '\/README\.md\)[.:]\s*(.+)$/m', (string) file_get_contents($source . '/README.md'), $match);
     $guides[] = $page + ['summary' => ucfirst(trim($match[1] ?? $page['description']))];
 }
