@@ -28,9 +28,14 @@ const FunnelsPage = {
       const item = event.target.closest("[data-id]");
       if (item) this.scrollToAnalysis(+item.dataset.id);
     });
-    // One stable listener for the dynamically rendered search inputs.
-    document.getElementById("funnelBuilderSteps")?.addEventListener("input", (event) => {
-      if (event.target.matches("[data-value]")) this.filterSearchResults(event.target);
+    document.getElementById("funnelDuplicateNotice")?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-open-duplicate]");
+      if (!button) return;
+      this.closeBuilder();
+      this.scrollToAnalysis(+button.dataset.openDuplicate);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && document.getElementById("funnelBuilder")?.classList.contains("open")) this.closeBuilder();
     });
     document
       .getElementById("btnCloseFunnelBuilder")
@@ -208,7 +213,7 @@ const FunnelsPage = {
     document.getElementById("builderTitle").textContent = funnel
       ? `Edit ${labels.singular.toLowerCase()}`
       : `Create ${labels.article}`;
-    document.querySelector(".funnel-builder-help").textContent = this.activeKind === "goal" ? "Choose the one page view or event that marks success." : this.activeKind === "journey" ? "Choose an entry and an exit. We will reveal the paths visitors actually took between them." : "Add the actions visitors should take, in order. You can use page views or any event already recorded.";
+    document.querySelector(".funnel-builder-help").textContent = this.activeKind === "goal" ? "Choose the one page view or event that marks success." : this.activeKind === "journey" ? "Choose an entry and an exit. We will reveal the paths visitors actually took between them." : "Add the actions visitors should take, in order. Each step can be a page or an event, just search for it.";
     document.getElementById("builderStepsLabel").textContent = this.activeKind === "goal" ? "Goal condition" : this.activeKind === "journey" ? "Entry and exit" : "Steps";
     document.getElementById("btnSaveFunnel").textContent = `Save ${labels.singular.toLowerCase()}`;
     this.renderBuilderSteps();
@@ -217,81 +222,159 @@ const FunnelsPage = {
   closeBuilder() {
     document.getElementById("funnelBuilder").classList.remove("open");
   },
-  suggestions(type) {
-    const values =
-      type === "pageview" ? this.data?.pages || [] : this.data?.events || [];
-    const options = values
-      .map((value) => `<button class="builder-search-option builder-search-option--${type}" data-option="${this.esc(value)}" type="button"><span class="builder-search-option-mark"></span>${this.esc(value)}</button>`)
-      .join("");
-    const source = type === "pageview" ? "Pages" : "Events";
-    return `<span class="builder-search-group" data-search-heading="${source}">${source} · ${values.length}</span>${options}<span class="builder-search-empty" data-search-empty hidden>No matching items</span>`;
+  typeLabel(type) {
+    return type === "event" ? "Event" : "Page";
+  },
+  /** Options matching the query, pages and events together, so no type has to be chosen first. */
+  searchOptions(query) {
+    const q = query.trim().toLowerCase();
+    const limit = 60;
+    const match = (value) => !q || value.toLowerCase().includes(q);
+    const groups = [
+      { type: "pageview", title: "Pages", values: (this.data?.pages || []).filter(match) },
+      { type: "event", title: "Events", values: (this.data?.events || []).filter(match) },
+    ];
+    const options = [];
+    groups.forEach((group) => group.values.slice(0, limit).forEach((value) => options.push({ type: group.type, value, group: group.title })));
+    // Anything not recorded yet can still be used, as a page path or an event name.
+    const exact = groups.some((group) => group.values.some((value) => value.toLowerCase() === q));
+    if (q && !exact) {
+      const value = query.trim();
+      options.push({ type: value.startsWith("/") ? "pageview" : "event", value, group: "Not recorded yet", custom: true });
+    }
+    const hidden = groups.reduce((total, group) => total + Math.max(0, group.values.length - limit), 0);
+    return { options, hidden };
+  },
+  renderResults(index) {
+    const combobox = this.comboboxAt(index);
+    if (!combobox) return;
+    const input = combobox.querySelector("[data-value]");
+    const step = this.builderSteps[index];
+    // Focusing a chosen step lists everything; typing narrows the list.
+    const query = input.value === (step.value || "") ? "" : input.value;
+    const { options, hidden } = this.searchOptions(query);
+    this.resultOptions = options;
+    this.activeOption = options.length ? 0 : -1;
+    let group = null;
+    const markup = options.map((option, i) => {
+      const heading = option.group !== group ? `<span class="builder-search-group">${option.group}</span>` : "";
+      group = option.group;
+      const text = option.custom ? `Use “${this.esc(option.value)}” as ${option.type === "event" ? "an event" : "a page"}` : this.esc(option.value);
+      const selected = option.type === step.type && option.value === step.value;
+      return `${heading}<button class="builder-search-option builder-search-option--${option.type}${selected ? " is-selected" : ""}" data-option-index="${i}" type="button" role="option" tabindex="-1"><span class="builder-search-option-mark"></span><span class="builder-search-option-text">${text}</span>${selected ? '<span class="builder-search-option-check">✓</span>' : ""}</button>`;
+    }).join("");
+    const results = combobox.querySelector("[data-results]");
+    results.innerHTML = markup || '<span class="builder-search-empty">No page or event recorded yet</span>';
+    if (hidden) results.insertAdjacentHTML("beforeend", `<span class="builder-search-empty">${hidden} more, keep typing to narrow the list</span>`);
+    combobox.classList.add("open");
+    input.setAttribute("aria-expanded", "true");
+    this.highlightOption(index);
+  },
+  highlightOption(index) {
+    const results = this.comboboxAt(index)?.querySelector("[data-results]");
+    results?.querySelectorAll("[data-option-index]").forEach((option) => {
+      const active = +option.dataset.optionIndex === this.activeOption;
+      option.classList.toggle("is-active", active);
+      if (active) option.scrollIntoView({ block: "nearest" });
+    });
+  },
+  comboboxAt(index) {
+    return document.querySelector(`#funnelBuilderSteps [data-step-index="${index}"] .builder-combobox`);
+  },
+  closeResults(index) {
+    const combobox = this.comboboxAt(index);
+    combobox?.classList.remove("open");
+    combobox?.querySelector("[data-value]")?.setAttribute("aria-expanded", "false");
+  },
+  pickOption(index, option) {
+    if (!option) return;
+    const step = this.builderSteps[index];
+    if (step.type !== option.type || step.value !== option.value) delete step.label;
+    step.type = option.type;
+    step.value = option.value;
+    this.closeResults(index);
+    this.refreshStep(index);
+    this.updateDuplicateNotice();
+    // Carry on with the next empty step, as when filling a form.
+    const next = this.builderSteps.findIndex((item, i) => i > index && !item.value);
+    if (next !== -1) document.querySelector(`#funnelBuilderSteps [data-value="${next}"]`)?.focus();
+  },
+  /** Updates one step in place, so the other inputs keep their focus and text. */
+  refreshStep(index) {
+    const stage = document.querySelector(`#funnelBuilderSteps [data-step-index="${index}"]`);
+    const step = this.builderSteps[index];
+    if (!stage) return;
+    stage.classList.toggle("builder-step--event", step.type === "event");
+    stage.classList.toggle("builder-step--pageview", step.type !== "event");
+    stage.classList.toggle("is-empty", !step.value);
+    const badge = stage.querySelector("[data-type-badge]");
+    badge.textContent = this.typeLabel(step.type);
+    badge.hidden = !step.value;
+    stage.querySelector("[data-value]").value = step.value || "";
+  },
+  /** The link between two nodes, with a button to insert a step at that position. */
+  connectorMarkup(insertAt, canInsert) {
+    const button = canInsert ? `<button class="builder-insert-step" data-insert="${insertAt}" type="button" aria-label="Insert a step here" title="Insert a step here">+</button>` : "";
+    return `<div class="builder-step-connector"><span></span>${button}</div>`;
+  },
+  insertStep(index) {
+    this.builderSteps.splice(index, 0, this.emptyStep());
+    this.renderBuilderSteps();
+    document.querySelector(`#funnelBuilderSteps [data-value="${index}"]`)?.focus();
+  },
+  emptyStep() {
+    return { type: "pageview", value: "" };
   },
   renderBuilderSteps() {
     const box = document.getElementById("funnelBuilderSteps");
+    const canReorder = this.activeKind === "funnel";
+    // The API accepts at most 12 steps.
+    const canInsert = canReorder && this.builderSteps.length < 12;
+    box.classList.toggle("is-funnel", canReorder);
     box.innerHTML = this.builderSteps
-      .map(
-        (step, i) => {
-          const noun = step.type === "pageview" ? "page" : "event";
-          const canReorder = this.activeKind === "funnel"; const moveControls = canReorder && this.builderSteps.length > 1 ? `<div class="builder-step-actions"><button data-move="up" data-index="${i}" class="btn-move-step" type="button" aria-label="Move step up" ${i === 0 ? "disabled" : ""}>↑</button><button data-move="down" data-index="${i}" class="btn-move-step" type="button" aria-label="Move step down" ${i === this.builderSteps.length - 1 ? "disabled" : ""}>↓</button><button data-remove="${i}" class="btn-remove-step" type="button" aria-label="Remove step">×</button></div>` : "";
-          const role = this.activeKind === "journey" ? `<span class="builder-step-role">${i === 0 ? "Entry" : "Exit"}</span>` : "";
-          return `<div class="builder-step builder-step--${step.type}" draggable="${canReorder}" data-step-index="${i}"><div class="builder-step-top">${canReorder ? '<button class="builder-drag-handle" type="button" aria-label="Drag to reorder" title="Drag to reorder"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01"/></svg></button>' : ""}<span class="builder-step-index">${i + 1}</span>${role}<select data-type="${i}" aria-label="Step type"><option value="pageview" ${step.type === "pageview" ? "selected" : ""}>Page view</option><option value="event" ${step.type === "event" ? "selected" : ""}>Event</option></select>${moveControls}</div><div class="builder-combobox"><input data-value="${i}" value="${this.esc(step.value || "")}" placeholder="Search for a ${noun}…" autocomplete="off"><div class="builder-search-results" data-results="${i}">${this.suggestions(step.type)}</div></div></div>${i < this.builderSteps.length - 1 ? '<div class="builder-step-connector"><span></span></div>' : ""}`;
-        },
-      )
-      .join("") + (this.activeKind === "funnel" ? '<button id="btnAddFunnelStep" type="button" class="btn-add-step builder-add-next">+ Add next step</button>' : "");
-    box.querySelector("#btnAddFunnelStep")?.addEventListener("click", () => {
-      this.builderSteps.push({ type: "pageview", value: "" });
-      this.renderBuilderSteps();
-      box.lastElementChild.previousElementSibling?.querySelector("[data-value]")?.focus();
-    });
-    box.querySelectorAll("[data-type]").forEach((e) =>
-      e.addEventListener("change", () => {
-        const index = Number(e.getAttribute("data-type"));
-        const type = e.value === "event" ? "event" : "pageview";
-        const step = this.builderSteps[index];
-        step.type = type;
-        this.setStepValue(index, "");
-
-        // Update this exact block in-place. This avoids leaving an open list
-        // from the former source when switching Page view ↔ Event.
-        const stage = e.closest(".builder-step");
-        stage.classList.toggle("builder-step--event", type === "event");
-        stage.classList.toggle("builder-step--pageview", type === "pageview");
-        const input = stage.querySelector("[data-value]");
-        const results = stage.querySelector("[data-results]");
-        input.value = "";
-        input.placeholder = `Search for a ${type === "event" ? "event" : "page"}…`;
-        results.innerHTML = this.suggestions(type);
-        stage.querySelector(".builder-combobox").classList.add("open");
-        this.bindSearchOptions(results, index);
-        input.focus();
-      }),
-    );
-    box
-      .querySelectorAll("[data-value]")
-      .forEach((e) => {
-        const closeResults = () => e.closest(".builder-combobox").classList.remove("open");
-        e.addEventListener("focus", () => e.closest(".builder-combobox").classList.add("open"));
-        e.addEventListener("input", () => {
-          const index = e.dataset.value;
-          this.setStepValue(index, e.target.value);
-        });
-        e.addEventListener("blur", () => setTimeout(closeResults, 160));
+      .map((step, i) => {
+        const moveControls = canReorder && this.builderSteps.length > 1 ? `<div class="builder-step-actions"><button data-move="up" data-index="${i}" class="btn-move-step" type="button" aria-label="Move step up" ${i === 0 ? "disabled" : ""}>↑</button><button data-move="down" data-index="${i}" class="btn-move-step" type="button" aria-label="Move step down" ${i === this.builderSteps.length - 1 ? "disabled" : ""}>↓</button><button data-remove="${i}" class="btn-remove-step" type="button" aria-label="Remove step">×</button></div>` : "";
+        const role = this.activeKind === "journey" ? `<span class="builder-step-role">${i === 0 ? "Entry" : "Exit"}</span>` : "";
+        const handle = canReorder ? '<button class="builder-drag-handle" type="button" aria-label="Drag to reorder" title="Drag to reorder"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01"/></svg></button>' : "";
+        return `<div class="builder-step builder-step--${step.type === "event" ? "event" : "pageview"}${step.value ? "" : " is-empty"}" data-step-index="${i}">${handle}<span class="builder-step-index">${i + 1}</span>${role}<div class="builder-combobox"><span class="builder-type-badge" data-type-badge ${step.value ? "" : "hidden"}>${this.typeLabel(step.type)}</span><input data-value="${i}" value="${this.esc(step.value || "")}" placeholder="Search a page or an event…" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-label="Step ${i + 1}"><div class="builder-search-results" data-results="${i}" role="listbox"></div></div>${moveControls}</div>${i < this.builderSteps.length - 1 ? this.connectorMarkup(i + 1, canInsert) : ""}`;
+      })
+      .join("") + (canInsert ? `${this.connectorMarkup(null, false)}<button id="btnAddFunnelStep" type="button" class="builder-add-node">+ Add a step</button>` : "");
+    box.querySelector("#btnAddFunnelStep")?.addEventListener("click", () => this.insertStep(this.builderSteps.length));
+    box.querySelectorAll("[data-insert]").forEach((button) => button.addEventListener("click", () => this.insertStep(Number(button.dataset.insert))));
+    box.querySelectorAll("[data-value]").forEach((input) => {
+      const index = Number(input.dataset.value);
+      input.addEventListener("focus", () => {
+        input.select();
+        this.renderResults(index);
       });
-    box.querySelectorAll("[data-results]").forEach((results) => this.bindSearchOptions(results, results.dataset.results));
-    box.querySelectorAll("[data-remove]").forEach((e) =>
-      e.addEventListener("click", () => {
-        if (this.builderSteps.length > 1) {
-          this.builderSteps.splice(e.dataset.remove, 1);
-          this.renderBuilderSteps();
-        }
-      }),
-    );
+      input.addEventListener("input", () => this.renderResults(index));
+      input.addEventListener("keydown", (event) => this.onSearchKey(event, index));
+      // A query left without a pick goes back to the chosen value.
+      input.addEventListener("blur", () => setTimeout(() => {
+        this.closeResults(index);
+        if (document.activeElement !== input) this.refreshStep(index);
+      }, 160));
+    });
+    box.querySelectorAll("[data-results]").forEach((results) => results.addEventListener("mousedown", (event) => {
+      const option = event.target.closest("[data-option-index]");
+      if (!option) return;
+      event.preventDefault();
+      this.pickOption(Number(results.dataset.results), this.resultOptions[+option.dataset.optionIndex]);
+    }));
+    box.querySelectorAll("[data-remove]").forEach((button) => button.addEventListener("click", () => {
+      if (this.builderSteps.length > 1) {
+        this.builderSteps.splice(Number(button.dataset.remove), 1);
+        this.renderBuilderSteps();
+      }
+    }));
     box.querySelectorAll("[data-move]").forEach((button) => button.addEventListener("click", () => {
       const from = Number(button.dataset.index);
       const to = button.dataset.move === "up" ? from - 1 : from + 1;
       this.moveStep(from, to);
     }));
     box.querySelectorAll(".builder-step").forEach((step) => {
+      // Only the handle starts a drag, so selecting text in the search stays possible.
+      step.querySelector(".builder-drag-handle")?.addEventListener("mousedown", () => { step.draggable = true; });
       step.addEventListener("dragstart", (event) => {
         this.draggedStepIndex = Number(step.dataset.stepIndex);
         event.dataTransfer.effectAllowed = "move";
@@ -305,15 +388,31 @@ const FunnelsPage = {
       });
       step.addEventListener("dragend", () => {
         this.draggedStepIndex = null;
-        box.querySelectorAll(".builder-step").forEach((item) => item.classList.remove("is-dragging", "is-drop-target"));
+        box.querySelectorAll(".builder-step").forEach((item) => {
+          item.draggable = false;
+          item.classList.remove("is-dragging", "is-drop-target");
+        });
       });
     });
+    this.updateDuplicateNotice();
   },
-  /** The builder has no label field, so a step whose value changes is named after its new value. */
-  setStepValue(index, value) {
-    const step = this.builderSteps[index];
-    if (step.value !== value) delete step.label;
-    step.value = value;
+  onSearchKey(event, index) {
+    const count = this.resultOptions?.length || 0;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (!this.comboboxAt(index).classList.contains("open")) return this.renderResults(index);
+      if (!count) return;
+      this.activeOption = (this.activeOption + (event.key === "ArrowDown" ? 1 : -1) + count) % count;
+      this.highlightOption(index);
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      if (this.comboboxAt(index).classList.contains("open")) this.pickOption(index, this.resultOptions[this.activeOption]);
+    } else if (event.key === "Escape" && this.comboboxAt(index).classList.contains("open")) {
+      // Closes the list only, not the whole builder.
+      event.stopPropagation();
+      this.closeResults(index);
+      this.refreshStep(index);
+    }
   },
   moveStep(from, to) {
     if (!Number.isInteger(from) || !Number.isInteger(to) || from === to || to < 0 || to >= this.builderSteps.length) return;
@@ -321,31 +420,23 @@ const FunnelsPage = {
     this.builderSteps.splice(to, 0, step);
     this.renderBuilderSteps();
   },
-  filterSearchResults(input) {
-    const query = input.value.trim().toLowerCase();
-    const index = input.dataset.value;
-    const results = input.closest(".builder-combobox").querySelector(`[data-results="${index}"]`);
-    const options = [...results.querySelectorAll("[data-option]")];
-    let count = 0;
-    options.forEach((option) => {
-      const visible = option.dataset.option.toLowerCase().includes(query);
-      option.hidden = !visible;
-      if (visible) count++;
-    });
-    const heading = results.querySelector("[data-search-heading]");
-    const source = heading.dataset.searchHeading;
-    heading.textContent = query ? `${source} · ${count} matching` : `${source} · ${options.length}`;
-    results.querySelector("[data-search-empty]").hidden = count > 0;
-    results.parentElement.classList.add("open");
+  /** The saved analysis of the same kind with exactly the same steps, if any. */
+  duplicateOf() {
+    if (this.builderSteps.some((step) => !step.value)) return null;
+    const key = (steps) => JSON.stringify(steps.map((step) => [step.type, step.value]));
+    const steps = key(this.builderSteps);
+    return (this.data?.funnels || []).find((item) => (item.kind || "funnel") === this.activeKind && item.id !== this.editId && key(item.steps) === steps) || null;
   },
-  bindSearchOptions(results, index, close) {
-    results.querySelectorAll("[data-option]").forEach((option) => option.addEventListener("mousedown", (event) => {
-      event.preventDefault();
-      const input = results.parentElement.querySelector("[data-value]");
-      input.value = option.dataset.option;
-      this.setStepValue(index, option.dataset.option);
-      (close || (() => results.parentElement.classList.remove("open")))();
-    }));
+  updateDuplicateNotice() {
+    const notice = document.getElementById("funnelDuplicateNotice");
+    const duplicate = this.duplicateOf();
+    document.getElementById("btnSaveFunnel").disabled = Boolean(duplicate);
+    if (!notice) return;
+    notice.hidden = !duplicate;
+    if (!duplicate) return;
+    const noun = this.kindLabels().singular.toLowerCase();
+    const what = this.activeKind === "funnel" ? "these exact steps" : this.activeKind === "goal" ? "this exact condition" : "this exact entry and exit";
+    notice.innerHTML = `<span>“${this.esc(duplicate.name)}” already tracks ${what}. Change a step, or open the existing ${noun}.</span><button type="button" class="btn-secondary-funnel" data-open-duplicate="${duplicate.id}">Open it</button>`;
   },
   async save() {
     const name = document.getElementById("funnelName").value.trim();
