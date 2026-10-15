@@ -12,10 +12,21 @@ const FunnelsPage = {
       this.activeId = null;
       this.render();
     }));
-    // The empty workspace is replaced after loading data. Delegate from the
-    // stable wrapper so its freshly rendered "first funnel" button still works.
+    // Every card is rendered again after loading data. Delegate from the
+    // stable wrapper so their freshly rendered buttons still work.
     document.getElementById("funnelWorkspace")?.addEventListener("click", (event) => {
-      if (event.target.closest("#btnCreateFirstFunnel")) this.openBuilder();
+      if (event.target.closest("#btnCreateFirstFunnel")) return this.openBuilder();
+      const card = event.target.closest("[data-analysis-id]");
+      const analysis = card && this.itemById(+card.dataset.analysisId);
+      if (!analysis) return;
+      const toggle = event.target.closest("[data-toggle-journey]");
+      if (event.target.closest("[data-edit-analysis]")) this.openBuilder(analysis);
+      else if (event.target.closest("[data-delete-analysis]")) this.remove(analysis);
+      else if (toggle) this.toggleJourney(analysis, toggle.dataset.toggleJourney);
+    });
+    document.getElementById("funnelsList")?.addEventListener("click", (event) => {
+      const item = event.target.closest("[data-id]");
+      if (item) this.scrollToAnalysis(+item.dataset.id);
     });
     // One stable listener for the dynamically rendered search inputs.
     document.getElementById("funnelBuilderSteps")?.addEventListener("input", (event) => {
@@ -60,22 +71,27 @@ const FunnelsPage = {
     const list = document.getElementById("funnelsList");
     const workspace = document.getElementById("funnelWorkspace");
     if (list) list.innerHTML = '<div class="funnel-list-loading"><span class="funnel-loader-ring"></span><span>Loading…</span></div>';
-    if (workspace) workspace.innerHTML = '<div class="funnel-page-loader" role="status"><span class="funnel-loader-ring" aria-hidden="true"></span><span>Loading funnels…</span></div>';
+    if (workspace) workspace.innerHTML = '<div class="analysis-card"><div class="funnel-page-loader" role="status"><span class="funnel-loader-ring" aria-hidden="true"></span><span>Loading funnels…</span></div></div>';
+  },
+  itemById(id) {
+    return (this.data?.funnels || []).find((item) => item.id === id);
   },
   render() {
     const labels = this.kindLabels();
     const funnels = (this.data?.funnels || []).filter((item) => (item.kind || "funnel") === this.activeKind);
     const list = document.getElementById("funnelsList");
+    const workspace = document.getElementById("funnelWorkspace");
     document.getElementById("funnelsCount").textContent = funnels.length;
     document.querySelectorAll("[data-analysis-kind]").forEach((tab) => tab.classList.toggle("active", tab.dataset.analysisKind === this.activeKind));
     document.getElementById("btnCreateFunnel").innerHTML = `<span>+</span> Create ${labels.singular.toLowerCase()}`;
     document.getElementById("analysisListTitle").textContent = `Your ${labels.plural.toLowerCase()}`;
     document.getElementById("analysisPageTitle").textContent = labels.plural;
     document.getElementById("analysisPageDescription").textContent = this.activeKind === "goal" ? "Measure the actions that matter most, using the page views and events you already track." : this.activeKind === "journey" ? "See where visitors actually go after a chosen page view or event." : "Build a funnel from the page views and events you already track. Steps are counted in the order visitors complete them.";
+    this.cardObserver?.disconnect();
     if (!funnels.length) {
       list.innerHTML =
         `<div class="funnel-list-empty">No ${labels.plural.toLowerCase()} yet.<br>Create one from your events.</div>`;
-      document.getElementById("funnelWorkspace").innerHTML = this.emptyStateMarkup();
+      workspace.innerHTML = `<div class="analysis-card">${this.emptyStateMarkup()}</div>`;
       return;
     }
     if (!funnels.some((f) => f.id === this.activeId))
@@ -83,25 +99,54 @@ const FunnelsPage = {
     list.innerHTML = funnels
       .map(
         (f) =>
-          `<button class="funnel-list-item ${f.id === this.activeId ? "active" : ""}" data-id="${f.id}"><span><strong>${this.esc(f.name)}</strong><small>${this.activeKind === "goal" ? `${f.progress.at(-1) || 0} reached` : `${f.steps.length} steps · ${f.progress.at(-1) || 0} completed`}</small></span></button>`,
+          `<button class="funnel-list-item ${f.id === this.activeId ? "active" : ""}" data-id="${f.id}" type="button"><span><strong>${this.esc(f.name)}</strong><small>${this.activeKind === "goal" ? `${f.progress.at(-1) || 0} reached` : `${f.steps.length} steps · ${f.progress.at(-1) || 0} completed`}</small></span></button>`,
       )
       .join("");
-    list.querySelectorAll("[data-id]").forEach((btn) =>
-      btn.addEventListener("click", () => {
-        this.activeId = +btn.dataset.id;
-        this.render();
-      }),
-    );
-    this.renderWorkspace(funnels.find((f) => f.id === this.activeId));
+    workspace.innerHTML = funnels
+      .map((f) => `<section class="analysis-card" id="analysis-${f.id}" data-analysis-id="${f.id}">${this.cardMarkup(f)}</section>`)
+      .join("");
+    this.observeCards(workspace);
   },
-  renderWorkspace(funnel) {
-    if (!funnel) return;
-    if (this.activeKind === "goal") return this.renderGoalWorkspace(funnel);
-    if (this.activeKind === "journey") return this.renderJourneyWorkspace(funnel);
+  /** Highlights, in the list, the analysis being read in the workspace. */
+  observeCards(workspace) {
+    if (!("IntersectionObserver" in window)) return;
+    this.cardObserver = new IntersectionObserver((entries) => {
+      if (this.scrollingTo) return;
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (visible) this.setActive(+visible.target.dataset.analysisId);
+    }, { rootMargin: "-80px 0px -55% 0px" });
+    workspace.querySelectorAll("[data-analysis-id]").forEach((card) => this.cardObserver.observe(card));
+  },
+  setActive(id) {
+    this.activeId = id;
+    document.querySelectorAll("#funnelsList [data-id]").forEach((item) => {
+      const active = +item.dataset.id === id;
+      item.classList.toggle("active", active);
+      if (active) item.scrollIntoView({ block: "nearest" });
+    });
+  },
+  scrollToAnalysis(id) {
+    const card = document.getElementById(`analysis-${id}`);
+    if (!card) return;
+    this.setActive(id);
+    // Keep the clicked item highlighted while the page scrolls past other cards.
+    this.scrollingTo = id;
+    clearTimeout(this.scrollTimer);
+    this.scrollTimer = setTimeout(() => { this.scrollingTo = null; }, 800);
+    card.scrollIntoView({ behavior: "smooth", block: "start" });
+  },
+  cardMarkup(analysis) {
+    const kind = analysis.kind || "funnel";
+    if (kind === "goal") return this.goalMarkup(analysis);
+    if (kind === "journey") return this.journeyMarkup(analysis);
+    return this.funnelMarkup(analysis);
+  },
+  funnelMarkup(funnel) {
     const first = funnel.progress[0] || 0;
     const completed = funnel.progress.at(-1) || 0;
-    const rateBase = this.activeKind === "goal" ? (this.data?.audience || 0) : first;
-    const rate = rateBase ? (completed / rateBase) * 100 : 0;
+    const rate = first ? (completed / first) * 100 : 0;
     const steps = funnel.steps
       .map((step, i) => {
         const count = funnel.progress[i] || 0;
@@ -112,22 +157,19 @@ const FunnelsPage = {
         const retained = i ? (previous ? (count / previous) * 100 : 0) : 100;
         // Nobody reached the previous step, so nobody could drop off.
         const lost = i && previous ? Math.max(0, 100 - retained) : 0;
-        return `<article class="funnel-stage"><div class="funnel-column-chart"><span class="funnel-bar-percent">${progress.toFixed(1)}%</span><div class="funnel-bar-slot"><div class="funnel-bar-stack" style="height:${Math.max(previousProgress, 3)}%"><div class="funnel-vertical-bar" style="height:${Math.max(retainedHeight, 3)}%"></div></div></div></div><div class="funnel-column-details"><div class="funnel-stage-top"><span class="funnel-step-number">${i + 1}</span><div class="funnel-stage-name"><strong>${this.esc(step.label)}</strong><span>${step.type === "pageview" ? "Page view" : "Event"} · ${this.esc(step.value)}</span></div></div><div class="funnel-stage-stat"><strong>${count.toLocaleString()}</strong><span>visitors</span></div><div class="funnel-stage-footer">${i ? `<span>${retained.toFixed(1)}% continued</span><span class="funnel-drop">−${lost.toFixed(1)}% dropped off</span>` : "<span>Starting point</span>"}</div></div></article>`;
+        return `<article class="funnel-stage"><div class="funnel-column-chart"><span class="funnel-bar-percent">${progress.toFixed(1)}%</span><div class="funnel-bar-slot"><div class="funnel-bar-stack" style="height:${Math.max(previousProgress, 3)}%"><div class="funnel-vertical-bar" style="height:${Math.max(retainedHeight, 3)}%"></div></div></div></div><div class="funnel-column-details"><div class="funnel-stage-top"><span class="funnel-step-number">${i + 1}</span><div class="funnel-stage-name"><strong>${this.esc(step.label || step.value)}</strong><span>${step.type === "pageview" ? "Page view" : "Event"} · ${this.esc(step.value)}</span></div></div><div class="funnel-stage-stat"><strong>${count.toLocaleString()}</strong><span>visitors</span></div><div class="funnel-stage-footer">${i ? `<span>${retained.toFixed(1)}% continued</span><span class="funnel-drop">−${lost.toFixed(1)}% dropped off</span>` : "<span>Starting point</span>"}</div></div></article>`;
       })
       .join("");
-    document.getElementById("funnelWorkspace").innerHTML =
-      `<div class="funnel-workspace-head"><div><div class="funnel-context">${this.activeKind === "goal" ? "Selected period" : `${funnel.steps.length} steps · selected period`}</div><h2>${this.esc(funnel.name)}</h2></div><div class="funnel-actions"><button id="btnEditFunnel" class="btn-secondary-funnel" type="button">Edit</button><button id="btnDeleteFunnel" class="btn-delete-funnel" type="button">Delete</button></div></div><div class="funnel-summary"><div><span>${this.activeKind === "goal" ? "All visitors" : "Visitors started"}</span><strong>${rateBase.toLocaleString()}</strong></div><div><span>${this.activeKind === "goal" ? "Reached goal" : "Completed all steps"}</span><strong>${completed.toLocaleString()}</strong></div><div class="funnel-summary-rate"><span>Conversion rate</span><strong>${rate.toFixed(1)}%</strong></div></div><div class="funnel-flow">${steps}</div>${this.activeKind === "goal" ? "" : '<div class="funnel-chart-legend"><span><i class="legend-visitors"></i> Visitors who continued</span><span><i class="legend-dropoff"></i> Dropped off</span></div>'}`;
-    this.bindAnalysisActions(funnel);
+    return `${this.analysisHeader(funnel, `${funnel.steps.length} steps · selected period`)}<div class="funnel-summary"><div><span>Visitors started</span><strong>${first.toLocaleString()}</strong></div><div><span>Completed all steps</span><strong>${completed.toLocaleString()}</strong></div><div class="funnel-summary-rate"><span>Conversion rate</span><strong>${rate.toFixed(1)}%</strong></div></div><div class="funnel-flow">${steps}</div><div class="funnel-chart-legend"><span><i class="legend-visitors"></i> Visitors who continued</span><span><i class="legend-dropoff"></i> Dropped off</span></div>`;
   },
   analysisHeader(funnel, context = "Selected period") {
-    return `<div class="funnel-workspace-head"><div><div class="funnel-context">${context}</div><h2>${this.esc(funnel.name)}</h2></div><div class="funnel-actions"><button id="btnEditFunnel" class="btn-secondary-funnel" type="button">Edit</button><button id="btnDeleteFunnel" class="btn-delete-funnel" type="button">Delete</button></div></div>`;
+    return `<div class="funnel-workspace-head"><div><div class="funnel-context">${context}</div><h2>${this.esc(funnel.name)}</h2></div><div class="funnel-actions"><button data-edit-analysis class="btn-secondary-funnel" type="button">Edit</button><button data-delete-analysis class="btn-delete-funnel" type="button">Delete</button></div></div>`;
   },
-  renderGoalWorkspace(goal) {
+  goalMarkup(goal) {
     const audience = this.data?.audience || 0; const reached = goal.progress.at(-1) || 0; const rate = audience ? reached / audience * 100 : 0; const step = goal.steps[0] || {};
-    document.getElementById("funnelWorkspace").innerHTML = `${this.analysisHeader(goal)}<div class="funnel-summary"><div><span>All visitors</span><strong>${audience.toLocaleString()}</strong></div><div><span>Reached goal</span><strong>${reached.toLocaleString()}</strong></div><div class="funnel-summary-rate"><span>Conversion rate</span><strong>${rate.toFixed(1)}%</strong></div></div><section class="goal-result"><div class="goal-result-top"><div><span class="goal-result-label">Goal condition</span><h3>${this.esc(step.label || step.value)}</h3><p>${step.type === "pageview" ? "Page view" : "Event"} · ${this.esc(step.value)}</p></div><strong>${rate.toFixed(1)}%</strong></div><div class="goal-ratio"><div style="width:${Math.max(rate, 1)}%"></div></div><p class="goal-result-caption"><b>${reached.toLocaleString()}</b> of ${audience.toLocaleString()} visitors reached this goal.</p></section>`;
-    this.bindAnalysisActions(goal);
+    return `${this.analysisHeader(goal)}<div class="funnel-summary"><div><span>All visitors</span><strong>${audience.toLocaleString()}</strong></div><div><span>Reached goal</span><strong>${reached.toLocaleString()}</strong></div><div class="funnel-summary-rate"><span>Conversion rate</span><strong>${rate.toFixed(1)}%</strong></div></div><section class="goal-result"><div class="goal-result-top"><div><span class="goal-result-label">Goal condition</span><h3>${this.esc(step.label || step.value)}</h3><p>${step.type === "pageview" ? "Page view" : "Event"} · ${this.esc(step.value)}</p></div><strong>${rate.toFixed(1)}%</strong></div><div class="goal-ratio"><div style="width:${Math.max(rate, 1)}%"></div></div><p class="goal-result-caption"><b>${reached.toLocaleString()}</b> of ${audience.toLocaleString()} visitors reached this goal.</p></section>`;
   },
-  renderJourneyWorkspace(journey) {
+  journeyMarkup(journey) {
     const data = journey.journey || { entered: 0, completed: 0, tree: { children: [] } }; const start = journey.steps[0] || {}; const exit = journey.steps[1] || {}; const usingFallback = !data.completed && data.fallback?.completed; const displayData = usingFallback ? data.fallback : data; const tree = displayData.tree || { children: [] };
     this.journeyExpanded ||= new Set();
     const renderNode = (node, parentCount, id, depth) => {
@@ -135,15 +177,22 @@ const FunnelsPage = {
       const children = hasChildren ? `<div class="journey-tree-children" ${expanded ? "" : "hidden"}>${node.children.map((child, index) => renderNode(child, node.count, `${id}-${index}`, depth + 1)).join("")}</div>` : "";
       return `<div class="journey-tree-node journey-tree-depth-${depth}"><article class="journey-tree-card"><span class="journey-tree-dot"></span><div><strong>${this.esc(node.value)}</strong><span>${node.type === "pageview" ? "Page view" : "Event"}</span></div><div class="journey-tree-count"><strong>${node.count.toLocaleString()}</strong><span>${rate.toFixed(1)}%</span></div>${hasChildren ? `<button class="journey-tree-toggle" data-toggle-journey="${id}" type="button" aria-expanded="${expanded}" aria-label="${expanded ? "Hide" : "Show"} next paths">${expanded ? "−" : "+"}</button>` : '<span class="journey-tree-leaf"></span>'}</article>${children}</div>`;
     };
-    const branches = tree.children?.length ? `<div class="journey-tree-branches">${tree.children.map((child, index) => renderNode(child, displayData.completed, `branch-${index}`, 1)).join("")}</div>` : '<div class="journey-empty">No visitor completed a path from this entry to this exit in the selected period.</div>';
+    // Several journeys share the page, so branch ids start with the journey's own id.
+    const branches = tree.children?.length ? `<div class="journey-tree-branches">${tree.children.map((child, index) => renderNode(child, displayData.completed, `${journey.id}-${index}`, 1)).join("")}</div>` : '<div class="journey-empty">No visitor completed a path from this entry to this exit in the selected period.</div>';
     const fallbackNote = usingFallback ? '<div class="journey-history-note">No completed route during the selected period. The tree below uses the same route across your full history.</div>' : "";
-    document.getElementById("funnelWorkspace").innerHTML = `${this.analysisHeader(journey, "Selected period · actual paths")}<div class="journey-boundaries"><div><span>Entry</span><strong>${this.esc(start.label || start.value)}</strong><small>${start.type === "pageview" ? "Page view" : "Event"}</small></div><i>→</i><div><span>Exit</span><strong>${this.esc(exit.label || exit.value)}</strong><small>${exit.type === "pageview" ? "Page view" : "Event"}</small></div><b>${data.entered.toLocaleString()} entered · ${data.completed.toLocaleString()} reached exit</b></div>${fallbackNote}<section class="journey-sources journey-tree"><div class="journey-sources-head"><div><span>Paths between entry and exit</span><p>Open a branch to explore the most common completed routes.</p></div></div>${branches}</section>`;
-    document.querySelectorAll("[data-toggle-journey]").forEach((button) => button.addEventListener("click", () => { const id = button.dataset.toggleJourney; if (this.journeyExpanded.has(id)) this.journeyExpanded.delete(id); else this.journeyExpanded.add(id); this.renderJourneyWorkspace(journey); }));
-    this.bindAnalysisActions(journey);
+    return `${this.analysisHeader(journey, "Selected period · actual paths")}<div class="journey-boundaries"><div><span>Entry</span><strong>${this.esc(start.label || start.value)}</strong><small>${start.type === "pageview" ? "Page view" : "Event"}</small></div><i>→</i><div><span>Exit</span><strong>${this.esc(exit.label || exit.value)}</strong><small>${exit.type === "pageview" ? "Page view" : "Event"}</small></div><b>${data.entered.toLocaleString()} entered · ${data.completed.toLocaleString()} reached exit</b></div>${fallbackNote}<section class="journey-sources journey-tree"><div class="journey-sources-head"><div><span>Paths between entry and exit</span><p>Open a branch to explore the most common completed routes.</p></div></div>${branches}</section>`;
   },
-  bindAnalysisActions(analysis) {
-    document.getElementById("btnEditFunnel").addEventListener("click", () => this.openBuilder(analysis));
-    document.getElementById("btnDeleteFunnel").addEventListener("click", async () => { if (!confirm(`Delete “${analysis.name}”?`)) return; await Api.deleteFunnel(analysis.id); this.activeId = null; this.load(App.currentRange, App.currentSiteId, App.customDates); });
+  toggleJourney(journey, id) {
+    if (this.journeyExpanded.has(id)) this.journeyExpanded.delete(id);
+    else this.journeyExpanded.add(id);
+    const card = document.getElementById(`analysis-${journey.id}`);
+    if (card) card.innerHTML = this.journeyMarkup(journey);
+  },
+  async remove(analysis) {
+    if (!confirm(`Delete “${analysis.name}”?`)) return;
+    await Api.deleteFunnel(analysis.id);
+    this.activeId = null;
+    this.load(App.currentRange, App.currentSiteId, App.customDates);
   },
   openBuilder(funnel = null) {
     if (funnel?.kind) this.activeKind = funnel.kind;
@@ -200,7 +249,7 @@ const FunnelsPage = {
         const type = e.value === "event" ? "event" : "pageview";
         const step = this.builderSteps[index];
         step.type = type;
-        step.value = "";
+        this.setStepValue(index, "");
 
         // Update this exact block in-place. This avoids leaving an open list
         // from the former source when switching Page view ↔ Event.
@@ -224,7 +273,7 @@ const FunnelsPage = {
         e.addEventListener("focus", () => e.closest(".builder-combobox").classList.add("open"));
         e.addEventListener("input", () => {
           const index = e.dataset.value;
-          this.builderSteps[index].value = e.target.value;
+          this.setStepValue(index, e.target.value);
         });
         e.addEventListener("blur", () => setTimeout(closeResults, 160));
       });
@@ -260,6 +309,12 @@ const FunnelsPage = {
       });
     });
   },
+  /** The builder has no label field, so a step whose value changes is named after its new value. */
+  setStepValue(index, value) {
+    const step = this.builderSteps[index];
+    if (step.value !== value) delete step.label;
+    step.value = value;
+  },
   moveStep(from, to) {
     if (!Number.isInteger(from) || !Number.isInteger(to) || from === to || to < 0 || to >= this.builderSteps.length) return;
     const [step] = this.builderSteps.splice(from, 1);
@@ -288,7 +343,7 @@ const FunnelsPage = {
       event.preventDefault();
       const input = results.parentElement.querySelector("[data-value]");
       input.value = option.dataset.option;
-      this.builderSteps[index].value = option.dataset.option;
+      this.setStepValue(index, option.dataset.option);
       (close || (() => results.parentElement.classList.remove("open")))();
     }));
   },
@@ -301,9 +356,11 @@ const FunnelsPage = {
     const btn = document.getElementById("btnSaveFunnel");
     btn.disabled = true;
     try {
-      await Api.saveFunnel({ id: this.editId, kind: this.activeKind, name, steps: this.builderSteps });
+      const saved = await Api.saveFunnel({ id: this.editId, kind: this.activeKind, name, steps: this.builderSteps });
       this.closeBuilder();
       await this.load(App.currentRange, App.currentSiteId, App.customDates);
+      // Bring the created or edited card into view among the others.
+      this.scrollToAnalysis(+saved.id);
     } catch (e) {
       alert(e.message);
     } finally {
