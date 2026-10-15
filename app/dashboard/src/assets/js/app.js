@@ -56,7 +56,6 @@ const App = {
     this.restoreDateRangePreference();
     this.syncDateRangeControl();
     this.bindModals();
-    this.bindAddSiteModal();
     ClipboardHelper.init();
 
     // Initialize sub-controllers
@@ -431,7 +430,8 @@ const App = {
     // Click outside modal dialog to close
     document.querySelectorAll(".modal-overlay").forEach((overlay) => {
       overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) {
+        // Windows with several steps only close on purpose, not on a stray click.
+        if (e.target === overlay && !("staticBackdrop" in overlay.dataset)) {
           overlay.classList.remove("active");
         }
       });
@@ -444,112 +444,6 @@ const App = {
         .querySelectorAll(".modal-overlay.active")
         .forEach((m) => m.classList.remove("active"));
     });
-  },
-
-  bindAddSiteModal() {
-    const openBtn = document.getElementById("btnOpenAddSiteModal");
-    const modal = document.getElementById("addSiteModal");
-    const form = document.getElementById("addSiteForm");
-    const nameInput = document.getElementById("newSiteName");
-    const idInput = document.getElementById("newSiteId");
-    const domainInput = document.getElementById("newSiteDomain");
-    const errorBox = document.getElementById("addSiteError");
-    const successBox = document.getElementById("addSiteSuccess");
-    const snippetBox = document.getElementById("createdSiteSnippet");
-    const copyBtn = document.getElementById("btnCopySnippet");
-    const goToSiteBtn = document.getElementById("btnGoToCreatedSite");
-
-    if (!modal) return;
-
-    let autoSlug = true;
-
-    if (openBtn) {
-      openBtn.addEventListener("click", () => {
-        form.reset();
-        form.style.display = "block";
-        successBox.style.display = "none";
-        errorBox.style.display = "none";
-        autoSlug = true;
-        modal.classList.add("active");
-        setTimeout(() => nameInput.focus(), 50);
-      });
-    }
-
-    if (nameInput && idInput) {
-      nameInput.addEventListener("input", () => {
-        if (autoSlug) {
-          idInput.value = nameInput.value
-            .toLowerCase()
-            .trim()
-            .replace(/[^a-z0-9]+/g, "_")
-            .replace(/^_+|_+$/g, "");
-        }
-      });
-
-      idInput.addEventListener("input", () => {
-        autoSlug = false;
-      });
-    }
-
-    if (form) {
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        errorBox.style.display = "none";
-        const submitBtn = document.getElementById("btnSubmitNewSite");
-
-        const siteData = {
-          name: nameInput.value.trim(),
-          id: idInput.value.trim(),
-          domain: domainInput.value.trim(),
-        };
-
-        try {
-          submitBtn.disabled = true;
-          submitBtn.textContent = "Creating...";
-
-          const res = await Api.createSite(siteData);
-
-          // Show success snippet
-          form.style.display = "none";
-          successBox.style.display = "block";
-          snippetBox.dataset.rawText = res.snippet;
-          if (
-            window.ClipboardHelper &&
-            typeof window.ClipboardHelper.highlightHtml === "function"
-          ) {
-            snippetBox.innerHTML = window.ClipboardHelper.highlightHtml(
-              res.snippet,
-            );
-          } else {
-            snippetBox.textContent = res.snippet;
-          }
-
-          // Update active site
-          this.currentSiteId = res.site.id;
-
-          // Refresh sites list from backend
-          const sitesRes = await Api.getSites();
-          this.updateSiteSelect(sitesRes.sites || []);
-
-          if (this.currentPage === "websites") {
-            WebsitesPage.load();
-          }
-        } catch (err) {
-          errorBox.textContent = err.message || "Failed to create website";
-          errorBox.style.display = "block";
-        } finally {
-          submitBtn.disabled = false;
-          submitBtn.textContent = "Create Website";
-        }
-      });
-    }
-
-    if (goToSiteBtn) {
-      goToSiteBtn.addEventListener("click", () => {
-        modal.classList.remove("active");
-        this.selectSiteAndOpen(this.currentSiteId);
-      });
-    }
   },
 
   selectSiteAndOpen(siteId) {

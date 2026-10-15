@@ -20,30 +20,8 @@ const WebsitesPage = {
             });
         }
 
-        const addBtn = document.getElementById('btnWebsitesAddSite');
-        if (addBtn) {
-            addBtn.addEventListener('click', () => {
-                const headerAddBtn = document.getElementById('btnOpenAddSiteModal');
-                if (headerAddBtn) {
-                    headerAddBtn.click();
-                } else {
-                    const modal = document.getElementById('addSiteModal');
-                    if (modal) modal.classList.add('active');
-                }
-            });
-        }
-
-        const importBtn = document.getElementById('btnWebsitesImport');
-        if (importBtn) {
-            importBtn.addEventListener('click', () => {
-                if (window.ImportModal) {
-                    window.ImportModal.open();
-                } else {
-                    const modal = document.getElementById('importModal');
-                    if (modal) modal.classList.add('active');
-                }
-            });
-        }
+        // "Import Data" is wired by site-setup.js, which owns the add-website window.
+        document.getElementById('btnWebsitesAddSite')?.addEventListener('click', () => window.SiteSetup?.open('start'));
     },
 
     async load() {
@@ -285,25 +263,7 @@ const WebsitesPage = {
             return;
         }
 
-        const snippetBox = document.getElementById('createdSiteSnippet');
-        if (snippetBox) {
-            snippetBox.dataset.rawText = snippet;
-            if (window.ClipboardHelper && typeof window.ClipboardHelper.highlightHtml === 'function') {
-                snippetBox.innerHTML = window.ClipboardHelper.highlightHtml(snippet);
-            } else {
-                snippetBox.textContent = snippet;
-            }
-        }
-
-        const modal = document.getElementById('addSiteModal');
-        const form = document.getElementById('addSiteForm');
-        const successBox = document.getElementById('addSiteSuccess');
-
-        if (modal && form && successBox) {
-            form.style.display = 'none';
-            successBox.style.display = 'block';
-            modal.classList.add('active');
-        }
+        window.SiteSetup?.showSnippet(siteId, siteName, snippet);
     },
 
     async confirmDelete(siteId, siteName) {

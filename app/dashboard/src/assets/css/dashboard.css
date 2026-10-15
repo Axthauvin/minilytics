@@ -3660,17 +3660,11 @@ pre, .json-box, .code-box {
     .evt-dist-bar-wrap { grid-column: 1 / -1; grid-row: 2; }
 
     .modal-overlay { padding: 10px; align-items: flex-end; }
-    .modal-dialog, .import-dialog { max-height: calc(100dvh - 20px); width: 100%; border-radius: 12px; }
+    .modal-dialog { max-height: calc(100dvh - 20px); width: 100%; border-radius: 12px; }
     .modal-header, .modal-body { padding: 15px; }
     .modal-footer { flex-wrap: wrap; }
     .modal-footer .btn-primary, .modal-footer .btn-outline { flex: 1 1 140px; justify-content: center; }
-    .import-stepper span { font-size: 10px; letter-spacing: .02em; }
-    .import-step-actions { flex-wrap: wrap; }
-    .import-step-actions .btn-primary { flex: 1; }
-    .providers-grid { grid-template-columns: 1fr; }
-    .import-stats-grid { grid-template-columns: 1fr; }
     .modal-summary-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; margin-bottom: 18px !important; }
-    .import-site-fields { grid-template-columns: 1fr !important; }
 }
 
 @media (max-width: 480px) {
