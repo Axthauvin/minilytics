@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Minilytics\Importers;
 
 use InvalidArgumentException;
+use Minilytics\Database\Connections;
+use Minilytics\Database\DatabaseConnection;
+use Minilytics\Sites\SiteRegistry;
 use RuntimeException;
 use ZipArchive;
 
@@ -13,6 +16,9 @@ use ZipArchive;
  */
 abstract class BaseImporter implements ImporterInterface
 {
+    /** @param ?int $now Today as a Unix time, for tests whose exports have fixed dates. */
+    public function __construct(private readonly ?int $now = null) {}
+
     protected static array $countryMap = [
         'AF' => 'Afghanistan', 'AL' => 'Albania', 'DZ' => 'Algeria', 'AD' => 'Andorra',
         'AO' => 'Angola', 'AG' => 'Antigua and Barbuda', 'AR' => 'Argentina', 'AM' => 'Armenia',
@@ -167,6 +173,133 @@ abstract class BaseImporter implements ImporterInterface
             return $default;
         }
         return $val;
+    }
+
+    public function cleanSiteId(string $siteId): string
+    {
+        $clean = (string) preg_replace('/[^a-zA-Z0-9_\-]/', '', strtolower(trim($siteId)));
+        if ($clean === '') {
+            throw new InvalidArgumentException('A valid website identifier is required for import.');
+        }
+        return $clean;
+    }
+
+    /**
+     * Registers the website when it does not exist yet.
+     *
+     * @return array{string, string} The website name and domain.
+     */
+    protected function ensureSite(string $siteId, array $options): array
+    {
+        $siteName = ($options['name'] ?? '') ?: ucwords(str_replace(['_', '-'], ' ', $siteId));
+        $siteDomain = (string) ($options['domain'] ?? '');
+
+        $existing = SiteRegistry::find($siteId);
+        if ($existing !== null) {
+            return [(string) ($existing['name'] ?? '') ?: $siteName, (string) ($existing['domain'] ?? '') ?: $siteDomain];
+        }
+        SiteRegistry::create($siteId, $siteName, $siteDomain);
+        return [$siteName, $siteDomain];
+    }
+
+    /**
+     * Applies the "retention_days" option to the website, then returns the date before which
+     * its visits are deleted: importing them would only have them removed right away.
+     */
+    protected function retentionCutoff(string $siteId, array $options): string
+    {
+        if (isset($options['retention_days']) && is_numeric($options['retention_days'])) {
+            SiteRegistry::update($siteId, ['retention_days' => (int) $options['retention_days']]);
+        }
+        $site = SiteRegistry::find($siteId) ?? [];
+        $days = SiteRegistry::clampRetention((int) ($site['retention_days'] ?? SiteRegistry::DEFAULT_RETENTION_DAYS));
+        return gmdate('Y-m-d H:i:s', ($this->now ?? time()) - $days * 86400);
+    }
+
+    /** Opens the website database tuned for a bulk insert. Call finishBulkInsert() afterwards. */
+    protected function openForBulkInsert(string $siteId): DatabaseConnection
+    {
+        $db = Connections::forSite($siteId);
+        if (!$db->isMysql()) {
+            $db->exec('PRAGMA synchronous = OFF;');
+            $db->exec('PRAGMA journal_mode = MEMORY;');
+            $db->exec("CREATE TABLE IF NOT EXISTS user_activity (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                visitor_id TEXT,
+                action TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_ua_timestamp ON user_activity(timestamp)");
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_ua_session ON user_activity(session_id)");
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_ua_visitor ON user_activity(visitor_id)");
+        }
+        return $db;
+    }
+
+    /**
+     * Visits the website already has, so importing the same export twice does not count them twice.
+     *
+     * @return array<string, true>
+     */
+    protected function knownSessions(DatabaseConnection $db): array
+    {
+        $known = [];
+        $result = $db->query('SELECT DISTINCT session_id FROM user_activity');
+        while ($result !== false && ($row = $result->fetchArray(SQLITE3_ASSOC))) {
+            $known[(string) $row['session_id']] = true;
+        }
+        return $known;
+    }
+
+    protected function finishBulkInsert(DatabaseConnection $db): void
+    {
+        if (!$db->isMysql()) {
+            $db->exec('PRAGMA synchronous = NORMAL;');
+            $db->exec('PRAGMA journal_mode = WAL;');
+        }
+    }
+
+    /**
+     * Saves the most seen hostname as the website domain when it has none.
+     *
+     * @param array<string, int> $hostnames Hostname => number of events.
+     */
+    protected function saveDetectedDomain(string $siteId, string $siteDomain, array $hostnames): string
+    {
+        if ($siteDomain !== '' || $hostnames === []) {
+            return $siteDomain;
+        }
+        arsort($hostnames);
+        $detectedHost = (string) array_key_first($hostnames);
+        $sites = SiteRegistry::all();
+        foreach ($sites as &$s) {
+            if ($s['id'] === $siteId && empty($s['domain'])) {
+                $s['domain'] = $detectedHost;
+                if (empty($s['allowed_domains'])) {
+                    $s['allowed_domains'] = [SiteRegistry::normalizeHost($detectedHost)];
+                }
+                break;
+            }
+        }
+        unset($s);
+        SiteRegistry::save($sites);
+        return $detectedHost;
+    }
+
+    /** True for a ZIP archive, whatever its name (uploads have temporary names without extension). */
+    public function isZipArchiveFile(string $path): bool
+    {
+        if (!is_file($path)) {
+            return false;
+        }
+        $handle = @fopen($path, 'rb');
+        if (!$handle) {
+            return false;
+        }
+        $signature = fread($handle, 4);
+        fclose($handle);
+        return in_array($signature, ["PK\x03\x04", "PK\x05\x06", "PK\x07\x08"], true);
     }
 
     /**

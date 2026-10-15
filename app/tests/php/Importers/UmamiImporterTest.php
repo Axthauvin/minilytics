@@ -16,19 +16,24 @@ use ZipArchive;
 final class UmamiImporterTest extends TestCase
 {
     private const FIXTURES = __DIR__ . '/../fixtures/umami';
+    /** "Today" for the importer, a month after the fixture visits. */
+    private const NOW = 1770000000; // 2026-02-02
 
     public function testInspectDetectsTheWebsite(): void
     {
-        $inspection = (new UmamiImporter())->inspect(self::FIXTURES);
+        $inspection = (new UmamiImporter(self::NOW))->inspect(self::FIXTURES);
 
         $this->assertTrue($inspection['has_event_data']);
         $this->assertSame('blog.example.com', $inspection['detected_host']);
         $this->assertSame('blog', $inspection['suggested_site_id']);
+        $this->assertSame(2, $inspection['visits']);
+        $this->assertSame('2026-01-05 10:00:00', $inspection['date_start']);
+        $this->assertSame('2026-01-06 09:30:00', $inspection['date_end']);
     }
 
     public function testImportReportsWhatItImported(): void
     {
-        $result = (new UmamiImporter())->import(self::FIXTURES, 'umami_report');
+        $result = (new UmamiImporter(self::NOW))->import(self::FIXTURES, 'umami_report');
 
         $this->assertSame(3, $result['total_imported']);
         $this->assertSame(2, $result['pageviews']);
@@ -38,9 +43,19 @@ final class UmamiImporterTest extends TestCase
         $this->assertSame('2026-01-06 09:30:00', $result['date_end']);
     }
 
+    public function testImportingTheSameExportTwiceAddsNothing(): void
+    {
+        (new UmamiImporter(self::NOW))->import(self::FIXTURES, 'umami_twice');
+        $again = (new UmamiImporter(self::NOW))->import(self::FIXTURES, 'umami_twice');
+
+        $this->assertSame(0, $again['total_imported']);
+        $this->assertSame(2, $again['duplicate_sessions']);
+        $this->assertCount(3, $this->storedEvents('umami_twice'));
+    }
+
     public function testImportCreatesTheWebsiteWithTheDetectedDomain(): void
     {
-        (new UmamiImporter())->import(self::FIXTURES, 'umami_site', ['name' => 'My blog']);
+        (new UmamiImporter(self::NOW))->import(self::FIXTURES, 'umami_site', ['name' => 'My blog']);
 
         $site = array_values(array_filter(SiteRegistry::all(), static fn(array $s): bool => $s['id'] === 'umami_site'))[0] ?? null;
         $this->assertSame('My blog', $site['name'] ?? null);
@@ -49,7 +64,7 @@ final class UmamiImporterTest extends TestCase
 
     public function testPageviewsAreStoredInTheMinilyticsFormat(): void
     {
-        (new UmamiImporter())->import(self::FIXTURES, 'umami_pageviews');
+        (new UmamiImporter(self::NOW))->import(self::FIXTURES, 'umami_pageviews');
 
         [$home, $pricing] = $this->storedEvents('umami_pageviews');
         $this->assertSame('pageview', $home['name']);
@@ -65,7 +80,7 @@ final class UmamiImporterTest extends TestCase
 
     public function testCustomEventsKeepTheirTypedEventData(): void
     {
-        (new UmamiImporter())->import(self::FIXTURES, 'umami_events');
+        (new UmamiImporter(self::NOW))->import(self::FIXTURES, 'umami_events');
 
         $signup = $this->storedEvents('umami_events')[2];
         $this->assertSame('signup', $signup['name']);
@@ -89,17 +104,17 @@ final class UmamiImporterTest extends TestCase
         $zip->close();
 
         try {
-            $this->assertSame(3, (new UmamiImporter())->import($archive, 'umami_zip')['total_imported']);
+            $this->assertSame(3, (new UmamiImporter(self::NOW))->import($archive, 'umami_zip')['total_imported']);
         } finally {
             @unlink($archive);
         }
     }
 
-    public function testOnlyUmamiIsAvailable(): void
+    public function testOnlyUmamiAndMatomoAreAvailable(): void
     {
         $available = array_column(array_filter(ImporterRegistry::getProvidersList(), static fn(array $p): bool => $p['is_available']), 'id');
 
-        $this->assertSame(['umami'], array_values($available));
+        $this->assertSame(['umami', 'matomo'], array_values($available));
     }
 
     #[DataProvider('browsers')]

@@ -13,6 +13,15 @@ use RuntimeException;
 /** The tracked websites and their settings, kept in sites.json. */
 final class SiteRegistry
 {
+    /** Days of visits a website keeps: about 13 months by default, about 25 at most. */
+    public const DEFAULT_RETENTION_DAYS = 395;
+    public const MAX_RETENTION_DAYS = 760;
+
+    public static function clampRetention(int $days): int
+    {
+        return max(1, min(self::MAX_RETENTION_DAYS, $days));
+    }
+
     /** Every website, with the settings added in later versions filled in. */
     public static function all(): array
     {
@@ -41,7 +50,7 @@ final class SiteRegistry
                 $sitesChanged = true;
             }
             if (!isset($site['retention_days'])) {
-                $site['retention_days'] = 395;
+                $site['retention_days'] = self::DEFAULT_RETENTION_DAYS;
                 $sitesChanged = true;
             }
         }
@@ -66,7 +75,7 @@ final class SiteRegistry
                     'domain' => '',
                     'allowed_domains' => [],
                     'internal_ips' => [],
-                    'retention_days' => 395,
+                    'retention_days' => self::DEFAULT_RETENTION_DAYS,
                     'write_key' => bin2hex(random_bytes(24)),
                     'created_at' => gmdate('Y-m-d H:i:s', filemtime($file)),
                 ];
@@ -173,7 +182,7 @@ final class SiteRegistry
             'domain' => trim($domain),
             'allowed_domains' => array_filter([self::normalizeHost($domain)]),
             'internal_ips' => [],
-            'retention_days' => 395,
+            'retention_days' => self::DEFAULT_RETENTION_DAYS,
             'write_key' => bin2hex(random_bytes(24)),
             'created_at' => gmdate('Y-m-d H:i:s'),
         ];
@@ -204,7 +213,7 @@ final class SiteRegistry
                 $site['internal_ips'] = array_values(array_unique(array_filter(array_map('trim', $raw))));
             }
             if (array_key_exists('retention_days', $input)) {
-                $site['retention_days'] = max(1, min(760, (int) $input['retention_days']));
+                $site['retention_days'] = self::clampRetention((int) $input['retention_days']);
             }
             if (array_key_exists('allow_localhost', $input)) {
                 $site['allow_localhost'] = filter_var($input['allow_localhost'], FILTER_VALIDATE_BOOLEAN);

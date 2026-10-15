@@ -65,7 +65,7 @@ final class Connections
 
     private static function deleteExpiredData(DatabaseConnection $db, array $site): void
     {
-        $days = max(1, min(760, (int) ($site['retention_days'] ?? 395)));
+        $days = SiteRegistry::clampRetention((int) ($site['retention_days'] ?? SiteRegistry::DEFAULT_RETENTION_DAYS));
         $cutoff = gmdate('Y-m-d H:i:s', time() - $days * 86400);
         $stmt = $db->prepare('DELETE FROM user_activity WHERE timestamp < :cutoff');
         $stmt->bindValue(':cutoff', $cutoff, SQLITE3_TEXT);

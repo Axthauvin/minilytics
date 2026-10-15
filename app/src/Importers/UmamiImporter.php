@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Minilytics\Importers;
 
-use InvalidArgumentException;
-use Minilytics\Database\Connections;
-use Minilytics\Sites\SiteRegistry;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use RuntimeException;
@@ -17,20 +14,6 @@ use RuntimeException;
  */
 class UmamiImporter extends BaseImporter
 {
-    /** Uploaded files use PHP temporary names without a .zip extension on Windows. */
-    private function isZipArchiveFile(string $path): bool
-    {
-        if (!is_file($path)) {
-            return false;
-        }
-        $handle = @fopen($path, 'rb');
-        if (!$handle) {
-            return false;
-        }
-        $signature = fread($handle, 4);
-        fclose($handle);
-        return in_array($signature, ["PK\x03\x04", "PK\x05\x06", "PK\x07\x08"], true);
-    }
     public function getId(): string
     {
         return 'umami';
@@ -120,17 +103,30 @@ class UmamiImporter extends BaseImporter
             }
 
             $detectedHostnames = [];
+            $sessions = [];
+            $dateStart = null;
+            $dateEnd = null;
             $sampleRows = 0;
             $handle = fopen($found['website_event'], 'r');
             if ($handle) {
-                $header = fgetcsv($handle);
-                $hostIdx = array_search('hostname', $header ?: []);
-                while (($row = fgetcsv($handle)) !== false && $sampleRows < 500) {
-                    if ($hostIdx !== false && !empty($row[$hostIdx]) && $row[$hostIdx] !== '\N') {
+                $header = fgetcsv($handle) ?: [];
+                $hostIdx = array_search('hostname', $header);
+                $sessionIdx = array_search('session_id', $header);
+                $dateIdx = array_search('created_at', $header);
+                while (($row = fgetcsv($handle)) !== false) {
+                    // The website address is clear from the first rows.
+                    if ($sampleRows++ < 500 && $hostIdx !== false && !empty($row[$hostIdx]) && $row[$hostIdx] !== '\N') {
                         $h = trim($row[$hostIdx]);
                         $detectedHostnames[$h] = ($detectedHostnames[$h] ?? 0) + 1;
                     }
-                    $sampleRows++;
+                    if ($sessionIdx !== false && !empty($row[$sessionIdx])) {
+                        $sessions[$row[$sessionIdx]] = true;
+                    }
+                    $date = $dateIdx !== false ? $this->cleanVal($row[$dateIdx] ?? null) : null;
+                    if (is_string($date)) {
+                        $dateStart = $dateStart === null || $date < $dateStart ? $date : $dateStart;
+                        $dateEnd = $dateEnd === null || $date > $dateEnd ? $date : $dateEnd;
+                    }
                 }
                 fclose($handle);
             }
@@ -142,6 +138,9 @@ class UmamiImporter extends BaseImporter
                 'has_website_event' => true,
                 'has_event_data' => !empty($found['event_data']),
                 'has_session_data' => !empty($found['session_data']),
+                'visits' => count($sessions),
+                'date_start' => $dateStart,
+                'date_end' => $dateEnd,
                 'detected_host' => $primaryHost,
                 'suggested_site_id' => preg_replace('/[^a-z0-9_\-]/', '', strtolower(explode('.', $primaryHost)[0] ?: 'imported_site')),
                 'suggested_name' => ucwords(str_replace(['.', '-', '_'], ' ', $primaryHost ?: 'Imported Site')),
@@ -158,10 +157,7 @@ class UmamiImporter extends BaseImporter
      */
     public function import(string $sourcePath, string $siteId, array $options = []): array
     {
-        $cleanSiteId = preg_replace('/[^a-zA-Z0-9_\-]/', '', strtolower(trim($siteId)));
-        if ($cleanSiteId === '') {
-            throw new InvalidArgumentException('A valid website identifier is required for import.');
-        }
+        $cleanSiteId = $this->cleanSiteId($siteId);
         $tempDir = null;
         $workDir = $sourcePath;
 
@@ -225,50 +221,9 @@ class UmamiImporter extends BaseImporter
             }
 
             // 2. Ensure target site and DB exist
-            $sites = SiteRegistry::all();
-            $siteExists = false;
-            foreach ($sites as $s) {
-                if ($s['id'] === $cleanSiteId) {
-                    $siteExists = true;
-                    break;
-                }
-            }
-
-            $siteName = $options['name'] ?? ucwords(str_replace(['_', '-'], ' ', $cleanSiteId));
-            $siteDomain = $options['domain'] ?? '';
-
-            if (!$siteExists) {
-                $sites[] = [
-                    'id' => $cleanSiteId,
-                    'name' => $siteName,
-                    'domain' => $siteDomain,
-                    'created_at' => gmdate('Y-m-d H:i:s'),
-                ];
-                SiteRegistry::save($sites);
-            }
-
-            $db = Connections::forSite($cleanSiteId);
-            if (!$db->isMysql()) {
-                $db->exec('PRAGMA synchronous = OFF;');
-                $db->exec('PRAGMA journal_mode = MEMORY;');
-            }
-
-            // Ensure table and performance indexes
-            if (!$db->isMysql()) {
-                $db->exec("CREATE TABLE IF NOT EXISTS user_activity (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                session_id TEXT NOT NULL, 
-                visitor_id TEXT,
-                action TEXT NOT NULL, 
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            )");
-            }
-
-            if (!$db->isMysql()) {
-                $db->exec("CREATE INDEX IF NOT EXISTS idx_ua_timestamp ON user_activity(timestamp)");
-                $db->exec("CREATE INDEX IF NOT EXISTS idx_ua_session ON user_activity(session_id)");
-                $db->exec("CREATE INDEX IF NOT EXISTS idx_ua_visitor ON user_activity(visitor_id)");
-            }
+            [$siteName, $siteDomain] = $this->ensureSite($cleanSiteId, $options);
+            $cutoff = $this->retentionCutoff($cleanSiteId, $options);
+            $db = $this->openForBulkInsert($cleanSiteId);
 
             // 3. Parse and Insert website_event.csv in a single atomic transaction
             $weHandle = fopen($csvFiles['website_event'], 'r');
@@ -292,6 +247,10 @@ class UmamiImporter extends BaseImporter
             $pageviewCount = 0;
             $customEventCount = 0;
             $distinctSessions = [];
+            $expiredSessions = [];
+            // Visits already imported by an earlier import of the same export.
+            $knownSessions = $this->knownSessions($db);
+            $duplicateSessions = [];
             $hostnamesMap = [];
             $minTimestamp = '9999-99-99 99:99:99';
             $maxTimestamp = '0000-00-00 00:00:00';
@@ -312,6 +271,15 @@ class UmamiImporter extends BaseImporter
                 $urlPath = $get('url_path') ?: '/';
                 $urlQuery = $get('url_query') ?: '';
                 $createdAt = $get('created_at') ?: gmdate('Y-m-d H:i:s');
+                if (isset($knownSessions[$sessionId])) {
+                    $duplicateSessions[$sessionId] = true;
+                    continue;
+                }
+                // Older than the website keeps: it would be deleted right after the import.
+                if ($createdAt < $cutoff) {
+                    $expiredSessions[$sessionId] = true;
+                    continue;
+                }
 
                 if ($hostname !== '') {
                     $hostnamesMap[$hostname] = ($hostnamesMap[$hostname] ?? 0) + 1;
@@ -411,26 +379,8 @@ class UmamiImporter extends BaseImporter
             $db->exec('COMMIT;');
             fclose($weHandle);
 
-            // Revert SQLite settings to standard WAL
-            if (!$db->isMysql()) {
-                $db->exec('PRAGMA synchronous = NORMAL;');
-                $db->exec('PRAGMA journal_mode = WAL;');
-            }
-
-            // If domain was not set, update sites.json with primary hostname
-            if (empty($siteDomain) && !empty($hostnamesMap)) {
-                arsort($hostnamesMap);
-                $detectedHost = array_key_first($hostnamesMap);
-                $sites = SiteRegistry::all();
-                foreach ($sites as &$s) {
-                    if ($s['id'] === $cleanSiteId && empty($s['domain'])) {
-                        $s['domain'] = $detectedHost;
-                        break;
-                    }
-                }
-                SiteRegistry::save($sites);
-                $siteDomain = $detectedHost;
-            }
+            $this->finishBulkInsert($db);
+            $siteDomain = $this->saveDetectedDomain($cleanSiteId, $siteDomain, $hostnamesMap);
 
             return [
                 'success' => true,
@@ -442,6 +392,8 @@ class UmamiImporter extends BaseImporter
                 'pageviews' => $pageviewCount,
                 'custom_events' => $customEventCount,
                 'sessions' => count($distinctSessions),
+                'skipped_sessions' => count(array_diff_key($expiredSessions, $distinctSessions)),
+                'duplicate_sessions' => count($duplicateSessions),
                 'date_start' => ($totalImported > 0) ? $minTimestamp : null,
                 'date_end' => ($totalImported > 0) ? $maxTimestamp : null,
                 'detected_hostnames' => array_keys($hostnamesMap),
