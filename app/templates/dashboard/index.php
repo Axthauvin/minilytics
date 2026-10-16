@@ -111,7 +111,7 @@ use Minilytics\Http\View;
                 <?php include View::path('dashboard/pages/funnels'); ?>
                 <?php include View::path('dashboard/pages/settings'); ?>
             </main>
-            <p style="margin: 0 32px 20px; font-size: 11px; color: var(--text-muted);"><a href="https://db-ip.com" target="_blank" rel="noopener noreferrer" style="color: inherit;">IP Geolocation by DB-IP</a></p>
+            <p style="margin: 0 32px 20px; font-size: 11px; color: var(--text-muted);">This product includes GeoLite2 data created by MaxMind, available from <a href="https://www.maxmind.com" target="_blank" rel="noopener noreferrer" style="color: inherit;">https://www.maxmind.com</a></p>
         </div>
     </div>
 

@@ -50,7 +50,7 @@ minilytics.optIn();
 
 Minilytics shows the country, region and city of your visitors. It finds them from the visitor's IP address, without storing that address and without asking another service. If your website already runs behind a service that provides the location, such as Cloudflare, Minilytics uses it instead. Locations are approximate, especially cities.
 
-The location comes from [DB-IP City Lite](https://db-ip.com/db/download/ip-to-city-lite), a free database published under the CC BY 4.0 license. Your server downloads it from [jsDelivr](https://www.jsdelivr.com/package/npm/dbip-city-lite) the first time it is needed, then once a month. No visitor information is ever sent with this download.
+The location comes from [MaxMind GeoLite2 City](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data), a free database also used by Umami. Your server downloads it from a [public mirror on GitHub](https://github.com/GitSquared/node-geolite2-redist) the first time it is needed, then once a week. No visitor information is ever sent with this download.
 
 ## Website settings
 

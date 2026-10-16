@@ -30,7 +30,7 @@ Minilytics is a lightweight, privacy-friendly web analytics tool written in PHP.
 - Apache or LiteSpeed work out of the box; for Nginx or Caddy, apply the [web server configuration](docs/operations/README.md#web-server-configuration)
 - For MySQL or MariaDB: the `pdo_mysql` PHP extension and a database/user with `CREATE`, `ALTER`, `INDEX`, `SELECT`, `INSERT`, `UPDATE` and `DELETE` permissions
 - A writable data directory outside the web root (default: `minilytics-data/` next to the web root, or set `MINILYTICS_DATA_DIR`)
-- Outbound HTTPS access and `zlib` support (to download the local DB-IP City Lite geolocation database)
+- Outbound HTTPS access and `zlib` support (to download the local MaxMind GeoLite2 City geolocation database)
 
 _Note: The `zip` extension is only needed if you import historical data from external services._
 

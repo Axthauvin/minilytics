@@ -44,11 +44,11 @@ test('overview treats MySQL JSON null referrers as direct traffic', () => {
 test('local GeoIP database is refreshed without an API key or visitor lookup', () => {
   const geo = read('src/Geo/GeoLocation.php');
 
-  assert.match(geo, /dbip-city-lite\.mmdb\.gz/);
-  assert.match(geo, /MAX_AGE_SECONDS = 35 \* 86400/);
+  assert.match(geo, /GeoLite2-City\.tar\.gz/);
+  assert.match(geo, /MAX_AGE_SECONDS = 7 \* 86400/);
   assert.match(geo, /new \\MaxMind\\Db\\Reader/);
   assert.match(geo, /CURLOPT_FILE => \$file/);
-  assert.match(geo, /gzread\(\$input, 1024 \* 1024\)/);
+  assert.match(geo, /gzread\(\$input, min\(\$size, 1024 \* 1024\)\)/);
   assert.doesNotMatch(geo, /api[_-]?key|token=/i);
 });
 
