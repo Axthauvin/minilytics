@@ -78,6 +78,21 @@ final class SiteAnalyticsTest extends TestCase
         $this->assertSame(66.7, $pages[0]['percentage']);
     }
 
+    public function testReferrersCountEachVisitOnceFromItsFirstPageview(): void
+    {
+        $this->record('s1', 'v1', 'pageview', ['path' => '/', 'referrer' => 'google.com'], 3600);
+        $this->record('s1', 'v1', 'pageview', ['path' => '/pricing', 'referrer' => 'google.com'], 3500);
+        $this->record('s1', 'v1', 'pageview', ['path' => '/about', 'referrer' => 'google.com'], 3400);
+        $this->record('s2', 'v2', 'pageview', ['path' => '/', 'referrer' => 'news.ycombinator.com'], 1800);
+        $this->record('s3', 'v3', 'pageview', ['path' => '/'], 900);
+        $this->record('s3', 'v3', 'pageview', ['path' => '/pricing', 'referrer' => 'google.com'], 800);
+
+        $referrers = $this->analytics('7d')->topReferrers();
+
+        $this->assertEquals(['google.com' => 1, 'news.ycombinator.com' => 1, 'direct' => 1], array_column($referrers, 'visits', 'domain'));
+        $this->assertSame([33.3, 33.3, 33.3], array_column($referrers, 'percentage'));
+    }
+
     public function testBotActivityIsSummarisedByReasonAndAgent(): void
     {
         $this->recordBot('known_bot_user_agent', 'Googlebot/2.1', 'ip-1', 3600);

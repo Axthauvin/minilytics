@@ -431,13 +431,13 @@ const OverviewPage = {
       const key = isDirect ? "direct" : r.domain;
       const existing = byDomain.get(key);
       if (existing) {
-        existing.views += r.views || 0;
+        existing.visits += r.visits || 0;
         existing.percentage = Math.round((existing.percentage + (r.percentage || 0)) * 10) / 10;
       } else {
-        byDomain.set(key, { ...r, domain: key, views: r.views || 0, percentage: r.percentage || 0 });
+        byDomain.set(key, { ...r, domain: key, visits: r.visits || 0, percentage: r.percentage || 0 });
       }
     });
-    const referrers = [...byDomain.values()].sort((a, b) => b.views - a.views);
+    const referrers = [...byDomain.values()].sort((a, b) => b.visits - a.visits);
 
     if (referrers.length === 0) {
       list.innerHTML = `<li class="clean-pill-row empty"><span class="pill-muted">No referrer data recorded yet</span></li>`;
@@ -467,7 +467,7 @@ const OverviewPage = {
                     </div>
                     <div class="pill-right">
                         ${this.rowActions("referrer", r.domain, domain)}
-                        <span class="pill-stat">${r.views.toLocaleString()}</span>
+                        <span class="pill-stat">${r.visits.toLocaleString()}</span>
                         <span class="pill-pct">${pct}%</span>
                     </div>
                 </li>
