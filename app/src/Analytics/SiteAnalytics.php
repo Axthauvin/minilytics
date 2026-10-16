@@ -80,7 +80,7 @@ final class SiteAnalytics
     /** @see ReferrersReport::top() */
     public function topReferrers(int $limit = 100): array
     {
-        return (new ReferrersReport($this->query, $this->summary))->top($limit);
+        return (new ReferrersReport($this->query))->top($limit);
     }
 
     /** @see EventsReport::top() */

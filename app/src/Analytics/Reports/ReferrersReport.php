@@ -11,25 +11,29 @@ use Throwable;
 /** Referring domains. */
 final class ReferrersReport
 {
-    public function __construct(
-        private readonly ReportQuery $query,
-        private readonly SummaryReport $summary,
-    ) {}
+    public function __construct(private readonly ReportQuery $query) {}
 
-    /** Referring domains by pageviews, excluding the website's own domains. */
+    /**
+     * Referring domains by visits, excluding the website's own domains. Each
+     * visit is attributed once, from the referrer of its first pageview.
+     */
     public function top(int $limit = 100): array
     {
-        $totalPageviews = $this->summary->get()['pageviews'];
         $ownDomains = $this->ownDomains();
         $referrers = [];
         foreach ($this->query->periodRows("
-            SELECT
-                json_extract(action, '$.data.referrer') as referrer,
-                COUNT(*) as count
-            FROM user_activity
-            WHERE timestamp >= :start_date AND timestamp <= :end_date
-              AND json_extract(action, '$.name') = 'pageview'
-              {$this->query->condition()}
+            WITH landings AS (
+                SELECT
+                    json_extract(action, '$.data.referrer') as referrer,
+                    ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY timestamp, id) as n
+                FROM user_activity
+                WHERE timestamp >= :start_date AND timestamp <= :end_date
+                  AND json_extract(action, '$.name') = 'pageview'
+                  {$this->query->condition()}
+            )
+            SELECT referrer, COUNT(*) as count, SUM(COUNT(*)) OVER () as total
+            FROM landings
+            WHERE n = 1
             GROUP BY referrer
             ORDER BY count DESC
             LIMIT 150
@@ -54,12 +58,13 @@ final class ReferrersReport
             }
 
             $count = (int) $row['count'];
+            $total = (int) $row['total'];
             $referrers[] = [
                 'name' => $cleanRef,
                 'domain' => $domain,
                 'raw' => $rawRef,
-                'views' => $count,
-                'percentage' => $totalPageviews > 0 ? round(($count / $totalPageviews) * 100, 1) : 0,
+                'visits' => $count,
+                'percentage' => $total > 0 ? round(($count / $total) * 100, 1) : 0,
             ];
             if (count($referrers) >= 100) {
                 break;

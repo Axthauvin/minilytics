@@ -66,7 +66,7 @@ final class AnalyticsTools
             self::report(
                 'get_top_referrers',
                 'Top referrers',
-                'Websites sending traffic, by pageviews ("Direct / None" when there is no referrer). The website\'s own domains are excluded.',
+                'Websites sending traffic, by visits, each visit counted once from its first page ("Direct / None" when there is no referrer). The website\'s own domains are excluded.',
                 static fn(SiteAnalytics $analytics, array $args): array => ['referrers' => $analytics->topReferrers(self::limit($args))],
                 $limit,
             ),
